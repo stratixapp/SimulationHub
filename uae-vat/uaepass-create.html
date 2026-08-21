@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Create UAE PASS — VAT Return Filing Simulator</title>
+<link rel="stylesheet" href="css/style.css" />
+<link rel="icon" href="favicon.ico" />
+<link rel="apple-touch-icon" href="icons/icon-180.png" />
+<link rel="manifest" href="manifest.json" />
+<meta name="theme-color" content="#0d8a51" />
+</head>
+<body>
+
+<div class="topbar">
+  <div class="text-size"><button data-textsize="down" aria-label="Decrease text size">-A</button><button data-textsize="reset" aria-label="Reset text size">A</button><button data-textsize="up" aria-label="Increase text size">+A</button></div>
+</div>
+
+<header class="app-header" style="background:#0d8a51">
+  <div class="brand">
+    <div class="brand-emblem" style="background:#fff;color:#0d8a51">ID</div>
+    <div class="brand-text">
+      <div class="ar" style="color:#fff">الهوية الرقمية الإماراتية</div>
+      <div class="en" style="color:#fff">UAE PASS</div>
+      <div class="sub" style="color:#d7f2e3">Simulated — Training Edition</div>
+    </div>
+  </div>
+  <div class="header-spacer"></div>
+  <span class="training-badge">🎓 Training Mode</span>
+</header>
+
+<div class="breadcrumb"><a href="index.html">Home</a><span class="sep">›</span><span class="current">Create UAE PASS Account</span></div>
+
+<div class="app-shell">
+  <main class="content narrow" style="padding-top:0;max-width:640px;margin:0 auto">
+
+    <div id="wizardWrap">
+      <div class="wizard-progress" style="position:static;padding:14px 0 0">
+        <h1 style="font-size:16px;margin-bottom:4px">Create Your UAE PASS</h1>
+        <p style="font-size:12px;color:var(--text-muted);margin-bottom:14px">Step <span id="stepNumOut">1</span> of 11 — <span id="stepTitleOut">Welcome</span></p>
+        <div style="height:6px;background:var(--bg);border-radius:4px;overflow:hidden;margin-bottom:6px">
+          <div id="progressBar" style="height:100%;width:10%;background:#0d8a51;transition:width .25s"></div>
+        </div>
+      </div>
+
+      <div style="padding:18px 0 100px">
+
+        <!-- Step 1: Welcome -->
+        <div class="panel panel-pad step-panel" data-panel="1" style="text-align:center">
+          <div style="font-size:44px;margin-bottom:10px">📱</div>
+          <p style="font-size:13px;color:var(--text)">UAE PASS is the UAE's national digital identity — one login used across thousands of government and private services, including EmaraTax.</p>
+          <p style="font-size:12px;color:var(--text-muted)">In the real app, this step is opening the UAE PASS mobile app. Click Continue to simulate that.</p>
+        </div>
+
+        <!-- Step 2: Create New Account -->
+        <div class="panel panel-pad step-panel" data-panel="2" style="display:none">
+          <div class="box-section-label" style="padding-top:0">Get Started</div>
+          <div class="radio-pill-group" style="flex-direction:column;align-items:stretch">
+            <label class="radio-pill"><input type="radio" name="startChoice" value="create" checked /> Create New Account</label>
+            <label class="radio-pill"><input type="radio" name="startChoice" value="existing" disabled /> I already have a UAE PASS (not available in this simulator)</label>
+          </div>
+        </div>
+
+        <!-- Step 3: Terms & Conditions -->
+        <div class="panel panel-pad step-panel" data-panel="3" style="display:none">
+          <div class="box-section-label" style="padding-top:0">Terms &amp; Conditions</div>
+          <div style="max-height:160px;overflow-y:auto;font-size:11.5px;color:var(--text-muted);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:14px">
+            This simulated UAE PASS is part of an offline training tool and creates no real national digital identity. By continuing, you agree this credential is for classroom practice only and has no legal effect, cannot be used on any real government or private service, and all information stays in this browser.
+          </div>
+          <div class="check-row">
+            <label><input type="checkbox" id="tcAgree" /> I have read and accept the Terms &amp; Conditions</label>
+          </div>
+        </div>
+
+        <!-- Step 4: Account Type -->
+        <div class="panel panel-pad step-panel" data-panel="4" style="display:none">
+          <div class="box-section-label" style="padding-top:0">Choose Account Type</div>
+          <div class="radio-pill-group" style="flex-direction:column;align-items:stretch">
+            <label class="radio-pill"><input type="radio" name="accountType" value="Citizen" /> UAE Citizen</label>
+            <label class="radio-pill"><input type="radio" name="accountType" value="Resident" checked /> UAE Resident</label>
+            <label class="radio-pill"><input type="radio" name="accountType" value="Visitor" /> Visitor</label>
+          </div>
+        </div>
+
+        <!-- Step 5: Emirates ID -->
+        <div class="panel panel-pad step-panel" data-panel="5" style="display:none">
+          <div class="box-section-label" style="padding-top:0">Emirates ID</div>
+          <div class="check-row" style="margin-bottom:14px">
+            <label><input type="checkbox" id="noEid" /> I don't have an Emirates ID (enter details manually)</label>
+          </div>
+          <div class="field" id="f_eid">
+            <label for="eidInput">Emirates ID Number</label>
+            <div style="display:flex;gap:8px">
+              <input type="text" id="eidInput" placeholder="784-YYYY-XXXXXXX-X" style="flex:1" />
+              <button type="button" class="btn btn-outline btn-sm" id="btnScanEid">📷 Scan Now</button>
+            </div>
+            <div class="hint">"Scan Now" simulates scanning a physical Emirates ID card. Already applied? <a href="emirates-id-create.html" target="_blank">Apply for Emirates ID</a> in a new tab, then come back and use the same "Scan Now" button.</div>
+            <div class="error-msg">Enter a valid Emirates ID.</div>
+          </div>
+          <div class="box-section-label">Upload Emirates ID Photos</div>
+          <p style="font-size:12px;color:var(--text-muted);margin-bottom:10px">Real UAE PASS scans both sides of your physical card to auto-fill your details. Optional here — training only.</p>
+          <div class="two-col">
+            <div class="field">
+              <label style="cursor:pointer">
+                📷 Upload Front Side
+                <input type="file" id="eidPhotoFrontInput" accept="image/*" style="display:none" />
+              </label>
+              <div id="eidPhotoFrontStatus" style="font-size:11.5px;color:var(--text-faint);margin-top:4px">No photo uploaded.</div>
+              <img id="eidPhotoFrontPreview" style="display:none;max-width:100%;margin-top:6px;border:1px solid var(--border);border-radius:8px" />
+            </div>
+            <div class="field">
+              <label style="cursor:pointer">
+                📷 Upload Back Side
+                <input type="file" id="eidPhotoBackInput" accept="image/*" style="display:none" />
+              </label>
+              <div id="eidPhotoBackStatus" style="font-size:11.5px;color:var(--text-faint);margin-top:4px">No photo uploaded.</div>
+              <img id="eidPhotoBackPreview" style="display:none;max-width:100%;margin-top:6px;border:1px solid var(--border);border-radius:8px" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 6: Personal Details -->
+        <div class="panel panel-pad step-panel" data-panel="6" style="display:none">
+          <div class="box-section-label" style="padding-top:0">Personal Details</div>
+          <div class="two-col">
+            <div class="field" id="f_pFirst"><label for="pFirst">First Name</label><input type="text" id="pFirst" /><div class="error-msg">Required.</div></div>
+            <div class="field" id="f_pLast"><label for="pLast">Last Name</label><input type="text" id="pLast" /><div class="error-msg">Required.</div></div>
+          </div>
+          <div class="field">
+            <label>Gender</label>
+            <div class="radio-pill-group">
+              <label class="radio-pill"><input type="radio" name="gender" value="Male" checked /> Male</label>
+              <label class="radio-pill"><input type="radio" name="gender" value="Female" /> Female</label>
+            </div>
+          </div>
+          <div class="two-col">
+            <div class="field" id="f_pMobile"><label for="pMobile">Mobile Number</label><input type="tel" id="pMobile" placeholder="e.g. 501234567" /><div class="error-msg">Enter a valid UAE mobile number.</div></div>
+            <div class="field" id="f_pEmail"><label for="pEmail">Email Address</label><input type="email" id="pEmail" /><div class="error-msg">Enter a valid email.</div></div>
+          </div>
+        </div>
+
+        <!-- Step 7: Mobile OTP -->
+        <div class="panel panel-pad step-panel" data-panel="7" style="display:none;text-align:center">
+          <div class="box-section-label" style="padding-top:0;text-align:left">Verify Your Mobile Number</div>
+          <p style="font-size:12.5px;color:var(--text-muted)">An OTP has been sent to <strong id="mobileEcho">—</strong> (simulated).</p>
+          <div style="font-size:28px;font-weight:800;letter-spacing:6px;color:#0d8a51;background:var(--bg);border-radius:8px;padding:14px;margin:14px 0" id="mobileOtpDisplay">------</div>
+          <div class="field" id="f_mobileOtpInput" style="max-width:220px;margin:0 auto">
+            <label for="mobileOtpInput">Enter the 6-digit code</label>
+            <input type="text" id="mobileOtpInput" inputmode="numeric" maxlength="6" style="text-align:center;letter-spacing:4px" />
+            <div class="error-msg">Enter the 6-digit code shown above.</div>
+          </div>
+        </div>
+
+        <!-- Step 8: Email OTP -->
+        <div class="panel panel-pad step-panel" data-panel="8" style="display:none;text-align:center">
+          <div class="box-section-label" style="padding-top:0;text-align:left">Verify Your Email Address</div>
+          <p style="font-size:12.5px;color:var(--text-muted)">An OTP has been sent to <strong id="emailEcho">—</strong> (simulated).</p>
+          <div style="font-size:28px;font-weight:800;letter-spacing:6px;color:#0d8a51;background:var(--bg);border-radius:8px;padding:14px;margin:14px 0" id="emailOtpDisplay">------</div>
+          <div class="field" id="f_emailOtpInput" style="max-width:220px;margin:0 auto">
+            <label for="emailOtpInput">Enter the 6-digit code</label>
+            <input type="text" id="emailOtpInput" inputmode="numeric" maxlength="6" style="text-align:center;letter-spacing:4px" />
+            <div class="error-msg">Enter the 6-digit code shown above.</div>
+          </div>
+        </div>
+
+        <!-- Step 9: Set PIN -->
+        <div class="panel panel-pad step-panel" data-panel="9" style="display:none">
+          <div class="box-section-label" style="padding-top:0">Set Your PIN</div>
+          <p style="font-size:12.5px;color:var(--text-muted);margin-bottom:14px">This PIN protects your UAE PASS app and confirms every future login and digital signature.</p>
+          <div class="two-col">
+            <div class="field" id="f_pin1"><label for="pin1">Create 4-digit PIN</label><input type="password" id="pin1" inputmode="numeric" maxlength="4" /><div class="error-msg">Enter exactly 4 digits.</div></div>
+            <div class="field" id="f_pin2"><label for="pin2">Confirm PIN</label><input type="password" id="pin2" inputmode="numeric" maxlength="4" /><div class="error-msg">PINs do not match.</div></div>
+          </div>
+        </div>
+
+        <!-- Step 10: Face Verification -->
+        <div class="panel panel-pad step-panel" data-panel="10" style="display:none;text-align:center">
+          <div class="box-section-label" style="padding-top:0;text-align:left">Face Verification</div>
+          <p style="font-size:12px;color:var(--text-muted);margin-bottom:6px">UAE PASS matches a live facial capture against your Emirates ID photo on record, with liveness detection to confirm you're physically present.</p>
+          <div id="faceCircle" style="width:140px;height:140px;border-radius:50%;border:4px solid #0d8a51;margin:20px auto;display:flex;align-items:center;justify-content:center;font-size:50px;overflow:hidden;background-size:cover;background-position:center">🙂</div>
+          <p style="font-size:12.5px;color:var(--text-muted)" id="faceStatusText">Click "Start Verification" and hold still (simulated).</p>
+          <button type="button" class="btn btn-outline" id="btnStartFace">▶ Start Verification</button>
+          <div style="margin-top:18px;padding-top:16px;border-top:1px solid var(--border)">
+            <p style="font-size:11.5px;color:var(--text-muted);margin-bottom:8px">Optional: upload a profile photo to use on your UAE PASS Digital ID card, instead of initials.</p>
+            <label class="btn btn-outline btn-sm" style="cursor:pointer">
+              📷 Upload Profile Photo
+              <input type="file" id="profilePhotoInput" accept="image/*" style="display:none" />
+            </label>
+            <div id="profilePhotoStatus" style="font-size:11.5px;color:var(--text-faint);margin-top:6px">No photo uploaded.</div>
+          </div>
+        </div>
+
+        <!-- Step 11: Create Password (for document signing) -->
+        <div class="panel panel-pad step-panel" data-panel="11" style="display:none">
+          <div class="box-section-label" style="padding-top:0">Create a Password</div>
+          <p style="font-size:12.5px;color:var(--text-muted);margin-bottom:14px">For added security, UAE PASS also asks for a password — separate from your PIN — used specifically when signing documents digitally.</p>
+          <div class="two-col">
+            <div class="field" id="f_pw1">
+              <label for="pw1">Password</label>
+              <input type="password" id="pw1" placeholder="At least 8 characters, letters, numbers &amp; symbols" />
+              <div class="error-msg">Use at least 8 characters, with letters, numbers, and a symbol.</div>
+            </div>
+            <div class="field" id="f_pw2">
+              <label for="pw2">Confirm Password</label>
+              <input type="password" id="pw2" />
+              <div class="error-msg">Passwords do not match.</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Success -->
+    <div id="successWrap" style="display:none;padding:40px 10px;text-align:center">
+      <div class="success-icon" style="margin:0 auto 18px">✅</div>
+      <h2 style="font-size:18px;margin-bottom:8px">UAE PASS Created</h2>
+      <p style="color:var(--text-muted);font-size:13px;max-width:420px;margin:0 auto 18px">Your simulated UAE PASS is ready. You can now use "Login With UAE PASS" for any linked VAT training account.</p>
+      <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+        <button class="btn btn-outline" id="btnDownloadUaePassPdf" style="border-color:#0d8a51;color:#0d8a51">⬇ Download UAE PASS Digital ID (PDF)</button>
+        <button class="btn btn-gold" style="background:#0d8a51;border-color:#0d8a51" onclick="window.location.href='login.html'">Continue to Login</button>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<div class="wizard-footer no-print" id="wizardFooter">
+  <button class="btn btn-outline" id="btnBack">Back</button>
+  <div class="right-actions">
+    <button class="btn btn-gold" id="btnNext" style="background:#0d8a51;border-color:#0d8a51">Continue</button>
+  </div>
+</div>
+
+<div class="footer-note">
+  <strong>UAE PASS (Simulated)</strong> — part of the UAE VAT Simulator, Created By Ananthu Shaji · Not a real government identity service
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/uaepass-create.js"></script>
+</body>
+</html>

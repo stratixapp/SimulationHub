@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Login With UAE PASS — VAT Return Filing Simulator</title>
+<link rel="stylesheet" href="css/style.css" />
+<link rel="icon" href="favicon.ico" />
+<link rel="apple-touch-icon" href="icons/icon-180.png" />
+<link rel="manifest" href="manifest.json" />
+<meta name="theme-color" content="#0d8a51" />
+</head>
+<body>
+
+<div class="topbar">
+  <div class="text-size"><button data-textsize="down" aria-label="Decrease text size">-A</button><button data-textsize="reset" aria-label="Reset text size">A</button><button data-textsize="up" aria-label="Increase text size">+A</button></div>
+</div>
+
+<header class="app-header" style="background:#0d8a51">
+  <div class="brand">
+    <div class="brand-emblem" style="background:#fff;color:#0d8a51">ID</div>
+    <div class="brand-text">
+      <div class="ar" style="color:#fff">الهوية الرقمية الإماراتية</div>
+      <div class="en" style="color:#fff">UAE PASS</div>
+      <div class="sub" style="color:#d7f2e3">Simulated — Training Edition</div>
+    </div>
+  </div>
+  <div class="header-spacer"></div>
+  <span class="training-badge">🎓 Training Mode</span>
+</header>
+
+<div class="breadcrumb"><a href="index.html">Home</a><span class="sep">›</span><span class="current">Login With UAE PASS</span></div>
+
+<div class="app-shell">
+  <main class="content narrow" style="padding-top:18px;max-width:520px;margin:0 auto">
+
+    <div id="wizardWrap">
+      <p style="font-size:12px;color:var(--text-muted);text-align:center;margin-bottom:16px">Step <span id="stepNumOut">1</span> of 5</p>
+
+      <!-- Step 1: Redirect -->
+      <div class="panel panel-pad step-panel" data-panel="1" style="text-align:center">
+        <div style="font-size:44px;margin-bottom:10px">↪</div>
+        <p style="font-size:13px">You're being redirected to UAE PASS to sign in (simulated).</p>
+        <p style="font-size:12px;color:var(--text-muted)">In the real flow, this hands off to the UAE PASS identity provider.</p>
+      </div>
+
+      <!-- Step 2: Identifier -->
+      <div class="panel panel-pad step-panel" data-panel="2" style="display:none">
+        <div class="box-section-label" style="padding-top:0">Sign In</div>
+        <div class="field" id="f_identifier">
+          <label for="identifierInput">Emirates ID, Mobile Number, or Email</label>
+          <input type="text" id="identifierInput" placeholder="Enter your registered UAE PASS identifier" />
+          <div class="error-msg">This doesn't match your UAE PASS account.</div>
+        </div>
+      </div>
+
+      <!-- Step 3: PIN -->
+      <div class="panel panel-pad step-panel" data-panel="3" style="display:none">
+        <div class="box-section-label" style="padding-top:0">Enter Your PIN</div>
+        <div class="field" id="f_pinInput" style="max-width:220px;margin:0 auto">
+          <input type="password" id="pinInput" inputmode="numeric" maxlength="6" style="text-align:center;letter-spacing:6px;font-size:20px" />
+          <div class="error-msg">Incorrect PIN.</div>
+        </div>
+      </div>
+
+      <!-- Step 4: Verification method -->
+      <div class="panel panel-pad step-panel" data-panel="4" style="display:none">
+        <div class="box-section-label" style="padding-top:0">Choose Verification Method</div>
+        <div class="radio-pill-group" style="flex-direction:column;align-items:stretch">
+          <label class="radio-pill"><input type="radio" name="verifyMethod" value="face" checked /> Face ID (App Notification)</label>
+          <label class="radio-pill"><input type="radio" name="verifyMethod" value="otp" /> SMS One-Time Password</label>
+        </div>
+      </div>
+
+      <!-- Step 5: Verify -->
+      <div class="panel panel-pad step-panel" data-panel="5" style="display:none;text-align:center">
+        <div id="faceApproval">
+          <div style="font-size:44px;margin:10px auto">📲</div>
+          <p style="font-size:13px" id="faceApprovalText">Waiting for approval on your UAE PASS app (simulated)…</p>
+        </div>
+        <div id="otpApproval" style="display:none">
+          <p style="font-size:12.5px;color:var(--text-muted)">Code sent (simulated):</p>
+          <div style="font-size:26px;font-weight:800;letter-spacing:6px;color:#0d8a51;background:var(--bg);border-radius:8px;padding:12px;margin:10px 0" id="loginOtpDisplay">------</div>
+          <div class="field" id="f_loginOtpInput" style="max-width:220px;margin:0 auto">
+            <input type="text" id="loginOtpInput" inputmode="numeric" maxlength="6" style="text-align:center;letter-spacing:4px" placeholder="Enter code" />
+            <div class="error-msg">Code doesn't match.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="successWrap" style="display:none;padding:40px 10px;text-align:center">
+      <div class="success-icon" style="margin:0 auto 18px">✅</div>
+      <h2 style="font-size:18px;margin-bottom:8px">Signed In</h2>
+      <p style="color:var(--text-muted);font-size:13px">Redirecting you back to the VAT simulator…</p>
+    </div>
+
+  </main>
+</div>
+
+<div class="wizard-footer no-print" id="wizardFooter">
+  <button class="btn btn-outline" id="btnBack">Back</button>
+  <div class="right-actions">
+    <button class="btn btn-gold" id="btnNext" style="background:#0d8a51;border-color:#0d8a51">Continue</button>
+  </div>
+</div>
+
+<div class="footer-note">
+  <strong>UAE PASS (Simulated)</strong> — part of the UAE VAT Simulator, Created By Ananthu Shaji · Not a real government identity service
+</div>
+
+<script src="js/storage.js"></script>
+<script src="js/uaepass-login.js"></script>
+</body>
+</html>

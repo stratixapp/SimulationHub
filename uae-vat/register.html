@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>VAT Registration — VAT Return Filing Simulator</title>
+<link rel="stylesheet" href="css/style.css" />
+<link rel="icon" href="favicon.ico" />
+<link rel="apple-touch-icon" href="icons/icon-180.png" />
+<link rel="manifest" href="manifest.json" />
+<meta name="theme-color" content="#0c1f38" />
+</head>
+<body>
+
+<div class="topbar">
+  <div class="text-size"><button data-textsize="down" aria-label="Decrease text size">-A</button><button data-textsize="reset" aria-label="Reset text size">A</button><button data-textsize="up" aria-label="Increase text size">+A</button></div>
+  <span class="lang-toggle" role="button" tabindex="0" aria-label="Switch to Arabic (not fully supported in this training simulator)">عربي</span>
+</div>
+
+<header class="app-header">
+  <div class="brand">
+    <div class="brand-emblem">FTA</div>
+    <div class="brand-text">
+      <div class="ar">الهيئة الاتحادية للضرائب</div>
+      <div class="en">FEDERAL TAX AUTHORITY</div>
+      <div class="sub">VAT Return Filing Simulator</div>
+    </div>
+  </div>
+  <div class="header-spacer"></div>
+  <span class="training-badge">🎓 Training Mode</span>
+  <div class="uae-emblem-mini">UAE</div>
+</header>
+
+<div class="breadcrumb"><a href="index.html">Home</a><span class="sep">›</span><span class="current">New Taxable Person — VAT Registration</span></div>
+
+<div class="app-shell">
+  <main class="content narrow" style="padding-top:0;max-width:760px;margin:0 auto">
+
+    <!-- ===================== Wizard ===================== -->
+    <div id="wizardWrap">
+      <div class="wizard-progress" style="position:static;padding:14px 0 0">
+        <h1 style="font-size:16px;margin-bottom:14px">New VAT Registration</h1>
+        <div class="stepper" id="stepper" style="flex-wrap:wrap;row-gap:10px">
+          <div class="step active" data-step="1"><div class="circ">1</div><div class="label">Login</div></div>
+          <div class="connector" data-conn="1"></div>
+          <div class="step" data-step="2"><div class="circ">2</div><div class="label">Entity</div></div>
+          <div class="connector" data-conn="2"></div>
+          <div class="step" data-step="3"><div class="circ">3</div><div class="label">Registration</div></div>
+          <div class="connector" data-conn="3"></div>
+          <div class="step" data-step="4"><div class="circ">4</div><div class="label">Contact</div></div>
+          <div class="connector" data-conn="4"></div>
+          <div class="step" data-step="5"><div class="circ">5</div><div class="label">Signatory</div></div>
+          <div class="connector" data-conn="5"></div>
+          <div class="step" data-step="6"><div class="circ">6</div><div class="label">Bank</div></div>
+          <div class="connector" data-conn="6"></div>
+          <div class="step" data-step="7"><div class="circ">7</div><div class="label">Review</div></div>
+        </div>
+      </div>
+
+      <div style="padding:18px 0 100px">
+
+        <!-- Step 1: Login -->
+        <div class="panel panel-pad step-panel" data-panel="1">
+          <div class="box-section-label" style="padding-top:0">Create Your EmaraTax Login</div>
+          <p style="font-size:12.5px;color:var(--text-muted);margin-bottom:16px">Every VAT registration starts by creating (or using) an EmaraTax account. This becomes your login for the simulator.</p>
+          <div class="field" id="f_email">
+            <label for="inEmail">Email Address</label>
+            <input type="email" id="inEmail" placeholder="name@company.com" />
+            <div class="error-msg">A valid email is required, and must not already be registered.</div>
+          </div>
+          <div class="two-col">
+            <div class="field" id="f_password">
+              <label for="inPassword">Create Password</label>
+              <input type="password" id="inPassword" placeholder="Minimum 6 characters" />
+              <div class="error-msg">Password must be at least 6 characters.</div>
+            </div>
+            <div class="field" id="f_password2">
+              <label for="inPassword2">Confirm Password</label>
+              <input type="password" id="inPassword2" placeholder="Re-enter password" />
+              <div class="error-msg">Passwords do not match.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 2: Entity Details -->
+        <div class="panel panel-pad step-panel" data-panel="2" style="display:none">
+          <div class="box-section-label" style="padding-top:0">Entity Details</div>
+          <div class="field">
+            <label>Applicant Type</label>
+            <div class="radio-pill-group">
+              <label class="radio-pill"><input type="radio" name="applicantType" value="Legal Person" checked /> Legal Person (LLC / Company)</label>
+              <label class="radio-pill"><input type="radio" name="applicantType" value="Natural Person" /> Natural Person (Sole Establishment)</label>
+            </div>
+          </div>
+          <div class="two-col">
+            <div class="field" id="f_legalNameEn">
+              <label for="inLegalNameEn">Legal Name (English)</label>
+              <input type="text" id="inLegalNameEn" placeholder="e.g. Al Wasl Trading LLC" />
+              <div class="error-msg">Legal name is required.</div>
+            </div>
+            <div class="field">
+              <label for="inLegalNameAr">Legal Name (Arabic) — optional</label>
+              <input type="text" id="inLegalNameAr" dir="rtl" placeholder="الاسم القانوني" />
+            </div>
+          </div>
+          <div class="two-col">
+            <div class="field" id="f_tradeName">
+              <label for="inTradeName">Trade Name</label>
+              <input type="text" id="inTradeName" placeholder="e.g. Al Wasl Trading" />
+              <div class="error-msg">Trade name is required.</div>
+            </div>
+            <div class="field" id="f_tradeLicense">
+              <label for="inTradeLicense">Trade License Number</label>
+              <input type="text" id="inTradeLicense" placeholder="e.g. 784512" />
+              <div class="error-msg">Trade license number is required.</div>
+            </div>
+          </div>
+          <div class="field">
+            <label for="inActivity">Primary Business Activity</label>
+            <select id="inActivity">
+              <option value="">Select activity</option>
+              <option>Trading</option>
+              <option>Retail</option>
+              <option>Construction</option>
+              <option>Import / Export</option>
+              <option>Manufacturing</option>
+              <option>Logistics</option>
+              <option>Professional Services</option>
+              <option>Hospitality</option>
+              <option>IT Services</option>
+              <option>Financial Services</option>
+              <option>Insurance</option>
+              <option>Legal Consultancy</option>
+              <option>Healthcare / Medical Services</option>
+              <option>Education / Training Institute</option>
+              <option>Real Estate Brokerage</option>
+              <option>Other</option>
+            </select>
+            <div id="activityApprovalBanner" class="info-banner" style="display:none;margin-top:10px"></div>
+          </div>
+
+          <div class="box-section-label">Supporting Document — Trade License</div>
+          <p style="font-size:12px;color:var(--text-muted);margin-bottom:12px">Upload a copy of your trade license, or generate a placeholder training document below — either works for this simulator. Nothing is uploaded anywhere; it's stored only in this browser.</p>
+          <p style="font-size:11.5px;color:var(--text-faint);margin-bottom:12px">Tip: if you've generated an Emirates ID or UAE PASS Digital ID PDF earlier in this simulator, you can upload that same file here — image or PDF both work.</p>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px">
+            <label class="btn btn-outline btn-sm" style="cursor:pointer">
+              📎 Upload a File
+              <input type="file" id="inDocUpload" accept="image/*,.pdf,application/pdf" style="display:none" />
+            </label>
+            <button type="button" class="btn btn-outline btn-sm" id="btnGenDocCard">🪪 Generate a Training Document Instead</button>
+          </div>
+          <div id="docUploadStatus" style="font-size:12px;color:var(--text-muted)"></div>
+          <div id="docPreviewWrap" style="display:none;margin-top:10px">
+            <img id="docPreview" style="max-width:280px;border:1px solid var(--border);border-radius:8px;display:block" />
+            <div id="docPreviewPdf" style="display:none;align-items:center;gap:10px;padding:12px 14px;border:1px solid var(--border);border-radius:8px;max-width:280px;background:var(--bg)">
+              <span style="font-size:26px">📄</span>
+              <div style="min-width:0">
+                <div id="docPreviewPdfName" style="font-size:12.5px;font-weight:700;color:var(--navy-900);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">document.pdf</div>
+                <div style="font-size:11px;color:var(--text-faint)">PDF document attached</div>
+              </div>
+            </div>
+            <button type="button" class="btn btn-ghost btn-sm" id="btnRemoveDoc" style="margin-top:6px">✕ Remove</button>
+          </div>
+        </div>
+
+        <!-- Step 3: Registration Type & Turnover -->
+        <div class="panel panel-pad step-panel" data-panel="3" style="display:none">
+          <div class="box-section-label" style="padding-top:0">Registration Type &amp; Turnover</div>
+          <div class="info-banner" style="margin-bottom:16px">
+            Mandatory registration applies once taxable supplies and imports exceed <strong>AED 375,000</strong> in the past 12 months.
+            Voluntary registration is available from <strong>AED 187,500</strong>. Non-resident businesses making taxable supplies in the UAE must register regardless of turnover.
+          </div>
+          <div class="field">
+            <label>Registration Type</label>
+            <div class="radio-pill-group">
+              <label class="radio-pill"><input type="radio" name="regType" value="Mandatory" checked /> Mandatory</label>
+              <label class="radio-pill"><input type="radio" name="regType" value="Voluntary" /> Voluntary</label>
+              <label class="radio-pill"><input type="radio" name="regType" value="Non-Resident" /> Non-Resident</label>
+            </div>
+          </div>
+          <div class="field" id="f_turnover">
+            <label for="inTurnover">Taxable Turnover in the Last 12 Months (AED)</label>
+            <input type="text" inputmode="decimal" id="inTurnover" placeholder="e.g. 450000" />
+            <div class="error-msg" id="turnoverError">This does not meet the threshold for the selected registration type.</div>
+          </div>
+        </div>
+
+        <!-- Step 4: Contact Details -->
+        <div class="panel panel-pad step-panel" data-panel="4" style="display:none">
+          <div class="box-section-label" style="padding-top:0">Business Contact Details</div>
+          <div class="two-col">
+            <div class="field" id="f_emirate">
+              <label for="inEmirate">Emirate</label>
+              <select id="inEmirate">
+                <option value="">Select Emirate</option>
+                <option>Abu Dhabi</option><option>Dubai</option><option>Sharjah</option>
+                <option>Ajman</option><option>Umm Al Quwain</option><option>Ras Al Khaimah</option><option>Fujairah</option>
+              </select>
+              <div class="error-msg">Please select an Emirate.</div>
+            </div>
+            <div class="field" id="f_phone">
+              <label for="inPhone">Mobile Number</label>
+              <input type="tel" id="inPhone" placeholder="e.g. 501234567" />
+              <div class="error-msg">Enter a valid UAE mobile number, e.g. 501234567.</div>
+            </div>
+          </div>
+          <div class="field" id="f_address">
+            <label for="inAddress">Registered Address</label>
+            <input type="text" id="inAddress" placeholder="e.g. Office 12, Al Wasl Road, Dubai, UAE" />
+            <div class="error-msg">Address is required.</div>
+          </div>
+        </div>
+
+        <!-- Step 5: Authorized Signatory -->
+        <div class="panel panel-pad step-panel" data-panel="5" style="display:none">
+          <div class="box-section-label" style="padding-top:0">Authorized Signatory</div>
+          <p style="font-size:12.5px;color:var(--text-muted);margin-bottom:16px">The person legally authorized to sign VAT returns and declarations on behalf of the business.</p>
+          <div class="two-col">
+            <div class="field" id="f_sigFirstEn">
+              <label for="inSigFirstEn">First Name (English)</label>
+              <input type="text" id="inSigFirstEn" placeholder="e.g. Shahina" />
+              <div class="error-msg">First name is required.</div>
+            </div>
+            <div class="field" id="f_sigLastEn">
+              <label for="inSigLastEn">Last Name (English)</label>
+              <input type="text" id="inSigLastEn" placeholder="e.g. Sheikh" />
+              <div class="error-msg">Last name is required.</div>
+            </div>
+          </div>
+          <div class="two-col">
+            <div class="field">
+              <label for="inSigFirstAr">First Name (Arabic) — optional</label>
+              <input type="text" id="inSigFirstAr" dir="rtl" placeholder="الاسم الأول" />
+            </div>
+            <div class="field">
+              <label for="inSigLastAr">Last Name (Arabic) — optional</label>
+              <input type="text" id="inSigLastAr" dir="rtl" placeholder="اسم العائلة" />
+            </div>
+          </div>
+          <div class="two-col">
+            <div class="field" id="f_emiratesId">
+              <label for="inEmiratesId">Emirates ID Number</label>
+              <div style="display:flex;gap:8px;flex-wrap:wrap">
+                <input type="text" id="inEmiratesId" placeholder="784-YYYY-XXXXXXX-X" style="flex:1;min-width:180px" />
+                <button type="button" class="btn btn-outline btn-sm" id="btnGenEmiratesId" style="white-space:nowrap">🪪 Apply for Emirates ID</button>
+              </div>
+              <div class="hint">Don't have one yet? "Apply for Emirates ID" walks through the real ICP application steps — visa check, biometric appointment, payment, and issuance — and fills this field for you at the end.</div>
+              <div class="error-msg">Enter a valid Emirates ID, e.g. 784-1985-1234567-1.</div>
+              <button type="button" class="btn btn-ghost btn-sm" id="btnDownloadEidPdf" style="margin-top:8px;display:none">⬇ Download as PDF ID Card</button>
+            </div>
+            <div class="field" id="f_designation">
+              <label for="inDesignation">Designation</label>
+              <input type="text" id="inDesignation" placeholder="e.g. Managing Director" />
+              <div class="error-msg">Designation is required.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 6: Bank Details -->
+        <div class="panel panel-pad step-panel" data-panel="6" style="display:none">
+          <div class="box-section-label" style="padding-top:0">Bank Account Details <span style="font-weight:400;color:var(--text-muted);font-size:11.5px">(Optional)</span></div>
+          <p style="font-size:12.5px;color:var(--text-muted);margin-bottom:16px">Bank details are optional at registration, but recommended so any future VAT refund can be paid out. You can also add these later from Profile.</p>
+          <div class="two-col">
+            <div class="field">
+              <label for="inBankName">Bank Name</label>
+              <input type="text" id="inBankName" placeholder="e.g. Emirates NBD" />
+            </div>
+            <div class="field">
+              <label for="inAccountHolder">Account Holder Name</label>
+              <input type="text" id="inAccountHolder" placeholder="Must match the legal name" />
+            </div>
+          </div>
+          <div class="field" id="f_iban">
+            <label for="inIban">IBAN</label>
+            <input type="text" id="inIban" placeholder="AE070331234567890123456" style="text-transform:uppercase" />
+            <div class="error-msg">A UAE IBAN starts with AE and has 23 characters, e.g. AE070331234567890123456.</div>
+          </div>
+        </div>
+
+        <!-- Step 7: Review & Declaration -->
+        <div class="panel panel-pad step-panel" data-panel="7" style="display:none">
+          <div class="box-section-label" style="padding-top:0">Review &amp; Declaration</div>
+          <div class="review-grid" id="reviewGrid"></div>
+          <div class="check-row" style="margin-top:18px">
+            <label><input type="checkbox" id="declareCheck" /> I declare that the information provided is true and accurate to the best of my knowledge, and I am authorized to submit this application on behalf of the business.</label>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ===================== Application submitted / pending ===================== -->
+    <div id="pendingWrap" style="display:none;padding:40px 10px;text-align:center">
+      <div class="success-icon" style="margin:0 auto 18px">⏳</div>
+      <h2 style="font-size:18px;margin-bottom:8px">Application Submitted</h2>
+      <p style="color:var(--text-muted);font-size:13px;max-width:460px;margin:0 auto 4px">
+        Your VAT registration application has been received. Application Reference Number:
+      </p>
+      <p style="font-size:18px;font-weight:800;color:var(--navy-900);letter-spacing:1px;margin:6px 0 18px" id="arnOut">—</p>
+      <div class="panel panel-pad" style="max-width:460px;margin:0 auto 22px;text-align:left">
+        <div class="review-item"><div class="k">Status</div><div class="v"><span class="status-pill"><span class="status-dot draft"></span> Pending Review</span></div></div>
+        <div class="review-item" style="margin-top:10px"><div class="k">Standard Processing Time</div><div class="v">5–20 business days</div></div>
+      </div>
+      <p style="color:var(--text-faint);font-size:11.5px;max-width:460px;margin:0 auto 22px">
+        On the real FTA portal you'd now wait for review and check My Correspondence for updates. Since this is a training
+        simulator, you can fast-forward that wait below.
+      </p>
+      <div id="trnStageList" style="max-width:460px;margin:0 auto 18px;text-align:left"></div>
+      <button class="btn btn-gold" id="btnApprove">⚡ Start FTA Review (Fast-Forwarded for Training)</button>
+    </div>
+
+  </main>
+</div>
+
+<!-- ===================== Emirates ID Application modal ===================== -->
+<div class="modal-backdrop" id="eidModal">
+  <div class="modal" style="max-width:600px">
+    <div class="modal-header">
+      <h3>🪪 Apply for Emirates ID <span style="font-weight:400;color:var(--text-muted);font-size:11.5px">(ICP — simulated)</span></h3>
+      <button id="closeEidModal" aria-label="Close">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="height:5px;background:var(--bg);border-radius:4px;overflow:hidden;margin-bottom:16px">
+        <div id="eidProgressBar" style="height:100%;width:16%;background:var(--gold-600);transition:width .25s"></div>
+      </div>
+
+      <!-- EID Step 1: Precondition -->
+      <div class="eid-step" data-eidstep="1">
+        <div class="box-section-label" style="padding-top:0">Confirm Your Eligibility</div>
+        <p style="font-size:12.5px;color:var(--text-muted);margin-bottom:14px">Before an Emirates ID application can start, ICP requires one of the following to already be in place.</p>
+        <div class="radio-pill-group" style="flex-direction:column;align-items:stretch">
+          <label class="radio-pill"><input type="radio" name="eidPrecondition" value="visa" checked /> I hold a valid UAE residence visa</label>
+          <label class="radio-pill"><input type="radio" name="eidPrecondition" value="citizen" /> I am a UAE citizen</label>
+          <label class="radio-pill"><input type="radio" name="eidPrecondition" value="none" /> Neither — I don't have a residence visa yet</label>
+        </div>
+        <div id="eidPreconditionError" class="info-banner" style="display:none;margin-top:14px;border-color:#e6b3ab;background:#fdecea;color:#8b2c1a">
+          A valid UAE residence visa (or citizenship) is required before you can apply for an Emirates ID. In the real ICP process, the Emirates ID application is typically bundled into the residence visa issuance itself.
+        </div>
+      </div>
+
+      <!-- EID Step 2: Application form -->
+      <div class="eid-step" data-eidstep="2" style="display:none">
+        <div class="box-section-label" style="padding-top:0">Application Form</div>
+        <div class="two-col">
+          <div class="field" id="f_eidName">
+            <label for="eidAppName">Full Name (as on passport)</label>
+            <input type="text" id="eidAppName" />
+            <div class="error-msg">Name is required.</div>
+          </div>
+          <div class="field" id="f_eidDob">
+            <label for="eidAppDob">Date of Birth</label>
+            <input type="date" id="eidAppDob" />
+            <div class="error-msg">Date of birth is required.</div>
+          </div>
+        </div>
+        <div class="two-col">
+          <div class="field" id="f_eidNationality">
+            <label for="eidAppNationality">Nationality</label>
+            <input type="text" id="eidAppNationality" placeholder="e.g. India, Egypt, United Kingdom" />
+            <div class="error-msg">Nationality is required.</div>
+          </div>
+          <div class="field" id="f_eidVisaFile">
+            <label for="eidAppVisaFile">Residence Visa File Number</label>
+            <input type="text" id="eidAppVisaFile" placeholder="e.g. 201/2026/1234567" />
+            <div class="error-msg">Visa file number is required.</div>
+          </div>
+        </div>
+        <div class="box-section-label">Book a Biometric Appointment</div>
+        <p style="font-size:12px;color:var(--text-muted);margin-bottom:10px">Choose a date at an ICP Customer Happiness Centre for fingerprint, iris, and facial capture.</p>
+        <div class="two-col">
+          <div class="field" id="f_eidApptDate">
+            <label for="eidApptDate">Appointment Date</label>
+            <input type="date" id="eidApptDate" />
+            <div class="error-msg">Choose an appointment date.</div>
+          </div>
+          <div class="field">
+            <label for="eidApptCentre">Centre</label>
+            <select id="eidApptCentre">
+              <option>Al Barsha ICP Centre — Dubai</option>
+              <option>Al Karama ICP Centre — Dubai</option>
+              <option>Zayed Sports City Centre — Abu Dhabi</option>
+              <option>Al Wahda Centre — Sharjah</option>
+              <option>Ajman ICP Centre</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- EID Step 3: Payment -->
+      <div class="eid-step" data-eidstep="3" style="display:none">
+        <div class="box-section-label" style="padding-top:0">Application &amp; Biometrics Fee</div>
+        <div class="info-banner" style="margin-bottom:10px">Total due (training estimate): <strong>AED 170.00</strong> (AED 100 application fee + AED 70 biometrics fee). Demo payment only — no real card is charged.</div>
+        <p style="font-size:11px;color:var(--text-faint);margin-bottom:16px">Real ICP fees vary by visa duration, card validity, and applicant category — always check the current fee schedule on the ICP website before a real application.</p>
+        <div class="radio-pill-group" style="margin-bottom:14px">
+          <label class="radio-pill"><input type="radio" name="eidPayMethod" value="MagnatiPay" checked /> MagnatiPay (Card)</label>
+          <label class="radio-pill"><input type="radio" name="eidPayMethod" value="GIBAN" /> GIBAN Transfer</label>
+        </div>
+        <div id="eidPayDetail"></div>
+      </div>
+
+      <!-- EID Step 4: Biometric capture -->
+      <div class="eid-step" data-eidstep="4" style="display:none;text-align:center">
+        <div class="box-section-label" style="padding-top:0;text-align:left">Biometric Capture</div>
+        <p style="font-size:12.5px;color:var(--text-muted);margin-bottom:14px">At the ICP centre: fingerprints, facial recognition, and a digital signature are captured (simulated).</p>
+        <div id="eidBioCircle" style="width:120px;height:120px;border-radius:50%;border:4px solid var(--gold-600);margin:10px auto;display:flex;align-items:center;justify-content:center;font-size:44px">👆</div>
+        <p style="font-size:12.5px;color:var(--text-muted)" id="eidBioStatusText">Click "Start Capture" to simulate fingerprint, facial, and signature capture.</p>
+        <button type="button" class="btn btn-outline" id="btnStartEidBio">▶ Start Capture</button>
+      </div>
+
+      <!-- EID Step 5: Processing -->
+      <div class="eid-step" data-eidstep="5" style="display:none;text-align:center">
+        <div class="box-section-label" style="padding-top:0;text-align:left">Application Processing</div>
+        <div class="success-icon" style="margin:16px auto">⏳</div>
+        <p style="font-size:12.5px;color:var(--text-muted);margin-bottom:4px">ICP is validating your biometrics and printing your card.</p>
+        <p style="font-size:13px;font-weight:700;color:var(--navy-900);margin-bottom:16px">Standard processing time: 5–10 working days</p>
+        <p style="font-size:11.5px;color:var(--text-faint);margin-bottom:16px">Since this is a training simulator, you can fast-forward that wait below.</p>
+      </div>
+
+      <!-- EID Step 6: Issued -->
+      <div class="eid-step" data-eidstep="6" style="display:none;text-align:center">
+        <div class="success-icon" style="margin:16px auto">✅</div>
+        <h3 style="font-size:16px;margin-bottom:10px">Emirates ID Issued</h3>
+        <p style="font-size:12px;color:var(--text-muted);margin-bottom:4px">Digital ID</p>
+        <p style="font-size:18px;font-weight:800;color:var(--navy-900);letter-spacing:1px;margin-bottom:16px" id="eidIssuedNumber">—</p>
+        <div class="panel panel-pad" style="max-width:380px;margin:0 auto;text-align:left">
+          <div class="review-item"><div class="k">Physical Card Status</div><div class="v">📦 Dispatched via Emirates Post</div></div>
+          <div class="review-item" style="margin-top:10px"><div class="k">Tracking Number</div><div class="v" id="eidTrackingOut">—</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" id="eidBack">Back</button>
+      <button class="btn btn-gold" id="eidNext">Continue</button>
+    </div>
+  </div>
+</div>
+
+<div class="wizard-footer no-print" id="wizardFooter">
+  <button class="btn btn-outline" id="btnBack">Back</button>
+  <div class="right-actions">
+    <button class="btn btn-gold" id="btnNext">Next Step</button>
+  </div>
+</div>
+
+<div class="footer-note">
+  <strong>UAE VAT Simulator</strong> — Created By Ananthu Shaji · Training Edition · Not affiliated with the Federal Tax Authority
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/register.js"></script>
+</body>
+</html>

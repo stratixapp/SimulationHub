@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Payment History — VAT Return Filing Simulator</title>
+<link rel="stylesheet" href="../css/style.css" />
+<link rel="icon" href="../favicon.ico" />
+<link rel="apple-touch-icon" href="../icons/icon-180.png" />
+<link rel="manifest" href="../manifest.json" />
+<meta name="theme-color" content="#0c1f38" />
+</head>
+<body>
+
+<div class="topbar">
+  <button class="icon-btn" title="Notifications" aria-label="Notifications">🔔</button>
+  <div class="text-size"><button data-textsize="down" aria-label="Decrease text size">-A</button><button data-textsize="reset" aria-label="Reset text size">A</button><button data-textsize="up" aria-label="Increase text size">+A</button></div>
+  <span class="lang-toggle" role="button" tabindex="0" aria-label="Switch to Arabic (not fully supported in this training simulator)">عربي</span>
+</div>
+
+<header class="app-header">
+  <div class="brand">
+    <div class="brand-emblem">FTA</div>
+    <div class="brand-text">
+      <div class="ar">الهيئة الاتحادية للضرائب</div>
+      <div class="en">FEDERAL TAX AUTHORITY</div>
+      <div class="sub">VAT Return Filing Simulator</div>
+    </div>
+  </div>
+  <div class="header-spacer"></div>
+  <span class="training-badge">🎓 Training Mode</span>
+  <div class="uae-emblem-mini">UAE</div>
+  <div class="user-menu">
+    <span class="avatar" data-user-initial>?</span><span data-user-email>—</span> ▾
+    <div class="user-menu-dropdown">
+      <a href="profile.html">👤 Profile</a>
+      <a href="filings.html">📁 My Filings</a>
+      <a href="liabilities.html">💰 My Liabilities</a>
+      <a href="settings.html">⚙️ Settings &amp; About</a>
+      <button data-action="reset-sim">↺ Reset Simulator</button>
+      <button data-action="logout">↪ Logout</button>
+    </div>
+  </div>
+</header>
+
+<div class="breadcrumb">
+  <a href="dashboard.html">Home</a><span class="sep">›</span><span class="current">Payments</span>
+</div>
+
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="sidebar-profile">
+      <div class="name" data-company-name>—</div>
+      <div class="trn">TRN: <span data-trn>—</span></div>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="dashboard.html"><span class="icon">🏠</span> Home</a>
+      <details class="nav-group"><summary><span class="icon">🧾</span> VAT</summary>
+        <div class="sub-items"><a href="filings.html">My Filings</a></div>
+      </details>
+      <a href="excise.html">Excise Tax</a>
+      <a href="#" data-static>VAT Clearing Company (TINCO)</a>
+      <a href="liabilities.html">My Liabilities</a>
+      <a href="payments.html" class="active">Payments</a>
+      <a href="correspondence.html">My Correspondence</a>
+      <a href="authorization.html">User Authorization</a>
+      <a href="other-services.html">Other Services</a>
+    </nav>
+  </aside>
+
+  <main class="content">
+    <div class="panel">
+      <div class="panel-header"><h2>Payment History</h2></div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr><th>Reference</th><th>VAT Return Ref.</th><th>Type</th><th>Date</th><th>Method</th><th>Amount (AED)</th><th>Status</th></tr></thead>
+          <tbody id="paymentsBody"></tbody>
+        </table>
+      </div>
+      <div id="emptyPayments" style="display:none;padding:40px 20px;text-align:center;color:var(--text-muted)">
+        <div style="font-size:32px;margin-bottom:10px">💳</div>
+        No payments recorded yet.
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="../js/storage.js"></script>
+<script>
+(function(){
+  const session = VATSIM.requireSession("../login.html");
+  if (!session) return;
+  if (!VATSIM.getAccount()) { window.location.href = "../index.html"; return; }
+  VATSIM.wireChrome();
+  const filings = VATSIM.getFilings();
+  const rows = [];
+  filings.forEach(f => {
+    if (f.payment) rows.push({ filing: f, record: f.payment, type: "VAT Return" });
+    if (f.penaltyPayment) rows.push({ filing: f, record: f.penaltyPayment, type: "Administrative Penalty" });
+  });
+  rows.sort((a, b) => new Date(b.record.date) - new Date(a.record.date));
+  const body = document.getElementById("paymentsBody");
+  document.getElementById("emptyPayments").style.display = rows.length ? "none" : "block";
+  rows.forEach(({ filing, record, type }) => {
+    const tr = document.createElement("tr");
+    const effStatus = VATSIM.getEffectivePaymentStatus(record);
+    const dot = effStatus === "Paid" ? "submitted" : "processed";
+    tr.innerHTML = "<td>"+record.ref+"</td><td>"+filing.referenceNumber+"</td><td>"+type+"</td><td>"+VATSIM.fmtDate(record.date)+"</td><td>"+record.method+"</td><td>"+VATSIM.fmtAED(record.amount)+"</td>"+
+      '<td><span class="status-pill"><span class="status-dot '+dot+'"></span> '+effStatus+(effStatus==="Processing"?" (GIBAN settling)":"")+'</span></td>';
+    body.appendChild(tr);
+  });
+  document.querySelectorAll("[data-static]").forEach(a => a.addEventListener("click", e => { e.preventDefault(); VATSIM.toast("Outside the VAT201 training scope of this simulator.", "info"); }));
+  if (rows.some(({record}) => record.status === "Processing")) {
+    setInterval(() => window.location.reload(), 4000);
+  }
+})();
+</script>
+</body>
+</html>

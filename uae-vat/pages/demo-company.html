@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Demo Company — VAT Return Filing Simulator</title>
+<link rel="stylesheet" href="../css/style.css" />
+<link rel="icon" href="../favicon.ico" />
+<link rel="apple-touch-icon" href="../icons/icon-180.png" />
+<link rel="manifest" href="../manifest.json" />
+<meta name="theme-color" content="#0c1f38" />
+</head>
+<body>
+
+<div class="topbar">
+  <div class="text-size"><button data-textsize="down" aria-label="Decrease text size">-A</button><button data-textsize="reset" aria-label="Reset text size">A</button><button data-textsize="up" aria-label="Increase text size">+A</button></div>
+</div>
+
+<header class="app-header">
+  <div class="brand">
+    <div class="brand-emblem">FTA</div>
+    <div class="brand-text">
+      <div class="ar">الهيئة الاتحادية للضرائب</div>
+      <div class="en">FEDERAL TAX AUTHORITY</div>
+      <div class="sub">VAT Return Filing Simulator</div>
+    </div>
+  </div>
+  <div class="header-spacer"></div>
+  <span class="training-badge" style="background:var(--gold-100);color:#8b5c0c;border-color:#e6d3a3">👁 Demo — View Only</span>
+  <div class="uae-emblem-mini">UAE</div>
+  <div class="user-menu">
+    <span class="avatar" data-user-initial>?</span><span data-user-email>—</span> ▾
+    <div class="user-menu-dropdown">
+      <button data-action="logout">↪ Logout</button>
+    </div>
+  </div>
+</header>
+
+<div class="breadcrumb"><a href="taxable-person.html">Select Taxable Person</a><span class="sep">›</span><span class="current" id="crumbName">Demo Company</span></div>
+
+<div class="app-shell">
+  <main class="content" style="padding-top:18px">
+    <div class="info-banner" style="margin-bottom:18px">
+      <span class="i">👁</span>
+      <span>You're viewing <strong id="companyNameOut">this company</strong> as an <strong>Authorized User</strong> in view-only demo mode. Figures below are pre-seeded for illustration and cannot be edited — switch back to your own account to file a real practice return.</span>
+    </div>
+
+    <div class="summary-grid" style="margin-bottom:20px">
+      <div class="panel panel-pad review-item"><div class="k">TRN</div><div class="v" id="dTrn" style="font-size:15px">—</div></div>
+      <div class="panel panel-pad review-item"><div class="k">VAT Registration</div><div class="v" style="font-size:15px">Active</div></div>
+      <div class="panel panel-pad review-item"><div class="k">Business Activity</div><div class="v" id="dActivity" style="font-size:15px">—</div></div>
+    </div>
+
+    <div class="panel" style="margin-bottom:20px">
+      <div class="panel-header"><h2>Recent Returns</h2></div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr><th>Period</th><th>Due Date</th><th>Status</th><th>Box 12 — Output Tax</th><th>Box 13 — Recoverable</th><th>Box 14 — Net</th></tr></thead>
+          <tbody id="filingsBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="panel panel-pad" style="text-align:center">
+      <p style="font-size:12.5px;color:var(--text-muted);margin-bottom:12px">This demo company is for browsing only. Filing, payments, and correspondence stay on your own registered company.</p>
+      <button class="btn btn-gold" onclick="window.location.href='taxable-person.html'">← Back to Taxable Person Selection</button>
+      <button class="btn btn-outline" id="btnGoOwn" style="margin-left:8px">Go to My Own Dashboard</button>
+    </div>
+  </main>
+</div>
+
+<div class="footer-note">
+  <strong>UAE VAT Simulator</strong> — Created By Ananthu Shaji · Training Edition · Not affiliated with the Federal Tax Authority
+</div>
+
+<script src="../js/storage.js"></script>
+<script src="../js/demo-company.js"></script>
+</body>
+</html>

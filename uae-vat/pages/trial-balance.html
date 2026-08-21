@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Trial Balance Exercise — VAT Return Filing Simulator</title>
+<link rel="stylesheet" href="../css/style.css" />
+<link rel="icon" href="../favicon.ico" />
+<link rel="apple-touch-icon" href="../icons/icon-180.png" />
+<link rel="manifest" href="../manifest.json" />
+<meta name="theme-color" content="#0c1f38" />
+</head>
+<body>
+
+<div class="topbar">
+  <button class="icon-btn" title="Notifications" aria-label="Notifications">🔔</button>
+  <div class="text-size"><button data-textsize="down" aria-label="Decrease text size">-A</button><button data-textsize="reset" aria-label="Reset text size">A</button><button data-textsize="up" aria-label="Increase text size">+A</button></div>
+  <span class="lang-toggle" role="button" tabindex="0" aria-label="Switch to Arabic (not fully supported in this training simulator)">عربي</span>
+</div>
+
+<header class="app-header">
+  <div class="brand">
+    <div class="brand-emblem">FTA</div>
+    <div class="brand-text">
+      <div class="ar">الهيئة الاتحادية للضرائب</div>
+      <div class="en">FEDERAL TAX AUTHORITY</div>
+      <div class="sub">VAT Return Filing Simulator</div>
+    </div>
+  </div>
+  <div class="header-spacer"></div>
+  <span class="training-badge">🎓 Training Mode</span>
+  <div class="uae-emblem-mini">UAE</div>
+  <div class="user-menu">
+    <span class="avatar" data-user-initial>?</span><span data-user-email>—</span> ▾
+    <div class="user-menu-dropdown">
+      <a href="profile.html">👤 Profile</a>
+      <a href="filings.html">📁 My Filings</a>
+      <a href="liabilities.html">💰 My Liabilities</a>
+      <a href="settings.html">⚙️ Settings &amp; About</a>
+      <button data-action="reset-sim">↺ Reset Simulator</button>
+      <button data-action="logout">↪ Logout</button>
+    </div>
+  </div>
+</header>
+
+<div class="breadcrumb"><a href="dashboard.html">Home</a><span class="sep">›</span><span class="current">Trial Balance Exercise</span></div>
+
+<div class="app-shell">
+  <main class="content" style="padding-top:18px">
+    <h1 style="font-size:16px;margin-bottom:4px">Trial Balance → VAT Return Exercise</h1>
+    <p style="font-size:12.5px;color:var(--text-muted);margin-bottom:18px">
+      Below is a simulated ledger of transactions for the period. For each line, decide which VAT201 box it belongs
+      in — or whether it's outside the scope of VAT entirely. Amounts are given; you're being tested on
+      classification, not arithmetic.
+    </p>
+
+    <div class="panel panel-pad" style="margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+      <div style="font-size:12.5px;color:var(--text-muted)">Business scenario: <strong id="scenarioLabelOut" style="color:var(--navy-900)">—</strong></div>
+      <button class="btn btn-outline btn-sm" id="btnNewLedger">🔄 New Random Ledger</button>
+    </div>
+
+    <div class="panel" style="margin-bottom:18px">
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr><th style="width:14%">Date</th><th style="width:38%">Transaction</th><th style="width:14%">Amount (AED)</th><th style="width:24%">Classify To</th><th style="width:10%">Result</th></tr></thead>
+          <tbody id="ledgerBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="panel panel-pad" style="margin-bottom:18px">
+      <div class="box-section-label" style="padding-top:0">Your Running Totals (based on your classifications)</div>
+      <div class="review-grid" id="runningTotals"></div>
+    </div>
+
+    <div class="panel panel-pad" id="resultPanel" style="display:none;margin-bottom:80px;border:1px solid var(--gold-500);background:var(--gold-100)">
+      <div style="font-size:13px;font-weight:700;color:var(--navy-900);margin-bottom:8px">Result</div>
+      <div style="font-size:32px;font-weight:800;color:var(--navy-900)" id="scoreOut">—%</div>
+      <div style="font-size:12.5px;color:var(--text-muted)" id="scoreDetailOut"></div>
+    </div>
+  </main>
+</div>
+
+<div class="wizard-footer no-print">
+  <span></span>
+  <div class="right-actions">
+    <button class="btn btn-gold" id="btnCheck">✓ Check My Work</button>
+  </div>
+</div>
+
+<div class="footer-note">
+  <strong>UAE VAT Simulator</strong> — Created By Ananthu Shaji · Training Edition · Not affiliated with the Federal Tax Authority
+</div>
+
+<script src="../js/storage.js"></script>
+<script src="../js/trial-balance.js"></script>
+</body>
+</html>

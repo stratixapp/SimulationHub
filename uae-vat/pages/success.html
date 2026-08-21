@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Application Submitted — VAT 201 Return</title>
+<link rel="stylesheet" href="../css/style.css" />
+<link rel="icon" href="../favicon.ico" />
+<link rel="apple-touch-icon" href="../icons/icon-180.png" />
+<link rel="manifest" href="../manifest.json" />
+<meta name="theme-color" content="#0c1f38" />
+</head>
+<body>
+
+<div class="topbar no-print">
+  <button class="icon-btn" title="Notifications" aria-label="Notifications">🔔</button>
+  <div class="text-size"><button data-textsize="down" aria-label="Decrease text size">-A</button><button data-textsize="reset" aria-label="Reset text size">A</button><button data-textsize="up" aria-label="Increase text size">+A</button></div>
+  <span class="lang-toggle" role="button" tabindex="0" aria-label="Switch to Arabic (not fully supported in this training simulator)">عربي</span>
+</div>
+
+<header class="app-header no-print">
+  <div class="brand">
+    <div class="brand-emblem">FTA</div>
+    <div class="brand-text">
+      <div class="ar">الهيئة الاتحادية للضرائب</div>
+      <div class="en">FEDERAL TAX AUTHORITY</div>
+      <div class="sub">VAT Return Filing Simulator</div>
+    </div>
+  </div>
+  <div class="header-spacer"></div>
+  <span class="training-badge">🎓 Training Mode</span>
+  <div class="uae-emblem-mini">UAE</div>
+  <div class="user-menu">
+    <span class="avatar" data-user-initial>?</span><span data-user-email>—</span> ▾
+    <div class="user-menu-dropdown">
+      <a href="profile.html">👤 Profile</a>
+      <a href="filings.html">📁 My Filings</a>
+      <a href="liabilities.html">💰 My Liabilities</a>
+      <a href="settings.html">⚙️ Settings &amp; About</a>
+      <button data-action="reset-sim">↺ Reset Simulator</button>
+      <button data-action="logout">↪ Logout</button>
+    </div>
+  </div>
+</header>
+
+<div class="breadcrumb no-print">
+  <a href="dashboard.html">Home</a><span class="sep">›</span>
+  <span data-company-name>—</span><span class="sep">›</span>
+  <a href="filings.html">VAT</a><span class="sep">›</span>
+  <span class="current">My Filings - VAT Return</span>
+</div>
+
+<main class="content narrow">
+  <div class="success-wrap">
+    <div class="success-icon">✓</div>
+    <h1 style="font-size:20px">Application Submitted Successfully</h1>
+    <p style="color:var(--text-muted);font-size:13px;margin-top:6px">You can take a note of the reference number for future reference.</p>
+
+    <div class="panel success-panel">
+      <div class="panel-header"><h2>Submission Details</h2><span class="status-pill"><span class="status-dot submitted"></span> Submitted</span></div>
+      <div class="success-grid">
+        <div><div class="k">TRN</div><div class="v" id="sTrn">—</div></div>
+        <div><div class="k">Registrant's Name</div><div class="v" id="sName">—</div></div>
+        <div><div class="k">Reference Number</div><div class="v" id="sRef">—</div></div>
+        <div><div class="k">Submission Date</div><div class="v" id="sSubDate">—</div></div>
+        <div><div class="k">VAT Return Period</div><div class="v" id="sPeriod">—</div></div>
+        <div><div class="k">VAT Tax Period</div><div class="v" id="sStagger">—</div></div>
+        <div><div class="k">Due Date</div><div class="v" id="sDue">—</div></div>
+        <div><div class="k">Tax Year End</div><div class="v" id="sYearEnd">—</div></div>
+        <div><div class="k">Return Amount</div><div class="v" id="sReturnAmt">—</div></div>
+        <div><div class="k">Due Amount</div><div class="v" id="sDueAmt">—</div></div>
+      </div>
+    </div>
+
+    <div class="success-actions no-print" id="paymentCta"></div>
+
+    <div class="panel panel-pad" id="reviewStagePanel" style="display:none;margin-top:18px;text-align:left">
+      <div style="font-weight:700;color:var(--navy-900);margin-bottom:16px;font-size:13px">📋 Application Review Status</div>
+      <div class="review-steps">
+        <div class="review-step" data-stage="review"><span class="rs-dot">1</span><span class="rs-lbl">Under Review</span></div>
+        <div class="review-step" data-stage="processed"><span class="rs-dot">2</span><span class="rs-lbl">Processed</span></div>
+        <div class="review-step" data-stage="approved"><span class="rs-dot">3</span><span class="rs-lbl">Approved</span></div>
+      </div>
+      <div style="height:6px;background:var(--bg);border-radius:4px;overflow:hidden;margin:16px 0 8px">
+        <div id="reviewProgressBar" style="height:100%;width:0%;background:var(--focus);transition:width .7s linear"></div>
+      </div>
+      <p style="font-size:11.5px;color:var(--text-muted)" id="reviewStatusText">Under Review…</p>
+      <p style="font-size:10.5px;color:var(--text-faint);margin-top:4px">Training-compressed to ~60 seconds so you can watch it happen — the real FTA review typically takes anywhere from a few hours to several business days.</p>
+    </div>
+
+    <div class="panel panel-pad" id="penaltyPanel" style="display:none;margin-top:18px;text-align:left;border:1px solid #eec3bd;background:var(--danger-bg)">
+      <div style="font-weight:700;color:#7a2c22;margin-bottom:10px;font-size:13px">⚠ Estimated FTA Penalty Breakdown</div>
+      <div class="review-grid" id="penaltyGrid"></div>
+      <p style="font-size:11px;color:#7a2c22;margin-top:12px;margin-bottom:0">Based on Cabinet Decision No. 129 of 2025 (in force from 14 April 2026). Figures are illustrative for training purposes. Payable separately from the return amount — find it under <a href="liabilities.html" style="color:#7a2c22;font-weight:700;text-decoration:underline">My Liabilities</a>.</p>
+    </div>
+
+    <div class="panel panel-pad" style="margin-top:18px;text-align:left">
+      <div style="font-weight:700;color:var(--navy-900);margin-bottom:8px;font-size:13px">What's next</div>
+      <ol style="font-size:12.5px;color:var(--text-muted);line-height:1.8;padding-left:18px;margin:0 0 16px">
+        <li>Following the submission of your VAT return, the reported payable tax must be settled within the due date. Delay in payment would result in a late payment penalty.</li>
+        <li>The status of your application in the dashboard will be updated accordingly. You can check the status of your application at any time by logging into your taxpayer portal.</li>
+      </ol>
+      <div style="font-weight:700;color:var(--navy-900);margin-bottom:8px;font-size:13px">Important Notes</div>
+      <ol style="font-size:12.5px;color:var(--text-muted);line-height:1.8;padding-left:18px;margin:0">
+        <li>You can edit your submitted VAT return until the due date.</li>
+        <li>If you become aware after the due date that the VAT return submitted is incorrect, you are required to correct the error. Depending on the amount, you can correct your return either by submitting a Voluntary Disclosure or as an adjustment in the tax return for the tax period in which the error has been discovered.</li>
+      </ol>
+    </div>
+
+    <div class="success-actions no-print">
+      <button class="btn btn-outline" id="btnEditReturn" style="display:none">✎ Edit Return</button>
+      <button class="btn btn-outline" onclick="window.print()">🖨 Print Return</button>
+      <button class="btn btn-outline" id="btnDownloadSummary">⬇ Download VAT Summary</button>
+      <button class="btn btn-outline" id="btnDownloadPdf" style="border-color:var(--gold-600);color:var(--gold-700);font-weight:700">⬇ Download Acknowledgement (PDF)</button>
+      <button class="btn btn-gold" onclick="window.location.href='dashboard.html'">🏠 Back to Dashboard</button>
+    </div>
+
+    <p style="font-size:11px;color:var(--text-faint);margin-top:18px" class="no-print">
+      For any inquiry or assistance, this is a training simulator — see Settings &amp; About for details. In the real
+      FTA portal you would contact: 600599994 (UAE) · +971 600599994 (Outside UAE) · info@tax.gov.ae
+    </p>
+  </div>
+</main>
+
+<div class="footer-note no-print">
+  <strong>UAE VAT Simulator</strong> — Created By Ananthu Shaji · Training Edition · Reference numbers are simulated and not valid FTA identifiers
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="../js/storage.js"></script>
+<script src="../js/success.js"></script>
+</body>
+</html>

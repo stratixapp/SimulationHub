@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Payment — VAT 201 Return</title>
+<link rel="stylesheet" href="../css/style.css" />
+<link rel="icon" href="../favicon.ico" />
+<link rel="apple-touch-icon" href="../icons/icon-180.png" />
+<link rel="manifest" href="../manifest.json" />
+<meta name="theme-color" content="#0c1f38" />
+</head>
+<body>
+
+<div class="topbar">
+  <button class="icon-btn" title="Notifications" aria-label="Notifications">🔔</button>
+  <div class="text-size"><button data-textsize="down" aria-label="Decrease text size">-A</button><button data-textsize="reset" aria-label="Reset text size">A</button><button data-textsize="up" aria-label="Increase text size">+A</button></div>
+  <span class="lang-toggle" role="button" tabindex="0" aria-label="Switch to Arabic (not fully supported in this training simulator)">عربي</span>
+</div>
+
+<header class="app-header">
+  <div class="brand">
+    <div class="brand-emblem">FTA</div>
+    <div class="brand-text">
+      <div class="ar">الهيئة الاتحادية للضرائب</div>
+      <div class="en">FEDERAL TAX AUTHORITY</div>
+      <div class="sub">VAT Return Filing Simulator</div>
+    </div>
+  </div>
+  <div class="header-spacer"></div>
+  <span class="training-badge">🎓 Training Mode</span>
+  <div class="uae-emblem-mini">UAE</div>
+  <div class="user-menu">
+    <span class="avatar" data-user-initial>?</span><span data-user-email>—</span> ▾
+    <div class="user-menu-dropdown">
+      <a href="profile.html">👤 Profile</a>
+      <a href="filings.html">📁 My Filings</a>
+      <a href="liabilities.html">💰 My Liabilities</a>
+      <a href="settings.html">⚙️ Settings &amp; About</a>
+      <button data-action="reset-sim">↺ Reset Simulator</button>
+      <button data-action="logout">↪ Logout</button>
+    </div>
+  </div>
+</header>
+
+<div class="breadcrumb">
+  <a href="dashboard.html">Home</a><span class="sep">›</span>
+  <a href="payments.html">Payments</a><span class="sep">›</span>
+  <span class="current">Make Payment</span>
+</div>
+
+<main class="content narrow" style="max-width:640px">
+  <div class="panel panel-pad" style="margin-bottom:18px;text-align:center">
+    <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;font-weight:700" id="payAmountLabel">VAT Payable Amount</div>
+    <div style="font-size:34px;font-weight:800;color:var(--navy-900);margin-top:8px" id="payAmount">AED 0.00</div>
+    <div style="font-size:12px;color:var(--text-muted);margin-top:4px" id="payRefLine">Reference Number: <span id="payRef">—</span></div>
+  </div>
+
+  <div class="panel panel-pad">
+    <h2 style="font-size:14.5px;margin-bottom:14px">Select Payment Option</h2>
+    <div style="display:flex;flex-direction:column;gap:10px" id="paymentOptions">
+      <label class="card-link" style="cursor:pointer">
+        <div><h4>MagnatiPay</h4><p>Visa / Mastercard — prepaid, debit or credit (demo card fields only)</p></div>
+        <input type="radio" name="payMethod" value="MagnatiPay" style="width:18px;height:18px" checked />
+      </label>
+      <label class="card-link" style="cursor:pointer">
+        <div><h4>GIBAN / Bank Transfer</h4><p>Transfer to your dedicated Generated IBAN (GIBAN)</p></div>
+        <input type="radio" name="payMethod" value="GIBAN" style="width:18px;height:18px" />
+      </label>
+      <label class="card-link" style="cursor:pointer">
+        <div><h4>eDebit</h4><p>Direct debit from your linked bank account (fixed AED 10 fee)</p></div>
+        <input type="radio" name="payMethod" value="eDebit" style="width:18px;height:18px" />
+      </label>
+    </div>
+
+    <div id="methodDetail" style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border)"></div>
+  </div>
+</main>
+
+<div class="wizard-footer" style="max-width:640px;margin:0 auto">
+  <button class="btn btn-outline" onclick="history.back()">Back</button>
+  <button class="btn btn-gold" id="btnPayNow">Pay Now</button>
+</div>
+
+<!-- ===================== Animated Payment Processing modal ===================== -->
+<div class="modal-backdrop" id="payProcessModal">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-body" style="padding:36px 28px;text-align:center">
+      <div id="payCardVisual" style="width:220px;height:130px;margin:0 auto 22px;border-radius:12px;background:linear-gradient(135deg,#0c1f38,#173a63);position:relative;box-shadow:0 10px 24px rgba(12,31,56,.28);transition:box-shadow .3s;overflow:hidden">
+        <div style="position:absolute;top:0;left:0;right:0;height:6px;background:var(--gold-600)"></div>
+        <div style="position:absolute;top:16px;left:16px;width:34px;height:24px;border-radius:4px;background:linear-gradient(135deg,#c9a227,#e7cf95)"></div>
+        <div style="position:absolute;top:52px;left:16px;right:16px;font-family:monospace;letter-spacing:3px;color:rgba(255,255,255,.85);font-size:13px" id="payCardDots">•••• •••• •••• ••••</div>
+        <div style="position:absolute;bottom:14px;left:16px;font-size:9px;color:rgba(255,255,255,.55);text-transform:uppercase;letter-spacing:1px" id="payGatewayLabel">Gateway</div>
+        <div id="payCardScan" style="position:absolute;top:0;bottom:0;width:40%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.16),transparent);left:-40%"></div>
+      </div>
+      <h3 style="font-size:15px;margin-bottom:4px" id="payProcessTitle">Processing Payment…</h3>
+      <p style="font-size:11.5px;color:var(--text-faint);margin-bottom:18px">Please do not close this window.</p>
+      <div id="payStageList" style="text-align:left"></div>
+    </div>
+  </div>
+</div>
+
+<script src="../js/storage.js"></script>
+<script src="../js/payment.js"></script>
+</body>
+</html>

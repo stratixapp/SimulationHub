@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Excise Tax — VAT Return Filing Simulator</title>
+<link rel="stylesheet" href="../css/style.css" />
+<link rel="icon" href="../favicon.ico" />
+<link rel="apple-touch-icon" href="../icons/icon-180.png" />
+<link rel="manifest" href="../manifest.json" />
+<meta name="theme-color" content="#0c1f38" />
+</head>
+<body>
+
+<div class="topbar">
+  <button class="icon-btn" title="Notifications" aria-label="Notifications">🔔</button>
+  <div class="text-size"><button data-textsize="down" aria-label="Decrease text size">-A</button><button data-textsize="reset" aria-label="Reset text size">A</button><button data-textsize="up" aria-label="Increase text size">+A</button></div>
+  <span class="lang-toggle" role="button" tabindex="0" aria-label="Switch to Arabic (not fully supported in this training simulator)">عربي</span>
+</div>
+
+<header class="app-header">
+  <div class="brand">
+    <div class="brand-emblem">FTA</div>
+    <div class="brand-text">
+      <div class="ar">الهيئة الاتحادية للضرائب</div>
+      <div class="en">FEDERAL TAX AUTHORITY</div>
+      <div class="sub">VAT Return Filing Simulator</div>
+    </div>
+  </div>
+  <div class="header-search">🔍 <span>What are you looking for?</span></div>
+  <div class="header-spacer"></div>
+  <span class="training-badge">🎓 Training Mode</span>
+  <div class="uae-emblem-mini">UAE</div>
+  <div class="user-menu">
+    <span class="avatar" data-user-initial>?</span><span data-user-email>—</span> ▾
+    <div class="user-menu-dropdown">
+      <a href="profile.html">👤 Profile</a>
+      <a href="filings.html">📁 My Filings</a>
+      <a href="liabilities.html">💰 My Liabilities</a>
+      <a href="settings.html">⚙️ Settings &amp; About</a>
+      <button data-action="reset-sim">↺ Reset Simulator</button>
+      <button data-action="logout">↪ Logout</button>
+    </div>
+  </div>
+</header>
+
+<div class="breadcrumb"><a href="dashboard.html">Home</a><span class="sep">›</span><span class="current">Excise Tax</span></div>
+
+<div class="app-shell">
+  <aside class="sidebar" id="sidebarNav">
+    <div class="sidebar-profile">
+      <div class="name" data-company-name>—</div>
+      <div class="trn">TRN: <span data-trn>—</span></div>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="dashboard.html"><span class="icon">🏠</span> Home</a>
+      <details class="nav-group"><summary><span class="icon">🧾</span> VAT</summary>
+        <div class="sub-items"><a href="filings.html">My Filings</a></div>
+      </details>
+      <a href="excise.html" class="active">Excise Tax</a>
+      <a href="#" data-static>VAT Clearing Company (TINCO)</a>
+      <a href="liabilities.html">My Liabilities</a>
+      <a href="payments.html">Payments</a>
+      <a href="correspondence.html">My Correspondence</a>
+      <a href="authorization.html">User Authorization</a>
+      <a href="other-services.html">Other Services</a>
+    </nav>
+  </aside>
+
+  <main class="content">
+
+    <!-- ============ Not yet registered ============ -->
+    <div id="notRegisteredWrap">
+      <div class="panel panel-pad" style="max-width:640px">
+        <div class="box-section-label" style="padding-top:0">Excise Tax Registration</div>
+        <p style="font-size:12.5px;color:var(--text-muted)">
+          Excise Tax is an indirect tax on specific goods considered harmful to health or the environment.
+          Unlike VAT, there is <strong>no turnover threshold</strong> — anyone who imports, produces, or
+          stockpiles excise goods in the UAE must register, regardless of revenue.
+        </p>
+        <table class="perm-matrix" style="margin:14px 0 18px">
+          <thead><tr><th>Category</th><th>Rate</th></tr></thead>
+          <tbody id="rateTableBody"></tbody>
+        </table>
+        <div class="field">
+          <label>Which excise goods does your business deal in? (select all that apply)</label>
+          <div class="radio-pill-group" id="categoryPicker"></div>
+        </div>
+        <button class="btn btn-gold" id="btnRegisterExcise">Register for Excise Tax</button>
+      </div>
+    </div>
+
+    <!-- ============ Registered: dashboard ============ -->
+    <div id="registeredWrap" style="display:none">
+      <div class="summary-grid" style="margin-bottom:20px">
+        <div class="panel panel-pad review-item">
+          <div class="k">Excise TRN</div>
+          <div class="v" id="exciseTrnOut" style="font-size:15px">—</div>
+        </div>
+        <div class="panel panel-pad review-item">
+          <div class="k">Registered Since</div>
+          <div class="v" id="exciseRegDateOut" style="font-size:15px">—</div>
+        </div>
+        <div class="panel panel-pad review-item">
+          <div class="k">Total Excise Paid (all periods)</div>
+          <div class="v" id="exciseTotalPaidOut" style="font-size:15px">AED 0.00</div>
+        </div>
+      </div>
+
+      <div class="panel" style="margin-bottom:20px">
+        <div class="panel-header"><h2>Excise Tax Returns (Form EX201)</h2></div>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead><tr><th>Period</th><th>Due Date</th><th>Submitted</th><th>Total Excise</th><th>Status</th><th></th></tr></thead>
+            <tbody id="exciseFilingsBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="panel panel-pad">
+        <div class="box-section-label" style="padding-top:0">Excise Tax Rates Reference</div>
+        <table class="perm-matrix"><thead><tr><th>Category</th><th>Rate</th></tr></thead><tbody id="rateTableBody2"></tbody></table>
+        <p style="font-size:11.5px;color:var(--text-faint);margin-top:10px">
+          VAT still applies at 5% on top of the excise-inclusive price of these goods when sold — shown per return as an
+          informational figure. It is separate from, and does not feed into, your VAT201 return.
+        </p>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<div class="footer-note">
+  <strong>UAE VAT Simulator</strong> — Created By Ananthu Shaji · Training Edition · Not affiliated with the Federal Tax Authority
+</div>
+
+<script src="../js/storage.js"></script>
+<script src="../js/excise.js"></script>
+</body>
+</html>

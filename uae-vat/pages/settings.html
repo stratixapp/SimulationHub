@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Settings &amp; About — VAT Return Filing Simulator</title>
+<link rel="stylesheet" href="../css/style.css" />
+<link rel="icon" href="../favicon.ico" />
+<link rel="apple-touch-icon" href="../icons/icon-180.png" />
+<link rel="manifest" href="../manifest.json" />
+<meta name="theme-color" content="#0c1f38" />
+</head>
+<body>
+
+<div class="topbar">
+  <button class="icon-btn" title="Notifications" aria-label="Notifications">🔔</button>
+  <div class="text-size"><button data-textsize="down" aria-label="Decrease text size">-A</button><button data-textsize="reset" aria-label="Reset text size">A</button><button data-textsize="up" aria-label="Increase text size">+A</button></div>
+  <span class="lang-toggle" role="button" tabindex="0" aria-label="Switch to Arabic (not fully supported in this training simulator)">عربي</span>
+</div>
+
+<header class="app-header">
+  <div class="brand">
+    <div class="brand-emblem">FTA</div>
+    <div class="brand-text">
+      <div class="ar">الهيئة الاتحادية للضرائب</div>
+      <div class="en">FEDERAL TAX AUTHORITY</div>
+      <div class="sub">VAT Return Filing Simulator</div>
+    </div>
+  </div>
+  <div class="header-spacer"></div>
+  <span class="training-badge">🎓 Training Mode</span>
+  <div class="uae-emblem-mini">UAE</div>
+  <div class="user-menu">
+    <span class="avatar" data-user-initial>?</span><span data-user-email>—</span> ▾
+    <div class="user-menu-dropdown">
+      <a href="profile.html">👤 Profile</a>
+      <a href="filings.html">📁 My Filings</a>
+      <a href="liabilities.html">💰 My Liabilities</a>
+      <a href="settings.html">⚙️ Settings &amp; About</a>
+      <button data-action="reset-sim">↺ Reset Simulator</button>
+      <button data-action="logout">↪ Logout</button>
+    </div>
+  </div>
+</header>
+
+<div class="breadcrumb"><a href="dashboard.html">Home</a><span class="sep">›</span><span class="current">Settings &amp; About</span></div>
+
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="sidebar-profile">
+      <div class="name" data-company-name>—</div>
+      <div class="trn">TRN: <span data-trn>—</span></div>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="dashboard.html"><span class="icon">🏠</span> Home</a>
+      <a href="filings.html"><span class="icon">🧾</span> My Filings</a>
+      <a href="excise.html"><span class="icon">🧯</span> Excise Tax</a>
+      <a href="liabilities.html"><span class="icon">💰</span> My Liabilities</a>
+      <a href="payments.html"><span class="icon">💳</span> Payments</a>
+      <a href="correspondence.html"><span class="icon">📬</span> My Correspondence</a>
+      <a href="authorization.html"><span class="icon">🔐</span> User Authorization</a>
+      <a href="other-services.html"><span class="icon">🧰</span> Other Services</a>
+      <a href="profile.html"><span class="icon">👤</span> Profile</a>
+      <a href="settings.html" class="active"><span class="icon">⚙️</span> Settings</a>
+    </nav>
+  </aside>
+
+  <main class="content narrow">
+
+    <div class="panel panel-pad" style="margin-bottom:18px;text-align:center;background:linear-gradient(160deg,var(--navy-900),var(--navy-700));border:none">
+      <div class="brand-emblem" style="margin:0 auto 12px;width:52px;height:52px;font-size:14px">FTA</div>
+      <h2 style="color:#fff;font-size:17px">UAE VAT Simulator</h2>
+      <p style="color:#cfdbe8;font-size:13px;margin-top:6px">Created By <strong style="color:#f3e9d4">Ananthu Shaji</strong></p>
+      <span class="training-badge" style="margin-top:12px;display:inline-flex">🎓 Training &amp; Educational Edition</span>
+    </div>
+
+    <div class="panel panel-pad" style="margin-bottom:18px">
+      <h3 style="font-size:14px;margin-bottom:10px">Storage</h3>
+      <p style="font-size:12.5px;color:var(--text-muted);margin-bottom:12px">Everything in this simulator lives in this browser's local storage — shared across every student profile on this machine. Browsers typically cap this around 5MB total, so it's worth checking in on this occasionally over a long course.</p>
+      <div style="height:8px;background:var(--bg);border-radius:4px;overflow:hidden;margin-bottom:8px">
+        <div id="storageBar" style="height:100%;width:0%;background:var(--gold-600);transition:width .3s"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text-muted)">
+        <span id="storageUsedText">— MB used</span>
+        <span id="storagePctText">—%</span>
+      </div>
+      <p id="storageWarning" style="display:none;font-size:12px;color:var(--danger);margin-top:10px">⚠ Storage is getting full. If saves start failing, ask your instructor about clearing older student profiles from Switch Student, or exporting and archiving old data.</p>
+    </div>
+
+    <div class="panel panel-pad" style="margin-bottom:18px">
+      <h3 style="font-size:14px;margin-bottom:10px">About this simulator</h3>
+      <p style="font-size:13px;color:var(--text-muted);line-height:1.7">
+        This is an offline, front-end recreation of the UAE Federal Tax Authority's EmaraTax VAT201 return filing
+        workflow, built for training and educational purposes only. It is <strong>not affiliated with, endorsed by,
+        or connected to the Federal Tax Authority</strong> in any way. No real API is called, no backend server is
+        used, and nothing you enter ever leaves your browser — all data lives in this browser's local storage.
+      </p>
+    </div>
+
+    <div class="panel panel-pad" style="margin-bottom:18px">
+      <h3 style="font-size:14px;margin-bottom:10px">Display</h3>
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <span style="font-size:13px">Text size</span>
+        <div class="text-size" style="background:var(--bg);padding:6px 12px;border-radius:20px">
+          <button data-textsize="down" aria-label="Decrease text size">-A</button><button data-textsize="reset" aria-label="Reset text size">A</button><button data-textsize="up" aria-label="Increase text size">+A</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel panel-pad" style="margin-bottom:18px">
+      <h3 style="font-size:14px;margin-bottom:6px">VAT Filing Stagger</h3>
+      <p style="font-size:12.5px;color:var(--text-muted);margin-bottom:14px">
+        Choose how often you're required to file. Changing this regenerates your upcoming (Draft) filing periods —
+        already-Submitted returns are kept as-is.
+      </p>
+      <div class="radio-pill-group" id="staggerGroup">
+        <label class="radio-pill"><input type="radio" name="stagger" value="1" /> Stagger 1 — Monthly</label>
+        <label class="radio-pill"><input type="radio" name="stagger" value="2" /> Stagger 2 — Quarterly</label>
+      </div>
+    </div>
+
+    <div class="panel panel-pad" style="margin-bottom:18px">
+      <h3 style="font-size:14px;margin-bottom:6px">Practice Tools</h3>
+      <p style="font-size:12.5px;color:var(--text-muted);margin-bottom:12px">Additional tools for correcting returns and reviewing your own progress.</p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn btn-outline btn-sm" onclick="window.location.href='voluntary-disclosure.html'">🧮 Voluntary Disclosure (VAT211)</button>
+        <button class="btn btn-outline btn-sm" onclick="window.location.href='instructor.html'">🎓 Instructor / Grading Mode</button>
+        <button class="btn btn-outline btn-sm" onclick="window.location.href='invoice-generator.html'">🧾 Tax Invoice Generator</button>
+        <button class="btn btn-outline btn-sm" onclick="window.location.href='trial-balance.html'">📊 Trial Balance Exercise</button>
+      </div>
+    </div>
+
+    <div class="panel panel-pad" style="margin-bottom:18px">
+      <h3 style="font-size:14px;margin-bottom:6px">Simulator data</h3>
+      <p style="font-size:12.5px;color:var(--text-muted);margin-bottom:14px">
+        Erase your practice account and every filing stored in this browser. This cannot be undone.
+      </p>
+      <button class="btn btn-danger" data-action="reset-sim">↺ Reset Simulator</button>
+    </div>
+
+    <div class="footer-note" style="border:none">
+      UAE VAT Simulator · Created By Ananthu Shaji · Training Edition
+    </div>
+  </main>
+</div>
+
+<script src="../js/storage.js"></script>
+<script>
+(function(){
+  const session = VATSIM.requireSession("../login.html");
+  if (!session) return;
+  const account = VATSIM.getAccount();
+  if (!account) { window.location.href = "../index.html"; return; }
+  VATSIM.wireChrome();
+
+  const usage = VATSIM.getStorageUsageEstimate();
+  document.getElementById("storageBar").style.width = usage.pctUsed + "%";
+  document.getElementById("storageBar").style.background = usage.pctUsed > 85 ? "var(--danger)" : usage.pctUsed > 60 ? "var(--warn)" : "var(--gold-600)";
+  document.getElementById("storageUsedText").textContent = usage.usedMB + " MB used (of an assumed ~" + usage.assumedTotalMB + " MB browser limit)";
+  document.getElementById("storagePctText").textContent = usage.pctUsed + "%";
+  if (usage.pctUsed > 70) document.getElementById("storageWarning").style.display = "block";
+
+  const current = account.staggerType || "2";
+  document.querySelectorAll('input[name="stagger"]').forEach((r) => {
+    if (r.value === current) { r.checked = true; r.closest(".radio-pill").classList.add("checked"); }
+    r.addEventListener("change", () => {
+      document.querySelectorAll(".radio-pill").forEach((p) => p.classList.remove("checked"));
+      r.closest(".radio-pill").classList.add("checked");
+      if (r.value === account.staggerType) return;
+      if (!confirm("Switch to " + (r.value === "1" ? "Monthly (Stagger 1)" : "Quarterly (Stagger 2)") + " filing? This regenerates your upcoming Draft periods.")) {
+        r.checked = false;
+        document.querySelector('input[name="stagger"][value="' + account.staggerType + '"]').checked = true;
+        return;
+      }
+      VATSIM.setFilingStagger(account, r.value);
+      VATSIM.toast("Filing stagger updated. Draft periods regenerated.", "success");
+    });
+  });
+})();
+</script>
+</body>
+</html>

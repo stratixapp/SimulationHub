@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Excise Tax Return — VAT Return Filing Simulator</title>
+<link rel="stylesheet" href="../css/style.css" />
+<link rel="icon" href="../favicon.ico" />
+<link rel="apple-touch-icon" href="../icons/icon-180.png" />
+<link rel="manifest" href="../manifest.json" />
+<meta name="theme-color" content="#0c1f38" />
+</head>
+<body>
+
+<div class="topbar">
+  <button class="icon-btn" title="Notifications" aria-label="Notifications">🔔</button>
+  <div class="text-size"><button data-textsize="down" aria-label="Decrease text size">-A</button><button data-textsize="reset" aria-label="Reset text size">A</button><button data-textsize="up" aria-label="Increase text size">+A</button></div>
+  <span class="lang-toggle" role="button" tabindex="0" aria-label="Switch to Arabic (not fully supported in this training simulator)">عربي</span>
+</div>
+
+<header class="app-header">
+  <div class="brand">
+    <div class="brand-emblem">FTA</div>
+    <div class="brand-text">
+      <div class="ar">الهيئة الاتحادية للضرائب</div>
+      <div class="en">FEDERAL TAX AUTHORITY</div>
+      <div class="sub">VAT Return Filing Simulator</div>
+    </div>
+  </div>
+  <div class="header-spacer"></div>
+  <span class="autosave-tag" id="autosaveTag"><span class="dot"></span> Saved</span>
+  <span class="training-badge">🎓 Training Mode</span>
+  <div class="uae-emblem-mini">UAE</div>
+  <div class="user-menu">
+    <span class="avatar" data-user-initial>?</span><span data-user-email>—</span> ▾
+    <div class="user-menu-dropdown">
+      <a href="profile.html">👤 Profile</a>
+      <a href="excise.html">🧯 Excise Tax</a>
+      <a href="settings.html">⚙️ Settings &amp; About</a>
+      <button data-action="reset-sim">↺ Reset Simulator</button>
+      <button data-action="logout">↪ Logout</button>
+    </div>
+  </div>
+</header>
+
+<div class="breadcrumb">
+  <a href="dashboard.html">Home</a><span class="sep">›</span>
+  <a href="excise.html">Excise Tax</a><span class="sep">›</span>
+  <span class="current">Form EX201</span>
+</div>
+
+<div class="app-shell">
+  <div class="rail">
+    <a href="dashboard.html" title="Home">🏠</a>
+    <a href="excise.html" title="Excise Tax">🧯</a>
+  </div>
+
+  <main class="content narrow" style="padding-top:0">
+    <div style="padding-top:18px">
+      <h1 style="font-size:16px;margin-bottom:4px">Excise Tax Return — Form EX201</h1>
+      <div style="font-size:12.5px;color:var(--text-muted);margin-bottom:18px" id="periodLabel">—</div>
+
+      <!-- Goods lines -->
+      <div class="panel panel-pad" style="margin-bottom:18px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <div class="box-section-label" style="padding-top:0">Excise Goods Declared This Period</div>
+          <button class="btn btn-outline btn-sm" id="btnAddLine">＋ Add Goods Line</button>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table" id="linesTable">
+            <thead><tr><th>Category</th><th>Description</th><th>Quantity</th><th>Retail Price / Unit (AED)</th><th>Rate</th><th>Excise Due (AED)</th><th></th></tr></thead>
+            <tbody id="linesBody"></tbody>
+          </table>
+        </div>
+        <p style="font-size:11.5px;color:var(--text-faint);margin-top:10px" id="emptyLinesHint">No goods lines added yet — click "Add Goods Line" to declare excise goods imported, produced, or released this period.</p>
+      </div>
+
+      <!-- Totals -->
+      <div class="panel panel-pad" style="margin-bottom:18px">
+        <div class="box-section-label" style="padding-top:0">Return Summary</div>
+        <div class="review-grid">
+          <div class="review-item"><div class="k">Total Goods Value</div><div class="v" id="sumGoodsValue">AED 0.00</div></div>
+          <div class="review-item"><div class="k">Total Excise Tax Due</div><div class="v" id="sumExcise" style="color:var(--navy-900);font-weight:800">AED 0.00</div></div>
+          <div class="review-item"><div class="k">Estimated VAT Impact (5%, informational)</div><div class="v" id="sumVat">AED 0.00</div></div>
+        </div>
+        <div class="info-banner" style="margin-top:14px;margin-bottom:0">
+          Excise Tax is payable at the time of filing, based on the higher of the designated retail price or the FTA's
+          deemed price. VAT is charged separately, at 5%, on the excise-inclusive selling price — shown above for
+          reference only.
+        </div>
+      </div>
+
+      <!-- Declaration -->
+      <div class="panel panel-pad" style="margin-bottom:80px">
+        <div class="box-section-label" style="padding-top:0">Declaration</div>
+        <div class="check-row">
+          <label><input type="checkbox" id="declareCheck" /> I declare that the information provided in this Excise Tax return is true, complete, and accurate to the best of my knowledge, and that I am authorized to submit this return.</label>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="wizard-footer no-print">
+  <button class="btn btn-outline" id="btnSaveDraft">💾 Save Draft</button>
+  <div class="right-actions">
+    <button class="btn btn-gold" id="btnSubmitPay">Submit &amp; Pay</button>
+  </div>
+</div>
+
+<!-- Add/edit line modal -->
+<div class="modal-backdrop" id="lineModal">
+  <div class="modal">
+    <div class="modal-header"><h3>Add Excise Goods Line</h3><button id="closeLineModal" aria-label="Close">✕</button></div>
+    <div class="modal-body">
+      <div class="field" id="f_lineCategory">
+        <label for="lineCategory">Excise Goods Category</label>
+        <select id="lineCategory"></select>
+      </div>
+      <div class="field" id="f_sugarTier" style="display:none">
+        <label for="sugarTier">Sugar Content Tier</label>
+        <select id="sugarTier"></select>
+        <div class="hint">Tax rate is per litre, based on total sugar (natural + added + sweeteners) per 100ml — not a percentage of price.</div>
+      </div>
+      <div class="field" id="f_lineDesc">
+        <label for="lineDesc">Description</label>
+        <input type="text" id="lineDesc" placeholder="e.g. 500ml energy drink cans" />
+        <div class="error-msg">Description is required.</div>
+      </div>
+      <div class="two-col">
+        <div class="field" id="f_lineQty">
+          <label for="lineQty" id="lineQtyLabel">Quantity (units)</label>
+          <input type="text" inputmode="decimal" id="lineQty" placeholder="e.g. 1000" />
+          <div class="error-msg">Enter a quantity greater than 0.</div>
+        </div>
+        <div class="field" id="f_linePrice">
+          <label for="linePrice" id="linePriceLabel">Retail Price per Unit (AED)</label>
+          <input type="text" inputmode="decimal" id="linePrice" placeholder="e.g. 5.00" />
+          <div class="error-msg">Enter a price greater than 0.</div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" id="cancelLine">Cancel</button>
+      <button class="btn btn-gold" id="saveLine">Add Line</button>
+    </div>
+  </div>
+</div>
+
+<!-- Submitted / receipt -->
+<div class="modal-backdrop" id="receiptModal">
+  <div class="modal">
+    <div class="modal-header"><h3>Excise Return Submitted</h3><button id="closeReceipt" aria-label="Close">✕</button></div>
+    <div class="modal-body" style="text-align:center;padding:10px 6px">
+      <div class="success-icon" style="margin:0 auto 14px">✅</div>
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:4px">Reference Number</p>
+      <p style="font-size:16px;font-weight:800;color:var(--navy-900);margin-bottom:14px" id="receiptRef">—</p>
+      <p style="font-size:12.5px;color:var(--text-muted)">Excise tax of <strong id="receiptAmt">AED 0.00</strong> has been marked as paid (simulated).</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" id="btnDownloadExcisePdf">⬇ Download PDF Receipt</button>
+      <button class="btn btn-gold" id="btnBackToExcise">Back to Excise Tax</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="../js/storage.js"></script>
+<script src="../js/excise.js"></script>
+</body>
+</html>

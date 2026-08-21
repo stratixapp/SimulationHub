@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Voluntary Disclosure — VAT Return Filing Simulator</title>
+<link rel="stylesheet" href="../css/style.css" />
+<link rel="icon" href="../favicon.ico" />
+<link rel="apple-touch-icon" href="../icons/icon-180.png" />
+<link rel="manifest" href="../manifest.json" />
+<meta name="theme-color" content="#0c1f38" />
+</head>
+<body>
+
+<div class="topbar">
+  <button class="icon-btn" title="Notifications" aria-label="Notifications">🔔</button>
+  <div class="text-size"><button data-textsize="down" aria-label="Decrease text size">-A</button><button data-textsize="reset" aria-label="Reset text size">A</button><button data-textsize="up" aria-label="Increase text size">+A</button></div>
+  <span class="lang-toggle" role="button" tabindex="0" aria-label="Switch to Arabic (not fully supported in this training simulator)">عربي</span>
+</div>
+
+<header class="app-header">
+  <div class="brand">
+    <div class="brand-emblem">FTA</div>
+    <div class="brand-text">
+      <div class="ar">الهيئة الاتحادية للضرائب</div>
+      <div class="en">FEDERAL TAX AUTHORITY</div>
+      <div class="sub">VAT Return Filing Simulator</div>
+    </div>
+  </div>
+  <div class="header-spacer"></div>
+  <span class="training-badge">🎓 Training Mode</span>
+  <div class="uae-emblem-mini">UAE</div>
+  <div class="user-menu">
+    <span class="avatar" data-user-initial>?</span><span data-user-email>—</span> ▾
+    <div class="user-menu-dropdown">
+      <a href="profile.html">👤 Profile</a>
+      <a href="filings.html">📁 My Filings</a>
+      <a href="liabilities.html">💰 My Liabilities</a>
+      <a href="settings.html">⚙️ Settings &amp; About</a>
+      <button data-action="reset-sim">↺ Reset Simulator</button>
+      <button data-action="logout">↪ Logout</button>
+    </div>
+  </div>
+</header>
+
+<div class="breadcrumb">
+  <a href="dashboard.html">Home</a><span class="sep">›</span>
+  <a href="filings.html">My Filings</a><span class="sep">›</span>
+  <span class="current">Voluntary Disclosure (VAT211)</span>
+</div>
+
+<div class="app-shell">
+  <main class="content narrow" style="padding-top:0">
+    <div style="padding-top:18px">
+      <h1 style="font-size:16px;margin-bottom:4px">Voluntary Disclosure — Form VAT211</h1>
+      <p style="font-size:12.5px;color:var(--text-muted);margin-bottom:18px">
+        Use this if you become aware, after submitting a VAT return, that it contains an error. Select the affected
+        return, review its original figures, then enter what the figures should have been.
+      </p>
+
+      <div class="panel panel-pad" style="margin-bottom:18px">
+        <div class="field">
+          <label for="filingSelect">Select the Submitted Return to Correct</label>
+          <select id="filingSelect"></select>
+        </div>
+      </div>
+
+      <div id="vdWorkspace" style="display:none">
+        <div class="panel panel-pad" style="margin-bottom:18px">
+          <div class="box-section-label" style="padding-top:0">Original Figures (As Submitted)</div>
+          <div class="review-grid" id="originalGrid"></div>
+        </div>
+
+        <div class="panel panel-pad" style="margin-bottom:18px">
+          <div class="box-section-label" style="padding-top:0">Corrected Figures</div>
+          <p style="font-size:12px;color:var(--text-muted);margin-bottom:14px">Enter the figures as they should have been. Box 1 is entered as a single corrected total here (rather than split by Emirate) to keep this form focused on the correction itself.</p>
+
+          <table class="box-table">
+            <thead><tr><th>Box</th><th>Corrected Amount (AED)</th><th>Corrected VAT (AED)</th></tr></thead>
+            <tbody>
+              <tr><td>1 — Standard rated supplies (total, all Emirates)</td><td><input class="amt-input" inputmode="decimal" id="c_b1amount" /></td><td><input class="amt-input" inputmode="decimal" id="c_b1vat" /></td></tr>
+              <tr><td>3 — Supplies subject to reverse charge</td><td><input class="amt-input" inputmode="decimal" id="c_b3amount" /></td><td><input class="amt-input" inputmode="decimal" id="c_b3vat" /></td></tr>
+              <tr><td>4 — Zero rated supplies</td><td><input class="amt-input" inputmode="decimal" id="c_b4amount" /></td><td>—</td></tr>
+              <tr><td>5 — Exempt supplies</td><td><input class="amt-input" inputmode="decimal" id="c_b5amount" /></td><td>—</td></tr>
+              <tr><td>7 — Adjustments to goods imported</td><td><input class="amt-input" inputmode="decimal" id="c_b7amount" /></td><td><input class="amt-input" inputmode="decimal" id="c_b7vat" /></td></tr>
+              <tr><td>9 — Standard rated expenses</td><td><input class="amt-input" inputmode="decimal" id="c_b9amount" /></td><td><input class="amt-input" inputmode="decimal" id="c_b9vat" /></td></tr>
+              <tr><td>10 — Supplies subject to reverse charge (recoverable)</td><td><input class="amt-input" inputmode="decimal" id="c_b10amount" /></td><td><input class="amt-input" inputmode="decimal" id="c_b10vat" /></td></tr>
+            </tbody>
+          </table>
+
+          <div class="field" style="margin-top:16px">
+            <label for="discoveryDate">Date You Discovered the Error</label>
+            <input type="date" id="discoveryDate" />
+            <div class="hint">Article 10 of the Tax Procedures Executive Regulation requires a Voluntary Disclosure to be submitted within 20 business days of discovery.</div>
+          </div>
+          <div class="field">
+            <label for="vdReason">Reason for Disclosure</label>
+            <textarea id="vdReason" placeholder="e.g. Sales invoice for AED 12,000 was omitted from the original Box 1 figure."></textarea>
+          </div>
+          <div class="field">
+            <label>Has the FTA already notified you of an audit for this period?</label>
+            <div class="radio-pill-group">
+              <label class="radio-pill"><input type="radio" name="auditNotified" value="no" checked /> No — filing voluntarily</label>
+              <label class="radio-pill"><input type="radio" name="auditNotified" value="yes" /> Yes — audit notice received</label>
+            </div>
+            <div class="hint">This changes the Voluntary Disclosure penalty under Cabinet Decision No. 129 of 2025.</div>
+          </div>
+          <div class="info-banner" id="thresholdBanner" style="display:none;margin-bottom:0"></div>
+          <div class="info-banner" id="deadlineBanner" style="display:none;margin-bottom:0;background:var(--danger-bg);border-color:#eec3bd;color:#7a2c22"></div>
+        </div>
+
+        <div class="panel panel-pad" style="margin-bottom:80px">
+          <div class="box-section-label" style="padding-top:0">Recalculated Result (Live)</div>
+          <div class="review-grid" id="correctedGrid"></div>
+          <div class="info-banner" style="margin-top:14px;margin-bottom:0" id="differenceBanner"></div>
+          <div class="info-banner" style="margin-top:10px;margin-bottom:0;display:none" id="vdPenaltyBanner"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="wizard-footer no-print" id="wizardFooter" style="display:none">
+  <span></span>
+  <div class="right-actions">
+    <button class="btn btn-gold" id="btnSubmitVd">Submit Voluntary Disclosure</button>
+  </div>
+</div>
+
+<div class="footer-note">
+  <strong>UAE VAT Simulator</strong> — Created By Ananthu Shaji · Training Edition · Not affiliated with the Federal Tax Authority
+</div>
+
+<script src="../js/storage.js"></script>
+<script src="../js/voluntary-disclosure.js"></script>
+</body>
+</html>

@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Profile — VAT Return Filing Simulator</title>
+<link rel="stylesheet" href="../css/style.css" />
+<link rel="icon" href="../favicon.ico" />
+<link rel="apple-touch-icon" href="../icons/icon-180.png" />
+<link rel="manifest" href="../manifest.json" />
+<meta name="theme-color" content="#0c1f38" />
+</head>
+<body>
+
+<div class="topbar">
+  <button class="icon-btn" title="Notifications" aria-label="Notifications">🔔</button>
+  <div class="text-size"><button data-textsize="down" aria-label="Decrease text size">-A</button><button data-textsize="reset" aria-label="Reset text size">A</button><button data-textsize="up" aria-label="Increase text size">+A</button></div>
+  <span class="lang-toggle" role="button" tabindex="0" aria-label="Switch to Arabic (not fully supported in this training simulator)">عربي</span>
+</div>
+
+<header class="app-header">
+  <div class="brand">
+    <div class="brand-emblem">FTA</div>
+    <div class="brand-text">
+      <div class="ar">الهيئة الاتحادية للضرائب</div>
+      <div class="en">FEDERAL TAX AUTHORITY</div>
+      <div class="sub">VAT Return Filing Simulator</div>
+    </div>
+  </div>
+  <div class="header-spacer"></div>
+  <span class="training-badge">🎓 Training Mode</span>
+  <div class="uae-emblem-mini">UAE</div>
+  <div class="user-menu">
+    <span class="avatar" data-user-initial>?</span><span data-user-email>—</span> ▾
+    <div class="user-menu-dropdown">
+      <a href="profile.html">👤 Profile</a>
+      <a href="filings.html">📁 My Filings</a>
+      <a href="liabilities.html">💰 My Liabilities</a>
+      <a href="settings.html">⚙️ Settings &amp; About</a>
+      <button data-action="reset-sim">↺ Reset Simulator</button>
+      <button data-action="logout">↪ Logout</button>
+    </div>
+  </div>
+</header>
+
+<div class="breadcrumb"><a href="dashboard.html">Home</a><span class="sep">›</span><span class="current">Profile</span></div>
+
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="sidebar-profile">
+      <div class="name" data-company-name>—</div>
+      <div class="trn">TRN: <span data-trn>—</span></div>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="dashboard.html"><span class="icon">🏠</span> Home</a>
+      <a href="filings.html"><span class="icon">🧾</span> My Filings</a>
+      <a href="excise.html"><span class="icon">🧯</span> Excise Tax</a>
+      <a href="liabilities.html"><span class="icon">💰</span> My Liabilities</a>
+      <a href="payments.html"><span class="icon">💳</span> Payments</a>
+      <a href="correspondence.html"><span class="icon">📬</span> My Correspondence</a>
+      <a href="authorization.html"><span class="icon">🔐</span> User Authorization</a>
+      <a href="other-services.html"><span class="icon">🧰</span> Other Services</a>
+      <a href="profile.html" class="active"><span class="icon">👤</span> Profile</a>
+      <a href="settings.html"><span class="icon">⚙️</span> Settings</a>
+    </nav>
+  </aside>
+
+  <main class="content narrow">
+    <div class="panel panel-pad">
+      <h2 style="font-size:15px;margin-bottom:16px">Taxable Person Details</h2>
+      <div class="review-grid" id="profileGrid"></div>
+    </div>
+
+    <div class="panel panel-pad" style="margin-top:18px">
+      <h2 style="font-size:15px;margin-bottom:12px">Supporting Document</h2>
+      <div id="docSection"></div>
+    </div>
+
+    <div class="panel panel-pad" style="margin-top:18px">
+      <h2 style="font-size:15px;margin-bottom:12px">UAE PASS</h2>
+      <div id="uaePassSection"></div>
+    </div>
+  </main>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="../js/storage.js"></script>
+<script>
+(function(){
+  const session = VATSIM.requireSession("../login.html");
+  if (!session) return;
+  const account = VATSIM.getAccount();
+  if (!account) { window.location.href = "../index.html"; return; }
+  VATSIM.wireChrome();
+  function item(k,v){ return '<div class="review-item"><div class="k">'+k+'</div><div class="v">'+(v||"—")+'</div></div>'; }
+  document.getElementById("profileGrid").innerHTML =
+    item("Company / Trade Name", account.companyName) +
+    item("Trade Name", account.tradeName) +
+    item("Trade License Number", account.tradeLicenseNo) +
+    item("Applicant Type", account.applicantType) +
+    item("TRN", account.trn) +
+    item("Application Reference Number", account.arn) +
+    item("Registration Status", account.registrationStatus) +
+    item("Registration Type", account.registrationType) +
+    item("Registration Date", VATSIM.fmtDate(account.registrationDate)) +
+    item("Taxable Turnover (12 months)", account.turnover != null ? "AED " + VATSIM.fmtAED(account.turnover) : "—") +
+    item("Business Activity", account.businessActivity) +
+    item("Authorized Signatory (English)", [account.firstNameEn, account.lastNameEn].filter(Boolean).join(" ")) +
+    item("Authorized Signatory (Arabic)", [account.firstNameAr, account.lastNameAr].filter(Boolean).join(" ")) +
+    item("Designation", account.designation) +
+    item("Emirates ID", account.emiratesId) +
+    item("Emirate", account.emirate) +
+    item("Registered Address", account.address) +
+    item("Phone Number", account.phone) +
+    item("Email Address", account.email) +
+    item("Bank Name", account.bankName) +
+    item("Bank Account Holder", account.bankAccountHolder) +
+    item("IBAN", account.iban);
+
+  const docSection = document.getElementById("docSection");
+  // tradeLicenseDoc may be the legacy plain-string image data URL from
+  // before PDF support was added, or the newer { dataUrl, mime, name }
+  // shape — handle both so existing accounts don't break.
+  const doc = account.tradeLicenseDoc;
+  const docObj = doc && typeof doc === "object" ? doc : (doc ? { dataUrl: doc, mime: "image", name: "" } : null);
+  if (docObj) {
+    docSection.innerHTML = docObj.mime === "pdf"
+      ? '<div style="display:flex;align-items:center;gap:10px;padding:12px 14px;border:1px solid var(--border);border-radius:8px;max-width:320px;background:var(--bg)">' +
+        '<span style="font-size:26px">📄</span><div style="min-width:0"><div style="font-size:12.5px;font-weight:700;color:var(--navy-900);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + (docObj.name || "document.pdf") + '</div><div style="font-size:11px;color:var(--text-faint)">PDF document on file</div></div></div>' +
+        '<p style="font-size:11px;color:var(--text-faint);margin-top:8px">Stored locally in this browser only — never uploaded anywhere.</p>'
+      : '<img src="' + docObj.dataUrl + '" style="max-width:320px;border:1px solid var(--border);border-radius:8px;display:block" />' +
+        '<p style="font-size:11px;color:var(--text-faint);margin-top:8px">Stored locally in this browser only — never uploaded anywhere.</p>';
+  } else {
+    docSection.innerHTML = '<p style="font-size:12.5px;color:var(--text-faint)">No document on file. You can add one next time you register, or from Other Services.</p>';
+  }
+
+  const uaePassSection = document.getElementById("uaePassSection");
+  const uaePass = VATSIM.getUaePass();
+  if (uaePass) {
+    uaePassSection.innerHTML =
+      (uaePass.profilePhoto ? '<img src="' + uaePass.profilePhoto + '" style="width:64px;height:64px;border-radius:50%;object-fit:cover;border:2px solid #0d8a51;margin-bottom:12px" />' : "") +
+      '<div class="review-grid">' +
+      item("Status", "✓ Linked") +
+      item("Name on UAE PASS", uaePass.firstName + " " + uaePass.lastName) +
+      item("Mobile", uaePass.mobile) +
+      item("Email", uaePass.email) +
+      item("Account Type", uaePass.accountType) +
+      "</div>" +
+      '<button class="btn btn-outline btn-sm" id="btnProfileUaePassPdf" style="margin-top:14px">⬇ Download UAE PASS Digital ID (PDF)</button>';
+    document.getElementById("btnProfileUaePassPdf").addEventListener("click", () => {
+      VATSIM.showLoading("Preparing UAE PASS Digital ID PDF…", 500).then(() => {
+        const ok = VATSIM.generateIdCardPdf({
+          docTitle: "UAE PASS Digital ID",
+          issuerLine: "UAE PASS — National Digital Identity (Simulated)",
+          accent: [13, 138, 81],
+          name: uaePass.firstName + " " + uaePass.lastName,
+          idLabel: "Emirates ID",
+          idNumber: uaePass.emiratesId || "Not linked",
+          issueDate: VATSIM.fmtDate(uaePass.createdAt ? uaePass.createdAt.slice(0, 10) : VATSIM.todayISO()),
+          rows: [["Mobile", uaePass.mobile], ["Email", uaePass.email], ["Account Type", uaePass.accountType]],
+          photoDataUrl: uaePass.profilePhoto || undefined,
+          watermarkLines: [
+            "Digital Identity — Training Simulation. This is a training-simulation document generated by the UAE VAT Simulator and is not affiliated with, issued by, or endorsed by UAE PASS, TDRA, or any UAE government entity. It has no legal, official, or identification value.",
+          ],
+          filename: "UAE_PASS_Digital_ID_" + uaePass.firstName + "_" + uaePass.lastName + ".pdf",
+        });
+        if (ok) VATSIM.toast("UAE PASS Digital ID PDF downloaded.", "success");
+      });
+    });
+  } else {
+    uaePassSection.innerHTML =
+      '<p style="font-size:12.5px;color:var(--text-muted);margin-bottom:10px">No UAE PASS linked yet.</p>' +
+      '<button class="btn btn-outline btn-sm" onclick="window.location.href=\'../uaepass-create.html\'">＋ Create UAE PASS</button>';
+  }
+})();
+</script>
+</body>
+</html>

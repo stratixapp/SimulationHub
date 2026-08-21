@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>User Authorization — VAT Return Filing Simulator</title>
+<link rel="stylesheet" href="../css/style.css" />
+<link rel="icon" href="../favicon.ico" />
+<link rel="apple-touch-icon" href="../icons/icon-180.png" />
+<link rel="manifest" href="../manifest.json" />
+<meta name="theme-color" content="#0c1f38" />
+</head>
+<body>
+
+<div class="topbar">
+  <button class="icon-btn" title="Notifications" aria-label="Notifications">🔔</button>
+  <div class="text-size"><button data-textsize="down" aria-label="Decrease text size">-A</button><button data-textsize="reset" aria-label="Reset text size">A</button><button data-textsize="up" aria-label="Increase text size">+A</button></div>
+  <span class="lang-toggle" role="button" tabindex="0" aria-label="Switch to Arabic (not fully supported in this training simulator)">عربي</span>
+</div>
+
+<header class="app-header">
+  <button class="btn-icon btn-ghost" data-action="toggle-sidebar" style="display:none" id="mobileToggle" aria-label="Toggle sidebar menu">☰</button>
+  <div class="brand">
+    <div class="brand-emblem">FTA</div>
+    <div class="brand-text">
+      <div class="ar">الهيئة الاتحادية للضرائب</div>
+      <div class="en">FEDERAL TAX AUTHORITY</div>
+      <div class="sub">VAT Return Filing Simulator</div>
+    </div>
+  </div>
+  <div class="header-search">🔍 <span>What are you looking for?</span></div>
+  <div class="header-spacer"></div>
+  <span class="training-badge">🎓 Training Mode</span>
+  <div class="uae-emblem-mini">UAE</div>
+  <div class="user-menu">
+    <span class="avatar" data-user-initial>?</span><span data-user-email>—</span> ▾
+    <div class="user-menu-dropdown">
+      <a href="profile.html">👤 Profile</a>
+      <a href="filings.html">📁 My Filings</a>
+      <a href="liabilities.html">💰 My Liabilities</a>
+      <a href="settings.html">⚙️ Settings &amp; About</a>
+      <button data-action="reset-sim">↺ Reset Simulator</button>
+      <button data-action="logout">↪ Logout</button>
+    </div>
+  </div>
+</header>
+
+<div class="breadcrumb"><a href="dashboard.html">Home</a><span class="sep">›</span><span class="current">User Authorization</span></div>
+
+<div class="app-shell">
+  <aside class="sidebar" id="sidebarNav">
+    <div class="sidebar-profile">
+      <div class="name" data-company-name>—</div>
+      <div class="trn">TRN: <span data-trn>—</span></div>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="dashboard.html"><span class="icon">🏠</span> Home</a>
+      <details class="nav-group"><summary><span class="icon">🧾</span> VAT</summary>
+        <div class="sub-items"><a href="filings.html">My Filings</a></div>
+      </details>
+      <a href="excise.html">Excise Tax</a>
+      <a href="#" data-static>VAT Clearing Company (TINCO)</a>
+      <a href="liabilities.html">My Liabilities</a>
+      <a href="payments.html">Payments</a>
+      <a href="correspondence.html">My Correspondence</a>
+      <a href="authorization.html" class="active">User Authorization</a>
+      <a href="other-services.html">Other Services</a>
+    </nav>
+  </aside>
+
+  <main class="content">
+    <div class="panel" style="margin-bottom:22px">
+      <div class="tab-strip" style="padding:0 22px">
+        <button class="tab-btn active" data-tab="users">Authorized Users</button>
+        <button class="tab-btn" data-tab="roles">Role Matrix</button>
+        <button class="tab-btn" data-tab="log">Activity &amp; Approval Log</button>
+      </div>
+
+      <div class="tab-panel active" data-panel="users" style="padding:22px 24px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px">
+          <p style="font-size:12.5px;color:var(--text-muted);margin:0;max-width:560px">
+            Manage who can access this taxable person's account. The Owner is set automatically at registration
+            and cannot be removed. Invited users require approval before they become Active — exactly like the
+            real portal's authorization workflow.
+          </p>
+          <button class="btn btn-gold btn-sm" id="btnInvite">＋ Invite User</button>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Added</th><th></th></tr></thead>
+            <tbody id="usersBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="tab-panel" data-panel="roles" style="padding:22px 24px">
+        <p style="font-size:12.5px;color:var(--text-muted);margin-top:0">What each role can do on this account.</p>
+        <table class="perm-matrix">
+          <thead><tr><th>Role</th><th>View</th><th>File Returns</th><th>Submit</th><th>Make Payments</th><th>Manage Users</th></tr></thead>
+          <tbody id="roleMatrixBody"></tbody>
+        </table>
+        <p style="font-size:11px;color:var(--text-faint);margin-top:12px">These are internal roles for people on your own team. The real EmaraTax portal also supports a separate <strong>Tax Agent</strong> login — a licensed third-party firm signing in with their own credentials to file on your behalf across multiple clients — which isn't modeled in this simulator.</p>
+      </div>
+
+      <div class="tab-panel" data-panel="log" style="padding:22px 24px">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:4px">
+          <p style="font-size:12.5px;color:var(--text-muted);margin:0">Authorization activity for this account, most recent first.</p>
+          <button class="btn btn-outline" id="btnExportLog" style="padding:6px 14px;font-size:12px" aria-label="Export activity log as CSV">⬇ Export CSV</button>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead><tr><th>Date &amp; Time</th><th>Action</th><th>Detail</th></tr></thead>
+            <tbody id="logBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="footer-note">
+  <strong>UAE VAT Simulator</strong> — Created By Ananthu Shaji · Training Edition · Not affiliated with the Federal Tax Authority
+</div>
+
+<!-- Invite user modal -->
+<div class="modal-backdrop" id="inviteModal">
+  <div class="modal">
+    <div class="modal-header"><h3>Invite Authorized User</h3><button id="closeInvite" aria-label="Close">✕</button></div>
+    <div class="modal-body">
+      <div class="field" id="ivName">
+        <label for="ivNameInput">Full Name</label>
+        <input type="text" id="ivNameInput" placeholder="e.g. Fatima Al Marri" />
+        <div class="error-msg">Name is required.</div>
+      </div>
+      <div class="field" id="ivEmail">
+        <label for="ivEmailInput">Email Address</label>
+        <input type="email" id="ivEmailInput" placeholder="name@company.com" />
+        <div class="error-msg">A valid email is required.</div>
+      </div>
+      <div class="field">
+        <label for="ivRole">Role</label>
+        <select id="ivRole">
+          <option value="Admin">Administrator</option>
+          <option value="Manager">Tax Manager</option>
+          <option value="Preparer" selected>Return Preparer</option>
+          <option value="Viewer">Viewer</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" id="cancelInvite">Cancel</button>
+      <button class="btn btn-gold" id="submitInvite">Send Invitation</button>
+    </div>
+  </div>
+</div>
+
+<script src="../js/storage.js"></script>
+<script src="../js/authorization.js"></script>
+</body>
+</html>

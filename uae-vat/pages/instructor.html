@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Instructor Mode — VAT Return Filing Simulator</title>
+<link rel="stylesheet" href="../css/style.css" />
+<link rel="icon" href="../favicon.ico" />
+<link rel="apple-touch-icon" href="../icons/icon-180.png" />
+<link rel="manifest" href="../manifest.json" />
+<meta name="theme-color" content="#0c1f38" />
+</head>
+<body>
+
+<div class="topbar">
+  <div class="text-size"><button data-textsize="down" aria-label="Decrease text size">-A</button><button data-textsize="reset" aria-label="Reset text size">A</button><button data-textsize="up" aria-label="Increase text size">+A</button></div>
+</div>
+
+<header class="app-header">
+  <div class="brand">
+    <div class="brand-emblem">FTA</div>
+    <div class="brand-text">
+      <div class="ar">الهيئة الاتحادية للضرائب</div>
+      <div class="en">FEDERAL TAX AUTHORITY</div>
+      <div class="sub">VAT Return Filing Simulator</div>
+    </div>
+  </div>
+  <div class="header-spacer"></div>
+  <span class="training-badge" style="background:var(--navy-800);color:#fff">🎓 Instructor Mode</span>
+  <div class="uae-emblem-mini">UAE</div>
+</header>
+
+<div class="breadcrumb"><a href="dashboard.html">Home</a><span class="sep">›</span><span class="current">Instructor Mode</span></div>
+
+<div class="app-shell">
+  <main class="content" style="padding-top:18px">
+
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:14px;margin-bottom:18px">
+      <div>
+        <h1 style="font-size:16px;margin-bottom:4px">Instructor Assessment — <span data-company-name>—</span></h1>
+        <p style="font-size:12.5px;color:var(--text-muted)">TRN <span data-trn>—</span> · This scores the training account currently signed in on this browser.</p>
+      </div>
+      <div class="no-print" style="display:flex;gap:10px">
+        <button class="btn btn-outline" onclick="window.print()">🖨 Print / Sign Report</button>
+        <button class="btn btn-outline" id="btnDownloadReport">⬇ Download PDF Report</button>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-bottom:20px" id="rosterPanel">
+      <div class="panel-header" style="align-items:center">
+        <h2>Class Roster</h2>
+        <span style="font-size:11.5px;color:var(--text-muted)">All student profiles registered on this browser</span>
+      </div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr><th>Student</th><th>TRN</th><th>Overall Score</th><th>Filings</th><th>Est. Penalties</th><th></th></tr></thead>
+          <tbody id="rosterBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="panel panel-pad" style="margin-bottom:20px;text-align:center">
+      <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;font-weight:700">Overall Score</div>
+      <div style="font-size:44px;font-weight:800;color:var(--navy-900);margin-top:6px" id="overallScore">—%</div>
+      <div style="font-size:12px;color:var(--text-muted)" id="overallFilingsCount">—</div>
+    </div>
+
+    <div class="grid-3" style="margin-bottom:20px">
+      <div class="panel panel-pad">
+        <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;font-weight:700">On-Time Filing Rate</div>
+        <div style="font-size:22px;font-weight:800;color:var(--navy-900);margin-top:6px" id="scoreOnTime">—%</div>
+      </div>
+      <div class="panel panel-pad">
+        <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;font-weight:700">Completion Rate</div>
+        <div style="font-size:22px;font-weight:800;color:var(--navy-900);margin-top:6px" id="scoreCompletion">—%</div>
+      </div>
+      <div class="panel panel-pad">
+        <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;font-weight:700">Box-Entry Accuracy</div>
+        <div style="font-size:22px;font-weight:800;color:var(--navy-900);margin-top:6px" id="scoreClean">—%</div>
+      </div>
+      <div class="panel panel-pad">
+        <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;font-weight:700">Penalty-Free Rate</div>
+        <div style="font-size:22px;font-weight:800;color:var(--navy-900);margin-top:6px" id="scorePenaltyFree">—%</div>
+      </div>
+      <div class="panel panel-pad">
+        <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;font-weight:700">Voluntary Disclosure Use</div>
+        <div style="font-size:22px;font-weight:800;color:var(--navy-900);margin-top:6px" id="scoreVd">—%</div>
+      </div>
+      <div class="panel panel-pad">
+        <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;font-weight:700">Total Est. Penalties</div>
+        <div style="font-size:22px;font-weight:800;color:var(--danger);margin-top:6px" id="totalPenaltyOut">AED 0.00</div>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-bottom:20px">
+      <div class="panel-header"><h2>Per-Return Breakdown</h2></div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr><th>Period</th><th>Reference</th><th>Status</th><th>Filed On Time</th><th>Box Entries</th><th>Penalty</th><th>Voluntary Disclosure</th></tr></thead>
+          <tbody id="detailBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-bottom:20px">
+      <div class="panel-header"><h2>Trial Balance Exercise Attempts</h2></div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr><th>Date</th><th>Score</th><th>Correct</th></tr></thead>
+          <tbody id="tbAttemptsBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="panel panel-pad no-print" style="margin-bottom:20px">
+      <div class="box-section-label" style="padding-top:0">Sign-Off (for printed report)</div>
+      <div class="two-col">
+        <div class="field"><label for="instructorName">Instructor Name</label><input type="text" id="instructorName" placeholder="e.g. Fatima Al Marri" /></div>
+        <div class="field"><label for="instructorDate">Date</label><input type="date" id="instructorDate" /></div>
+      </div>
+      <div class="field"><label for="instructorComments">Comments</label><textarea id="instructorComments" placeholder="Optional feedback for the student…"></textarea></div>
+    </div>
+
+    <div class="panel panel-pad print-only" style="display:none;margin-bottom:20px" id="printSignoff">
+      <div class="box-section-label" style="padding-top:0">Sign-Off</div>
+      <div class="review-grid">
+        <div class="review-item"><div class="k">Instructor</div><div class="v" id="printInstructorName">—</div></div>
+        <div class="review-item"><div class="k">Date</div><div class="v" id="printInstructorDate">—</div></div>
+      </div>
+      <p style="font-size:12.5px;margin-top:12px" id="printInstructorComments"></p>
+    </div>
+
+  </main>
+</div>
+
+<div class="footer-note">
+  <strong>UAE VAT Simulator</strong> — Created By Ananthu Shaji · Training Edition · Instructor Assessment Report is generated locally and not sent anywhere.
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="../js/storage.js"></script>
+<script src="../js/instructor.js"></script>
+</body>
+</html>
