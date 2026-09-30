@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cadence — Demand Planning Workbench</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="shell">
+
+  <div class="topbar">
+    <div class="brand">
+      <span class="pulse-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M1 12h5l2-8 4 16 3-11 2 3h6" fill="none" stroke="#3ddcc7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </span>
+      <span>CADENCE<br><small>Demand Planning Workbench</small></span>
+    </div>
+    <div class="sep"></div>
+    <div class="module-nav" id="moduleNav">
+      <button class="module-tab active" data-module="demand">Demand Forecasting</button>
+      <button class="module-tab" data-module="inventory">Inventory Optimization</button>
+      <button class="module-tab" data-module="kpi">KPI Command Center</button>
+      <button class="module-tab" data-module="sop">S&amp;OP Planner</button>
+    </div>
+    <div class="period" id="periodLabel">Planning month: <b>—</b></div>
+    <div class="net-accuracy">
+      <span class="lbl" id="netAccuracyLbl">Network Accuracy</span>
+      <span class="val" id="netAccuracy">—</span>
+    </div>
+    <div class="account-badge" id="accountBadge"></div>
+    <a class="suite-link" href="../index.html" title="Back to Dot Ecosystem suite hub">🏠 Suite</a>
+    <a class="suite-link" href="../supplychain-tcos/index.html" title="Open TCOS — Trade &amp; Customs Simulator (paired with this Cadence suite)">TCOS →</a>
+  </div>
+
+  <div class="sidebar">
+    <div class="searchbox">
+      <span aria-hidden="true">🔍</span>
+      <input type="text" id="search" placeholder="Search SKUs…" aria-label="Search SKUs">
+    </div>
+    <div class="catchips" id="catchips"></div>
+    <div id="sidebarList"></div>
+  </div>
+
+  <div class="main">
+    <div class="sku-header" id="skuHeader"></div>
+
+    <!-- ===== Demand Forecasting module ===== -->
+    <div id="moduleDemand">
+      <div class="kpi-strip" id="kpiStrip"></div>
+
+      <div class="panel-block">
+        <h3>Forecast Method</h3>
+        <div class="method-tabs" id="methodTabs"></div>
+        <div class="params-row" id="paramsRow"></div>
+      </div>
+
+      <div class="panel-block">
+        <h3>24-month history · rolling forecast</h3>
+        <div class="chart-wrap" id="chartWrap" style="position:relative">
+          <svg id="chartSvg"></svg>
+          <div class="tooltip" id="tooltip"></div>
+        </div>
+        <div class="legend">
+          <span><i style="background:#3ddcc7"></i>Actual</span>
+          <span><i style="background:#5aa9e6"></i>Actual (revealed)</span>
+          <span><i style="background:#8b7ff0"></i>Model fit (backcast)</span>
+          <span><i style="background:#f0a83c;border-top:2px dashed #f0a83c;height:0"></i>Forecast</span>
+        </div>
+      </div>
+
+      <div class="panel-block">
+        <h3>Rolling forecast log — practice calling the next month, then reveal it</h3>
+        <table class="horizon-table">
+          <thead><tr><th>Period</th><th>Forecast</th><th>Actual</th><th>Error %</th></tr></thead>
+          <tbody id="horizonBody"></tbody>
+        </table>
+        <button class="reveal-btn" id="revealBtn">Advance 1 month →</button>
+        <button class="reset-btn" id="resetBtn">Reset rolling forecast</button>
+        <div class="empty-note" id="revealStatus" style="margin-top:8px"></div>
+      </div>
+    </div>
+
+    <!-- ===== Inventory Optimization module ===== -->
+    <div id="moduleInventory" style="display:none">
+      <div class="kpi-strip" id="invKpiStrip"></div>
+
+      <div class="panel-block">
+        <h3>Policy Inputs</h3>
+        <div class="params-row" id="invParamsRow"></div>
+      </div>
+
+      <div class="panel-block">
+        <h3>Inventory position over time — sawtooth cycle</h3>
+        <div class="chart-wrap" id="invChartWrap" style="position:relative">
+          <svg id="invChartSvg"></svg>
+          <div class="tooltip" id="invTooltip"></div>
+        </div>
+        <div class="legend">
+          <span><i style="background:#3ddcc7"></i>Inventory position</span>
+          <span><i style="background:#f0a83c;border-top:2px dashed #f0a83c;height:0"></i>Reorder point</span>
+          <span><i style="background:#e5484d;border-top:2px dashed #e5484d;height:0"></i>Safety stock floor</span>
+        </div>
+      </div>
+
+      <div class="panel-block">
+        <h3>Cost &amp; cycle breakdown</h3>
+        <table class="horizon-table" id="invCostTable"></table>
+      </div>
+    </div>
+
+    <!-- ===== KPI Command Center module ===== -->
+    <div id="moduleKpi" style="display:none">
+      <div class="kpi-strip" id="kpiNetStrip"></div>
+
+      <div class="panel-block">
+        <h3>SKU ranking</h3>
+        <div class="method-tabs" id="kpiMetricTabs"></div>
+        <div class="chart-wrap" id="kpiBarWrap">
+          <svg id="kpiBarSvg"></svg>
+        </div>
+      </div>
+
+      <div class="panel-block">
+        <h3>Full network scorecard</h3>
+        <table class="horizon-table" id="kpiTable">
+          <thead><tr><th style="text-align:left">SKU</th><th>Fill Rate</th><th>OTIF</th><th>Perfect Order</th><th>Turns/yr</th><th>Days Supply</th></tr></thead>
+          <tbody id="kpiTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ===== S&OP Scenario Planner module ===== -->
+    <div id="moduleSop" style="display:none">
+      <div class="kpi-strip" id="sopKpiStrip"></div>
+
+      <div class="panel-block">
+        <h3>Scenario &amp; capacity inputs</h3>
+        <div class="method-tabs" id="sopScenarioTabs"></div>
+        <div class="params-row" id="sopParamsRow"></div>
+      </div>
+
+      <div class="panel-block">
+        <h3>Demand plan vs supply capacity — next 6 months</h3>
+        <div class="chart-wrap" id="sopChartWrap">
+          <svg id="sopChartSvg"></svg>
+        </div>
+        <div class="legend">
+          <span><i style="background:#3ddcc7"></i>Demand within capacity</span>
+          <span><i style="background:#e5484d"></i>Demand exceeds capacity (gap)</span>
+          <span><i style="background:#f0a83c;border-top:2px dashed #f0a83c;height:0"></i>Supply capacity</span>
+        </div>
+      </div>
+
+      <div class="panel-block">
+        <h3>Network reconciliation — gap by SKU (current scenario)</h3>
+        <table class="horizon-table" id="sopTable">
+          <thead><tr><th style="text-align:left">SKU</th><th>Demand Plan</th><th>Capacity</th><th>Gap</th><th>Revenue at Risk</th></tr></thead>
+          <tbody id="sopTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="rightrail">
+    <div id="railDemand">
+      <h3 class="rail-title">⚠ Exceptions — MAPE ≥ 20%</h3>
+      <div id="alertsList"></div>
+
+      <div class="scenario-box">
+        <h3 class="rail-title">Consensus Adjustment</h3>
+        <div class="param">
+          <label>Promo / demand-sensing uplift <b id="upliftVal">+0%</b></label>
+          <input type="range" id="upliftSlider" min="-30" max="50" step="5" value="0">
+        </div>
+        <div class="scenario-note" id="scenarioNote"></div>
+      </div>
+
+      <div class="help-box">
+        <b>How to use this</b><br>
+        Pick a SKU, try each forecast method, and watch the <b>Best Fit</b> badge — it's picking the method with the lowest in-sample MAPE, the way an auto-model-selection engine would. Tune α/β/γ to see bias vs. variance trade-offs. Then use <b>Advance 1 month</b> to lock in a real call and check it against next month's actual, like a live S&OP cycle.
+      </div>
+    </div>
+
+    <div id="railInventory" style="display:none">
+      <h3 class="rail-title">⚠ Inventory Risk</h3>
+      <div id="invAlertsList"></div>
+
+      <div class="help-box">
+        <b>How to read this</b><br>
+        <b>EOQ</b> is the order quantity that minimises ordering + holding cost together (Wilson formula). <b>Safety stock</b> covers demand variability during lead time at your chosen service level. <b>Reorder point</b> = expected lead-time demand + safety stock — place the PO the moment on-hand position drops to this line. Raise the ordering-cost slider to see EOQ grow (fewer, bigger orders); raise holding-cost % to see it shrink.
+      </div>
+    </div>
+
+    <div id="railKpi" style="display:none">
+      <h3 class="rail-title">🔻 Lowest Perfect-Order SKUs</h3>
+      <div id="kpiWorstList"></div>
+
+      <div class="help-box">
+        <b>How to read this</b><br>
+        <b>Fill Rate</b> = % of ordered units shipped from stock. <b>OTIF</b> = % of orders delivered on-time AND in-full — the stricter, combined metric most S&OP reviews actually track. <b>Perfect Order</b> layers in a quality/accuracy factor on top of OTIF. <b>Turns/yr</b> comes straight from the Inventory module's current policy sliders — tune ordering/holding cost there and this scorecard updates too.
+      </div>
+    </div>
+
+    <div id="railSop" style="display:none">
+      <h3 class="rail-title">📊 Scenario Comparison — Network Revenue at Risk</h3>
+      <div id="sopScenarioCompare"></div>
+
+      <div class="help-box">
+        <b>How to read this</b><br>
+        The <b>baseline</b> is each SKU's best-fit statistical forecast (same engine as the Demand module). The <b>scenario %</b> layers a sales/consensus adjustment on top — this is what a real S&OP cycle does after the statistical forecast comes out of Demand Review. <b>Capacity</b> is your supply plan; wherever demand exceeds it, that's unmet demand — the gap Supply Review and Reconciliation exist to close, either by raising capacity, trimming the scenario, or accepting the revenue risk.
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script src="../shared/suite-auth.js"></script>
+<script src="js/data.js"></script>
+<script src="js/forecast.js"></script>
+<script src="js/metrics.js"></script>
+<script src="js/chart.js"></script>
+<script src="js/inventory.js"></script>
+<script src="js/kpi.js"></script>
+<script src="js/sop.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

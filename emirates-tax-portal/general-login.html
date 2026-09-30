@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Login — UAE Tax Training Portal</title>
+<link rel="stylesheet" href="css/style.css" />
+<link rel="icon" href="favicon.ico" />
+<link rel="apple-touch-icon" href="icons/icon-180.png" />
+<link rel="manifest" href="manifest.json" />
+<meta name="theme-color" content="#0c1f38" />
+</head>
+<body>
+
+<div class="topbar">
+  <button class="icon-btn" title="Notifications">🔔</button>
+  <div class="text-size">
+    <button data-textsize="down">-A</button>
+    <button data-textsize="reset">A</button>
+    <button data-textsize="up">+A</button>
+  </div>
+  <span class="lang-toggle">عربي</span>
+</div>
+
+<header class="app-header">
+  <div class="brand">
+    <a href="index.html" style="display:flex;align-items:center;gap:10px;text-decoration:none;color:inherit">
+      <div class="brand-emblem">FTA</div>
+      <div class="brand-text">
+        <div class="ar">الهيئة الاتحادية للضرائب</div>
+        <div class="en">FEDERAL TAX AUTHORITY</div>
+        <div class="sub">Tax Training Portal — VAT &amp; Corporate Tax</div>
+      </div>
+    </a>
+  </div>
+  <div class="header-spacer"></div>
+  <span class="training-badge">🎓 Training Mode</span>
+  <div class="uae-emblem-mini">UAE</div>
+</header>
+
+<div class="login-wrap" id="loginSection">
+  <div class="login-card">
+    <div class="login-side">
+      <div>
+        <span class="training-badge" style="background:rgba(255,255,255,.12);color:#f3e9d4;border-color:rgba(255,255,255,.2)">🎓 Training Simulator</span>
+        <h3 style="margin-top:18px">One Profile, Two Simulators</h3>
+        <p>This portal login identifies you as a student on this computer, so multiple students can use the same machine without seeing each other's data. After this, you'll choose VAT Filing or Corporate Tax — each has its own login inside.</p>
+      </div>
+      <div>
+        <p style="margin-bottom:6px">Not sure which one to open?</p>
+        <a href="index.html" style="color:#e7cf95;font-weight:600;font-size:12.5px">← Back to the FTA homepage</a>
+      </div>
+    </div>
+
+    <div class="login-main">
+      <h2>Student Login</h2>
+      <p class="welcome">Welcome to the UAE Tax Training Portal</p>
+      <div class="info-banner" style="margin-bottom:14px">
+        <span class="i">🎓</span>
+        <span><strong>TRAINING / DEMO SIMULATOR</strong> — This identifies which student's data belongs to you on this shared computer. Nothing here is a real government login.</span>
+      </div>
+
+      <div class="login-panels">
+        <div class="login-panel" style="max-width:420px;margin:0 auto">
+          <div class="tabbar" style="display:flex;gap:8px;margin-bottom:16px">
+            <button type="button" class="btn btn-outline" id="tabReturning" style="flex:1">Returning Student</button>
+            <button type="button" class="btn btn-outline" id="tabNew" style="flex:1">New Student</button>
+          </div>
+
+          <form id="returningForm" novalidate>
+            <div class="field" id="f_rname">
+              <label for="rName">Your Name</label>
+              <input type="text" id="rName" placeholder="As you entered it before" />
+              <div class="error-msg">Enter the name you used when you first logged in.</div>
+            </div>
+            <div class="field" id="f_rpin">
+              <label for="rPin">Your PIN</label>
+              <input type="password" id="rPin" placeholder="4+ digit PIN" inputmode="numeric" />
+              <div class="error-msg">Incorrect name or PIN.</div>
+            </div>
+            <button type="submit" class="btn btn-gold btn-block">Continue</button>
+          </form>
+
+          <form id="newForm" novalidate style="display:none">
+            <div class="field" id="f_nname">
+              <label for="nName">Your Name</label>
+              <input type="text" id="nName" placeholder="e.g. Fatima Al Marri" />
+              <div class="error-msg">Enter your name.</div>
+            </div>
+            <div class="field" id="f_npin">
+              <label for="nPin">Choose a PIN</label>
+              <input type="password" id="nPin" placeholder="At least 4 digits" inputmode="numeric" />
+              <div class="error-msg">PIN must be at least 4 characters.</div>
+            </div>
+            <div class="field" id="f_npin2">
+              <label for="nPin2">Confirm PIN</label>
+              <input type="password" id="nPin2" placeholder="Re-enter your PIN" inputmode="numeric" />
+              <div class="error-msg">PINs don't match.</div>
+            </div>
+            <p style="font-size:12px;color:var(--text-muted);margin-bottom:12px">This just creates your student profile on this computer — it's separate from (and comes before) signing up inside VAT or Corporate Tax.</p>
+            <button type="submit" class="btn btn-gold btn-block">Create Profile &amp; Continue</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Service chooser, shown once the student is identified -->
+      <div id="serviceChooser" style="display:none;text-align:center;margin-top:8px">
+        <h3 style="margin-bottom:6px" id="welcomeBackLine">Welcome!</h3>
+        <p style="font-size:13px;color:var(--text-muted);margin-bottom:18px">Which simulator would you like to open?</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;max-width:520px;margin:0 auto">
+          <div style="border:1px solid var(--border);border-radius:7px;padding:18px;text-align:left">
+            <h3 style="margin:0 0 8px;color:var(--dark);font-size:16px">VAT Filing</h3>
+            <p style="font-size:13px;color:var(--text-muted);line-height:1.5;margin:0 0 14px">VAT201 returns, registration, penalties, Voluntary Disclosure &amp; excise.</p>
+            <button class="btn btn-gold" style="width:100%" onclick="window.location.href='login.html'">Open VAT</button>
+          </div>
+          <div style="border:1px solid var(--border);border-radius:7px;padding:18px;text-align:left">
+            <h3 style="margin:0 0 8px;color:var(--dark);font-size:16px">Corporate Tax</h3>
+            <p style="font-size:13px;color:var(--text-muted);line-height:1.5;margin:0 0 14px">CT registration, taxable income, Free Zone / SBR, and CT return filing.</p>
+            <button class="btn btn-gold" style="width:100%" onclick="window.location.href='ct/index.html'">Open CT</button>
+          </div>
+        </div>
+        <p style="font-size:12px;margin-top:18px"><a href="#" id="linkNotYou" style="color:var(--text-muted)">Not you? Switch student</a></p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="footer-note">
+  <strong>UAE Tax Training Portal</strong> — Created By Ananthu Shaji · Offline training tool · Not affiliated with the Federal Tax Authority · No real data is transmitted anywhere.
+</div>
+
+<script src="shared/identity.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/general-login.js"></script>
+</body>
+</html>
