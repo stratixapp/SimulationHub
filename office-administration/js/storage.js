@@ -1039,7 +1039,7 @@ const Store = {
     return count;
   },
 
-  generateSampleAttendance(month) {
+  generateSampleAttendance(month, allowFuture) {
     const d = this.load();
     if (!d.attendance[month]) d.attendance[month] = {};
     const [y, m] = month.split('-').map(Number);
@@ -1052,7 +1052,7 @@ const Store = {
         if (dow === 0) { d.attendance[month][emp.id][pad(day)] = 'H'; continue; } // Sunday holiday
         const holiday = HOLIDAYS_2026.find(h => h.date === `${y}-${pad(m)}-${pad(day)}`);
         if (holiday) { d.attendance[month][emp.id][pad(day)] = 'H'; continue; }
-        if (new Date(y, m-1, day) > new Date()) continue; // don't mark future days
+        if (!allowFuture && new Date(y, m-1, day) > new Date()) continue; // seed data skips future days; Auto-fill button allows full month
         d.attendance[month][emp.id][pad(day)] = rand(codes);
       }
     });

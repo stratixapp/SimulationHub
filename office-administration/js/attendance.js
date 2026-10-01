@@ -15,6 +15,10 @@ Modules.attendance = function(container) {
       <div class="page-actions">
         <input type="month" id="att-month" value="${_attMonth}">
         <button class="btn btn-outline" onclick="attGenerateSample()">&#9889; Auto-fill Month</button>
+        <button class="btn btn-primary" onclick="attExportPractice('single')">&#128215; Excel: Practice (1 file)</button>
+        <button class="btn btn-outline" onclick="attExportPractice('data')">&#128202; Excel: Data</button>
+        <button class="btn btn-outline" onclick="attExportPractice('questions')">&#10067; Excel: Questions</button>
+        <button class="btn btn-outline" onclick="attExportPractice('key')">&#128273; Answer Key</button>
       </div>
     </div>
     <div class="tabs" style="margin-bottom:18px;">
@@ -32,7 +36,7 @@ Modules.attendance = function(container) {
 
 function attGenerateSample() {
   if (Store.getEmployees().length === 0) return toast('Add employees first', 'error');
-  Store.generateSampleAttendance(_attMonth);
+  Store.generateSampleAttendance(_attMonth, true);
   toast('✓ Attendance auto-filled for ' + _attMonth, 'success');
   renderAttendanceView();
 }
@@ -200,8 +204,7 @@ function renderAttendanceRegister() {
                 ${Array.from({length:days},(_,i)=>i+1).map(d => {
                   const code = rec[pad(d)] || '';
                   const isSun = new Date(y,m-1,d).getDay()===0;
-                  const isFuture = new Date(y,m-1,d) > new Date();
-                  return `<td class="${isSun?'sun':''}"><button class="att-cell code-${code}" ${isFuture?'disabled':''} onclick="cycleAttendance('${emp.id}',${d})" title="${ATT_CODE_LABELS[code]||'Not marked'}">${code||'·'}</button></td>`;
+                                    return `<td class="${isSun?'sun':''}"><button class="att-cell code-${code}" onclick="cycleAttendance('${emp.id}',${d})" title="${ATT_CODE_LABELS[code]||'Not marked'}">${code||'·'}</button></td>`;
                 }).join('')}
                 <td class="mono">${p}</td><td class="mono">${a}</td><td class="mono">${pct}%</td>
               </tr>`;
