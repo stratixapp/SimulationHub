@@ -1,7 +1,7 @@
 /* =========================================================
    sw.js — Service worker: enables offline use & "Install App"
    ========================================================= */
-const CACHE_NAME = 'oats-cache-v28';
+const CACHE_NAME = 'oats-cache-v29';
 const ASSETS = [
   './',
   './index.html',
@@ -13,6 +13,7 @@ const ASSETS = [
   './js/samplepdf.js',
   './js/attendance.js',
   './js/xlsxexport.js',
+  './assets/vendor/xlsx.full.min.js',
   './js/leave.js',
   './js/documents.js',
   './js/correspondence.js',

@@ -88,12 +88,32 @@ const HOLIDAYS_2026 = [
   {date:'2026-10-02', name:'Gandhi Jayanti'}, {date:'2026-11-08', name:'Deepavali'},
   {date:'2026-12-25', name:'Christmas'}
 ];
+const HOLIDAYS_2027 = [
+  {date:'2027-01-01', name:"New Year's Day"}, {date:'2027-01-14', name:'Makar Sankranti'},
+  {date:'2027-01-26', name:'Republic Day'}, {date:'2027-03-10', name:'Eid-ul-Fitr'},
+  {date:'2027-04-15', name:'Vishu'}, {date:'2027-05-01', name:'May Day'},
+  {date:'2027-08-15', name:'Independence Day'}, {date:'2027-09-12', name:'Onam'},
+  {date:'2027-10-02', name:'Gandhi Jayanti'}, {date:'2027-10-29', name:'Deepavali'},
+  {date:'2027-12-25', name:'Christmas'}
+];
+const HOLIDAYS_ALL = HOLIDAYS_2026.concat(HOLIDAYS_2027);
 
 function pad(n, len=2) { return String(n).padStart(len, '0'); }
 function rand(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
 function randInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
 function uid(prefix) { return prefix + '-' + Date.now().toString(36).toUpperCase() + '-' + Math.floor(Math.random()*9000+1000); }
-function todayISO() { return new Date().toISOString().slice(0,10); }
+/* Local-date helpers — toISOString() is UTC and gives yesterday's date for IST mornings. */
+function isoLocal(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+function todayISO() { return isoLocal(new Date()); }
+function isHolidayISO(iso) { return HOLIDAYS_ALL.some(h => h.date === iso); }
+function isWorkingDay(y, m, d) { return new Date(y, m - 1, d).getDay() !== 0 && !isHolidayISO(y + '-' + pad(m) + '-' + pad(d)); }
+/* Working dates (excl. Sundays & holidays) between two ISO dates, inclusive */
+function leaveWorkingDates(fromISO, toISO) {
+  const out = [], a = new Date(fromISO + 'T00:00:00'), b = new Date(toISO + 'T00:00:00');
+  if (isNaN(a) || isNaN(b) || b < a) return out;
+  for (const d = new Date(a); d <= b; d.setDate(d.getDate() + 1)) { const iso = isoLocal(d); if (d.getDay() !== 0 && !isHolidayISO(iso)) out.push(iso); }
+  return out;
+}
 function fmtDate(iso) {
   if (!iso) return '—';
   const d = new Date(iso + 'T00:00:00');
@@ -130,7 +150,7 @@ function nextEmployeeId() {
   let max = 0;
   try {
     const all = (Store.load().employees || []);
-    all.forEach(e => { const m = /^ASG-EMP-(\d+)$/.exec(e.id || ''); if (m) max = Math.max(max, parseInt(m[1], 10)); });
+    all.forEach(e => { const m = /^(?:ASG-EMP-|SKL)(\d+)$/.exec(e.id || ''); if (m) max = Math.max(max, parseInt(m[1], 10)); });
   } catch (e) {}
   return 'ASG-EMP-' + String(max + 1).padStart(4, '0');
 }
@@ -479,21 +499,48 @@ const Store = {
     this.save();
     return app;
   },
+  /* Approving a leave: deduct balance once + mark attendance (L) on working days. Reverting undoes both. */
+  _leaveApply(d, app) {
+    if (app.effectsApplied) return;
+    const bal = d.leaveBalances[app.empId];
+    if (bal && bal[app.leaveType] !== undefined) bal[app.leaveType] = Math.max(0, bal[app.leaveType] - app.days);
+    const code = app.leaveType === 'LOP' ? 'A' : 'L';
+    app.attMarked = [];
+    leaveWorkingDates(app.from, app.to).forEach(iso => {
+      const mo = iso.slice(0, 7), dd = iso.slice(8, 10);
+      if (!d.attendance[mo]) d.attendance[mo] = {};
+      if (!d.attendance[mo][app.empId]) d.attendance[mo][app.empId] = {};
+      app.attMarked.push({ date: iso, prev: d.attendance[mo][app.empId][dd] || '' });
+      d.attendance[mo][app.empId][dd] = code;
+    });
+    app.effectsApplied = true;
+  },
+  _leaveRevert(d, app) {
+    if (!app.effectsApplied) return;
+    const bal = d.leaveBalances[app.empId];
+    if (bal && bal[app.leaveType] !== undefined) bal[app.leaveType] += app.days;
+    const code = app.leaveType === 'LOP' ? 'A' : 'L';
+    (app.attMarked || []).forEach(m => {
+      const mo = m.date.slice(0, 7), dd = m.date.slice(8, 10), rec = d.attendance[mo] && d.attendance[mo][app.empId];
+      if (rec && rec[dd] === code) { if (m.prev) rec[dd] = m.prev; else delete rec[dd]; }
+    });
+    app.attMarked = []; app.effectsApplied = false;
+  },
   updateLeaveStatus(id, status, approver, reason) {
     const d = this.load();
     const app = d.leaveApplications.find(a => a.id === id);
     if (!app) return null;
+    if (status === 'Approved' && !app.effectsApplied) {
+      const bal = d.leaveBalances[app.empId];
+      if (bal && bal[app.leaveType] !== undefined && app.leaveType !== 'LOP' && bal[app.leaveType] < app.days)
+        return { error: `Insufficient ${app.leaveType} balance — only ${bal[app.leaveType]} day(s) available, ${app.days} requested.` };
+    }
     app.status = status;
     app.approvedBy = approver || 'HR Manager';
     app.decidedOn = todayISO();
     if (status === 'Rejected') app.rejectionReason = reason || '';
     else delete app.rejectionReason;
-    if (status === 'Approved') {
-      const bal = d.leaveBalances[app.empId];
-      if (bal && bal[app.leaveType] !== undefined) {
-        bal[app.leaveType] = Math.max(0, bal[app.leaveType] - app.days);
-      }
-    }
+    if (status === 'Approved') this._leaveApply(d, app); else this._leaveRevert(d, app);
     this.save();
     return app;
   },
@@ -980,7 +1027,7 @@ const Store = {
   generateSampleEmployees(count) {
     const d = this.load();
     const usedIds = new Set(d.employees.map(e => e.id));
-    let counter = d.employees.length + 1;
+    let counter = parseInt(nextEmployeeId().slice(8), 10);
     for (let i = 0; i < count; i++) {
       const gender = Math.random() > 0.5 ? 'Male' : 'Female';
       const fname = gender === 'Male' ? rand(FIRST_NAMES_M) : rand(FIRST_NAMES_F);
@@ -993,7 +1040,7 @@ const Store = {
       const joinDay = randInt(1, 28);
       const dobYear = randInt(1975, 2003);
       let empId;
-      do { empId = 'SKL' + pad(counter++, 4); } while (usedIds.has(empId));
+      do { empId = 'ASG-EMP-' + pad(counter++, 4); } while (usedIds.has(empId));
       usedIds.add(empId);
 
       const emp = {
@@ -1050,7 +1097,7 @@ const Store = {
       for (let day = 1; day <= daysInMonth; day++) {
         const dow = new Date(y, m-1, day).getDay();
         if (dow === 0) { d.attendance[month][emp.id][pad(day)] = 'H'; continue; } // Sunday holiday
-        const holiday = HOLIDAYS_2026.find(h => h.date === `${y}-${pad(m)}-${pad(day)}`);
+        const holiday = HOLIDAYS_ALL.find(h => h.date === `${y}-${pad(m)}-${pad(day)}`);
         if (holiday) { d.attendance[month][emp.id][pad(day)] = 'H'; continue; }
         if (!allowFuture && new Date(y, m-1, day) > new Date()) continue; // seed data skips future days; Auto-fill button allows full month
         d.attendance[month][emp.id][pad(day)] = rand(codes);
@@ -1069,15 +1116,17 @@ const Store = {
       const emp = rand(d.employees);
       const fromOffset = randInt(-40, 15);
       const from = new Date(); from.setDate(from.getDate() + fromOffset);
-      const days = randInt(1,4);
-      const to = new Date(from); to.setDate(to.getDate() + days - 1);
+      while (!isWorkingDay(from.getFullYear(), from.getMonth() + 1, from.getDate())) from.setDate(from.getDate() + 1);
+      const to = new Date(from); to.setDate(to.getDate() + randInt(1,4) - 1);
+      const days = leaveWorkingDates(isoLocal(from), isoLocal(to)).length;
       const app = {
         id: uid('LV'), empId: emp.id, leaveType: rand(types),
-        from: from.toISOString().slice(0,10), to: to.toISOString().slice(0,10), days,
+        from: isoLocal(from), to: isoLocal(to), days,
         reason: rand(reasons), appliedOn: todayISO(),
         status: rand(['Pending','Approved','Approved','Rejected'])
       };
       if (app.status !== 'Pending') { app.approvedBy = 'HR Manager'; app.decidedOn = todayISO(); }
+      if (app.status === 'Approved') this._leaveApply(d, app);
       d.leaveApplications.push(app);
     }
     this.log(`${count} sample leave applications generated`);
@@ -1311,12 +1360,10 @@ const Store = {
     const deductions = s.pf + s.esi + s.pt + (s.otherDeduction || 0);
     const daysInMonth = daysInMonthOf(month);
     const monthData = this.getMonthAttendance(month)[empId] || {};
-    const workingDays = Array.from({length:daysInMonth},(_,i)=>i+1).filter(d => {
-      const [y,m] = month.split('-').map(Number);
-      return new Date(y,m-1,d).getDay() !== 0;
-    }).length;
-    let lopDays = 0;
-    Object.values(monthData).forEach(c => { if (c === 'A') lopDays++; });
+    const [py, pm] = month.split('-').map(Number);
+    const workingDays = Array.from({length:daysInMonth},(_,i)=>i+1).filter(d => isWorkingDay(py, pm, d)).length;
+    let lopDays = 0;   // Absent = full day LOP, Half Day = 0.5 day LOP
+    Object.values(monthData).forEach(c => { if (c === 'A') lopDays += 1; else if (c === 'HD') lopDays += 0.5; });
     const perDayGross = workingDays ? gross / workingDays : gross;
     const lopDeduction = Math.round(perDayGross * lopDays);
     const netPay = Math.max(0, gross - deductions - lopDeduction);

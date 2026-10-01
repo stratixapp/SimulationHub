@@ -137,7 +137,7 @@ function openResignationForm() {
     const d1 = new Date(document.getElementById('rs-date').value);
     const days = parseInt(document.getElementById('rs-notice-days').value, 10) || 0;
     const lwd = new Date(d1); lwd.setDate(lwd.getDate() + days);
-    document.getElementById('rs-lwd').value = lwd.toISOString().slice(0,10);
+    document.getElementById('rs-lwd').value = isoLocal(lwd);
   };
   document.getElementById('rs-date').onchange = updateLWD;
   document.getElementById('rs-notice-days').oninput = updateLWD;
@@ -591,7 +591,7 @@ function renderExitAnalyticsCard() {
   const monthBuckets = [];
   for (let i = 5; i >= 0; i--) {
     const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - i);
-    monthBuckets.push({ key: d.toISOString().slice(0,7), label: d.toLocaleDateString('en-IN',{month:'short'}) });
+    monthBuckets.push({ key: isoLocal(d).slice(0,7), label: d.toLocaleDateString('en-IN',{month:'short'}) });
   }
   const monthCounts = monthBuckets.map(b => resignations.filter(r => r.resignationDate.slice(0,7) === b.key).length);
   const maxMonthCount = Math.max(1, ...monthCounts);

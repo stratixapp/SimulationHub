@@ -67,7 +67,8 @@ function renderLeaveTable() {
 
 function decideLeave(id, status) {
   if (status === 'Rejected') return openRejectLeaveForm(id);
-  Store.updateLeaveStatus(id, status, 'HR Manager');
+  const res = Store.updateLeaveStatus(id, status, 'HR Manager');
+  if (res && res.error) return toast(res.error, 'error');
   toast(`Leave ${status.toLowerCase()}`, 'success');
   renderLeaveTable();
   refreshTopbarBadges();
@@ -105,7 +106,7 @@ function openLeaveForm() {
         <div class="field"><label>Leave Type <span class="req">*</span></label><select id="lf-type">${Object.entries(LEAVE_TYPES).filter(([k])=>k!=='LOP').map(([k,v])=>`<option value="${k}">${v} (${k})</option>`).join('')}</select></div>
         <div class="field"><label>From <span class="req">*</span></label><input type="date" id="lf-from" value="${todayISO()}"></div>
         <div class="field"><label>To <span class="req">*</span></label><input type="date" id="lf-to" value="${todayISO()}"></div>
-        <div class="field"><label>Number of Days</label><input id="lf-days" readonly value="1"></div>
+        <div class="field"><label>Working Days <span class="text-faint" style="font-weight:400;">(excl. Sundays &amp; holidays)</span></label><input id="lf-days" readonly value="1"></div>
         <div class="field span-3"><label>Reason <span class="req">*</span></label><textarea id="lf-reason" placeholder="Brief reason for leave"></textarea></div>
       </div>
       <div id="lf-balance-hint" class="text-dim" style="font-size:12px;margin-top:6px;"></div>
@@ -113,10 +114,7 @@ function openLeaveForm() {
     foot: `<button class="btn btn-outline" id="lf-cancel">Cancel</button><button class="btn btn-primary" id="lf-submit">Submit Application</button>`
   });
   const updateDays = () => {
-    const from = new Date(document.getElementById('lf-from').value);
-    const to = new Date(document.getElementById('lf-to').value);
-    const days = Math.max(1, Math.round((to - from) / 86400000) + 1);
-    document.getElementById('lf-days').value = isNaN(days) ? 1 : days;
+    document.getElementById('lf-days').value = leaveWorkingDates(document.getElementById('lf-from').value, document.getElementById('lf-to').value).length;
   };
   const updateBalanceHint = () => {
     const empId = document.getElementById('lf-emp').value;
@@ -134,16 +132,20 @@ function openLeaveForm() {
     const leaveType = document.getElementById('lf-type').value;
     const from = document.getElementById('lf-from').value;
     const to = document.getElementById('lf-to').value;
-    const days = parseInt(document.getElementById('lf-days').value, 10);
+    const days = leaveWorkingDates(from, to).length;
     const reason = document.getElementById('lf-reason').value.trim();
     if (!reason) return toast('Please enter a reason for leave', 'error');
     if (new Date(to) < new Date(from)) return toast('To date cannot be before From date', 'error');
+    if (days < 1) return toast('Selected dates are all Sundays / holidays — nothing to apply for', 'error');
+    const avail = Store.getLeaveBalance(empId)[leaveType] ?? 0;
+    if (days > avail) return toast(`Only ${avail} day(s) of ${LEAVE_TYPES[leaveType]} available — cannot apply for ${days}`, 'error');
     Store.addLeaveApplication({ empId, leaveType, from, to, days, reason });
     closeModal();
     toast('✓ Leave application submitted', 'success');
     if (document.getElementById('lv-table-mount')) renderLeaveTable();
     refreshTopbarBadges();
   };
+  updateDays();
   updateBalanceHint();
 }
 

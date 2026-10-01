@@ -154,7 +154,7 @@ WD.x = {
 /* ---------------------------------------------------------
    Reference data (the "policy sheets" a real office keeps)
    --------------------------------------------------------- */
-WD.HOLIDAYS = () => (typeof HOLIDAYS_2026 !== 'undefined' ? HOLIDAYS_2026 : []);
+WD.HOLIDAYS = () => (typeof HOLIDAYS_ALL !== 'undefined' ? HOLIDAYS_ALL : []);
 
 WD.LEAVE_POLICY = { types: ['CL', 'SL', 'EL'], entitlement: [12, 12, 15], maxPerApplication: [3, 5, 10] };
 

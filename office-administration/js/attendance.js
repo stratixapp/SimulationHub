@@ -240,7 +240,7 @@ function renderAttendanceSheet() {
   const days = daysInMonthOf(_attMonth);
   const [y,m] = _attMonth.split('-').map(Number);
   const monthData = Store.getMonthAttendance(_attMonth);
-  const workingDays = Array.from({length:days},(_,i)=>i+1).filter(d => new Date(y,m-1,d).getDay() !== 0).length;
+  const workingDays = Array.from({length:days},(_,i)=>i+1).filter(d => isWorkingDay(y,m,d)).length;
 
   const rows = employees.map(emp => {
     const rec = monthData[emp.id] || {};
@@ -285,7 +285,7 @@ function attExportExcel() {
   const monthData = Store.getMonthAttendance(_attMonth);
   const days = daysInMonthOf(_attMonth);
   const [y,m] = _attMonth.split('-').map(Number);
-  const workingDays = Array.from({length:days},(_,i)=>i+1).filter(d => new Date(y,m-1,d).getDay() !== 0).length;
+  const workingDays = Array.from({length:days},(_,i)=>i+1).filter(d => isWorkingDay(y,m,d)).length;
   // Formula worksheet: every day's code is given; Present, Absent and Attendance % are left EMPTY for you to work out.
   const dayLabels = Array.from({length:days},(_,i)=>`Day ${pad(i+1)}`);
   const rows = [['Employee Name','Department', ...dayLabels, 'Working Days','Present','Absent','Attendance %']];
@@ -309,7 +309,7 @@ function attPrintSheet() {
   const monthData = Store.getMonthAttendance(_attMonth);
   const days = daysInMonthOf(_attMonth);
   const [y,m] = _attMonth.split('-').map(Number);
-  const workingDays = Array.from({length:days},(_,i)=>i+1).filter(d => new Date(y,m-1,d).getDay() !== 0).length;
+  const workingDays = Array.from({length:days},(_,i)=>i+1).filter(d => isWorkingDay(y,m,d)).length;
   const rowsHtml = employees.map(emp => {
     const rec = monthData[emp.id] || {};
     let p=0,a=0,l=0;

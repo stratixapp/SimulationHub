@@ -88,8 +88,8 @@ function pfDocSpec(tab, emp) {
   const v = (x) => (x === undefined || x === null || String(x).trim() === '') ? '-' : String(x);
   const addr = [emp.address, emp.city, emp.district, emp.state, emp.pin].filter(Boolean).join(', ') || '-';
   const deptDesig = `${v(emp.department)} / ${v(emp.designation)}`;
-  const nextMonth1 = (() => { const d = new Date(); d.setMonth(d.getMonth() + 1, 1); return fmtDate(d.toISOString().slice(0, 10)); })();
-  const in15 = (() => { const d = new Date(); d.setDate(d.getDate() + 15); return fmtDate(d.toISOString().slice(0, 10)); })();
+  const nextMonth1 = (() => { const d = new Date(); d.setMonth(d.getMonth() + 1, 1); return fmtDate(isoLocal(d)); })();
+  const in15 = (() => { const d = new Date(); d.setDate(d.getDate() + 15); return fmtDate(isoLocal(d)); })();
   const sal = Number(emp.salary) || 0;
   switch (tab) {
     case 'Educational Certificates': {

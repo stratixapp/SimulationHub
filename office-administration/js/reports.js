@@ -324,7 +324,7 @@ function renderCalendar() {
 
   const events = {};
   const pushEv = (day, cls, text) => { (events[day]=events[day]||[]).push({cls,text}); };
-  HOLIDAYS_2026.forEach(h => { const d = new Date(h.date); if (d.getMonth()===_calMonth && d.getFullYear()===_calYear) pushEv(d.getDate(),'ev-holiday','🎉 '+h.name); });
+  HOLIDAYS_ALL.forEach(h => { const d = new Date(h.date + 'T00:00:00'); if (d.getMonth()===_calMonth && d.getFullYear()===_calYear) pushEv(d.getDate(),'ev-holiday','🎉 '+h.name); });
   employees.forEach(e => {
     const jd = new Date(e.joiningDate); if (jd.getMonth()===_calMonth) pushEv(jd.getDate(),'ev-join', `Joined: ${e.firstName}`);
     const dob = new Date(e.dob); if (dob.getMonth()===_calMonth) pushEv(dob.getDate(),'ev-birthday', `🎂 ${e.firstName}`);
