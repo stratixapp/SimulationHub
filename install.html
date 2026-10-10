@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Dot Echosystem — Enterprise Deployment</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="favicon.ico">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="theme-color" content="#5b5bd6">
+<style>
+:root{
+ --ink:#1e1f24;--muted:#6e717a;--faint:#9a9da6;--line:#e6e7ec;--soft:#f6f7fb;
+ --accent:#5b5bd6;--accent-soft:#eeeefc;--teal:#14b8a6;--teal-soft:#e6f7f5;
+ --amber:#f59e0b;--rose:#f43f5e;--ok:#1f9d5c;--ok-soft:#e8f6ee;
+ --grad:linear-gradient(135deg,#5b5bd6,#14b8a6);
+}
+*{box-sizing:border-box}
+html,body{width:100%;height:100%;margin:0}
+body{
+ background:linear-gradient(135deg,#f0f1fa,#e2f3f1);
+ font-family:Inter,"Segoe UI",system-ui,-apple-system,Arial,sans-serif;color:var(--ink);
+ display:grid;place-items:center;
+}
+button,input{font-family:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* window */
+.window{
+ width:min(1040px,94vw);height:min(670px,93vh);background:#fff;
+ border:1px solid #d9dbe3;border-radius:12px;overflow:hidden;
+ box-shadow:0 30px 70px rgba(40,44,90,.16),0 4px 14px rgba(40,44,90,.06);
+ display:flex;flex-direction:column
+}
+.titlebar{height:44px;border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 16px;font-size:13px;background:#fcfcfd}
+.lights{display:flex;gap:7px;margin-right:16px}
+.lights i{width:10px;height:10px;border-radius:50%;display:block}
+.lights i:nth-child(1){background:#ff5f57}.lights i:nth-child(2){background:#febc2e}.lights i:nth-child(3){background:#28c840}
+.dotmark{width:22px;height:22px;border-radius:6px;background:var(--grad);color:#fff;display:grid;place-items:center;font-size:12px;font-weight:700;margin-right:10px}
+.windowtitle{font-weight:500;color:#3a3c44}
+.windowactions{margin-left:auto;display:flex;gap:18px;color:var(--faint)}
+
+.layout{display:flex;flex:1;min-height:0}
+.sidebar{width:232px;background:var(--soft);border-right:1px solid var(--line);padding:30px 24px;display:flex;flex-direction:column}
+.brand{font-size:17px;font-weight:700;letter-spacing:-.3px;white-space:nowrap;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.brand small{display:block;font-size:8.5px;font-weight:600;letter-spacing:1.3px;color:var(--faint);margin-top:6px;-webkit-text-fill-color:var(--faint)}
+.sidebarBottom{margin-top:auto;color:var(--faint);font-size:11px;line-height:1.7}
+.sidebarBottom strong{color:#555863;font-weight:600}
+
+.content{flex:1;display:flex;flex-direction:column;min-width:0}
+.page{display:none;flex:1;padding:36px 46px 22px;overflow:auto}
+.page.active{display:block}
+h1{font-size:25px;font-weight:600;letter-spacing:-.5px;margin:0 0 6px}
+.lead{font-size:13px;color:var(--muted);margin:0;line-height:1.6}
+.divider{height:1px;background:var(--line);margin:20px 0 24px}
+
+/* welcome */
+.hero{display:flex;align-items:center;gap:24px}
+.heroLogo{width:78px;height:78px;border-radius:18px;background:var(--grad);color:#fff;display:grid;place-items:center;font-size:34px;font-weight:700;box-shadow:0 10px 24px rgba(91,91,214,.28)}
+.hero h2{font-size:18px;font-weight:600;margin:0 0 6px}
+.hero p{font-size:13px;color:var(--muted);line-height:1.65;margin:0;max-width:480px}
+.infoGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:26px}
+.info{border:1px solid var(--line);border-radius:10px;padding:14px 16px 14px 18px;position:relative}
+.info:before{content:"";position:absolute;left:0;top:14px;bottom:14px;width:3px;border-radius:0 3px 3px 0;background:var(--c,var(--accent))}
+.info b{display:block;font-size:13px;font-weight:600}
+.info span{display:block;font-size:12px;color:var(--muted);margin-top:4px;line-height:1.5}
+.notice{margin-top:18px;border:1px solid #dcdcf7;background:var(--accent-soft);padding:12px 14px;border-radius:10px;font-size:12px;line-height:1.6;color:#4a4a78}
+
+/* deployment type */
+.installType{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.type{border:1px solid var(--line);border-radius:12px;padding:18px;cursor:pointer;transition:border-color .15s,background .15s,box-shadow .15s}
+.type:hover{border-color:#c4c5f0}
+.type.selected{border-color:var(--accent);background:var(--accent-soft);box-shadow:0 0 0 3px rgba(91,91,214,.12)}
+.type b{font-size:14px;font-weight:600}
+.type p{font-size:12px;color:var(--muted);line-height:1.55;margin:7px 0 0}
+
+/* components */
+.components{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.component{border:1px solid var(--line);border-radius:10px;padding:14px;display:flex;align-items:flex-start;gap:11px;cursor:pointer}
+.component:hover{border-color:#c4c5f0}
+.component input{margin-top:2px;accent-color:var(--accent);width:15px;height:15px}
+.component b{font-size:13px;font-weight:600;display:block}
+.component span{font-size:12px;color:var(--muted);display:block;line-height:1.5;margin-top:3px}
+
+/* location + developer */
+.field{font-size:12px;color:var(--muted);font-weight:500}
+.path{display:flex;gap:8px;margin-top:8px}
+.path input{height:36px;flex:1;border:1px solid #d3d5de;border-radius:8px;padding:0 12px;font-size:13px;color:#3a3c44;background:#fff}
+.path input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(91,91,214,.15)}
+.secondary{height:36px;border:1px solid #d3d5de;background:#fff;border-radius:8px;padding:0 16px;font-size:12px;color:#3a3c44;cursor:pointer}
+.secondary:hover{background:var(--soft)}
+.disk{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-top:10px}
+.summary{border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-top:22px}
+.sum{display:flex;justify-content:space-between;padding:12px 14px;border-bottom:1px solid #eff0f3;font-size:13px}
+.sum:last-child{border-bottom:0}
+.sum span{color:var(--muted)}
+.sum b{font-weight:600;color:var(--ok)}
+.error{display:none;margin-top:12px;padding:10px 12px;border:1px solid #f8c9d1;background:#fff5f6;color:#b4233c;font-size:12px;border-radius:8px}
+.credit{margin-top:22px;padding-top:14px;border-top:1px solid var(--line);font-size:12px;color:var(--faint)}
+.credit strong{color:#555863;font-weight:600}
+
+/* deployment orb */
+.orbWrap{
+ height:272px;border:1px solid var(--line);border-radius:16px;
+ background:radial-gradient(circle at 50% 38%,#fff 0,#f7f8fd 70%);
+ display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;overflow:hidden
+}
+.orb{width:172px;height:172px;position:relative;flex:none;opacity:0;transform:scale(.6);transition:transform .8s cubic-bezier(.16,1,.3,1),opacity .6s}
+.orb.active{opacity:1;transform:none}
+.orb>*{position:absolute;border-radius:50%}
+.halo{inset:20%;background:radial-gradient(circle,rgba(91,91,214,.30),rgba(20,184,166,.12) 60%,transparent 72%);filter:blur(10px);animation:breathe 3s ease-in-out infinite}
+.ring.a{inset:15%;border:1px dashed rgba(91,91,214,.4);animation:spin 18s linear infinite}
+.ring.b{inset:24%;border:2px solid transparent;border-top-color:var(--teal);border-left-color:rgba(20,184,166,.3);animation:spin 3s linear infinite reverse}
+.orbit{inset:6%;animation:spin 7s linear infinite}
+.orbit:after{content:"";position:absolute;left:50%;top:-4px;width:8px;height:8px;margin-left:-4px;border-radius:50%;background:var(--accent);box-shadow:0 0 12px var(--accent)}
+.orbit.two{inset:20%;animation-duration:10s;animation-direction:reverse}
+.orbit.two:after{width:6px;height:6px;margin-left:-3px;top:-3px;background:var(--teal);box-shadow:0 0 10px var(--teal)}
+.pulse{inset:27%;border:1px solid rgba(91,91,214,.45);animation:pulse 2.6s ease-out infinite}
+.pulse.two{animation-delay:1.3s}
+.prog{inset:0;width:100%;height:100%;transform:rotate(-90deg);overflow:visible;border-radius:0}
+.prog circle{fill:none;stroke-width:2.2}
+.prog .track{stroke:#e8e9f2}
+.prog .fill{stroke:url(#orbGrad);stroke-linecap:round}
+.core{inset:27%;background:radial-gradient(circle at 34% 28%,#fff,#eff0fb 55%,#d8dbf3);border:1px solid #dcdff3;box-shadow:0 8px 26px rgba(91,91,214,.2),inset 0 1px 2px #fff;display:grid;place-items:center;font-size:20px;font-weight:650;letter-spacing:-.4px;font-variant-numeric:tabular-nums}
+.stage{font-size:15px;font-weight:600;text-align:center;padding:0 20px}
+.detail{font-size:12px;color:var(--muted);margin-top:-6px;text-align:center;padding:0 20px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.console{height:104px;border:1px solid var(--line);background:var(--soft);border-radius:10px;margin-top:12px;padding:9px 13px;font:11.5px/1.7 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:#555863;overflow:hidden}
+.console div{white-space:nowrap}
+.console .time{color:var(--faint);margin-right:9px}
+.console .run{color:var(--accent)}
+.console .ok{color:var(--ok)}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pulse{0%{transform:scale(.9);opacity:.7}100%{transform:scale(1.7);opacity:0}}
+@keyframes breathe{0%,100%{transform:scale(.9);opacity:.8}50%{transform:scale(1.12);opacity:1}}
+
+/* complete */
+.complete{text-align:center;padding-top:14px}
+.checkCircle{width:70px;height:70px;border-radius:50%;background:var(--ok-soft);border:1px solid #b5e2c8;color:var(--ok);display:grid;place-items:center;font-size:30px;margin:0 auto 18px}
+.page.active .checkCircle{animation:pop .55s cubic-bezier(.16,1,.3,1)}
+@keyframes pop{0%{transform:scale(.4);opacity:0}100%{transform:none;opacity:1}}
+.complete h2{font-size:22px;font-weight:600;margin:0 0 6px}
+.complete p{font-size:13px;color:var(--muted);margin:0}
+.result{max-width:440px;margin:22px auto;border-top:1px solid var(--line);text-align:left}
+.result div{padding:10px 2px;border-bottom:1px solid #eff0f3;font-size:13px;color:#454851}
+.result span{color:var(--ok);margin-right:10px;font-weight:700}
+
+/* footer */
+.footer{height:60px;border-top:1px solid var(--line);background:#fbfbfd;display:flex;align-items:center;justify-content:space-between;padding:0 18px}
+.progressDots{display:flex;align-items:center;gap:6px}
+.progressDots i{width:7px;height:7px;border-radius:50%;background:#dcdde5;transition:all .25s}
+.progressDots i.done{background:var(--teal)}
+.progressDots i.active{width:20px;border-radius:4px;background:var(--accent)}
+.footerNote{font-size:12px;color:var(--faint);margin-left:12px}
+.buttons{display:flex;gap:8px}
+.btn{height:34px;min-width:84px;border:1px solid #d3d5de;border-radius:8px;background:#fff;color:#33353d;font-size:12.5px;cursor:pointer}
+.btn:hover{background:var(--soft)}
+.btn.primary{background:var(--grad);border-color:transparent;color:#fff;font-weight:600;box-shadow:0 4px 12px rgba(91,91,214,.28)}
+.btn.primary:hover{filter:brightness(1.07)}
+.btn:disabled{background:#f1f2f5;color:#b0b3bc;border-color:#e6e7ec;box-shadow:none;cursor:default;filter:none}
+
+@media(max-width:720px){
+ .sidebar{display:none}.page{padding:26px}
+ .components,.infoGrid,.installType{grid-template-columns:1fr}
+ .window{width:96vw;height:95vh}.footerNote{display:none}
+}
+@media(prefers-reduced-motion:reduce){
+ .halo,.ring,.orbit,.pulse{animation:none}
+}
+</style>
+</head>
+<body>
+<div class="window">
+<header class="titlebar">
+ <div class="lights"><i></i><i></i><i></i></div>
+ <div class="dotmark">D</div><span class="windowtitle">Dot Echosystem — Enterprise Deployment</span>
+ <div class="windowactions"><span>—</span><span>□</span><span>×</span></div>
+</header>
+
+<div class="layout">
+<aside class="sidebar">
+ <div class="brand">DOT ECHOSYSTEM<small>ENTERPRISE TRAINING SUITE</small></div>
+ <div class="sidebarBottom">Deployment package 1.0.0<br>© Dot Echosystem<br><br>Designed &amp; Developed by<br><strong>Ananthu Shaji</strong></div>
+</aside>
+
+<section class="content">
+
+<div class="page active" id="p0">
+ <h1>Welcome to Dot Echosystem</h1>
+ <p class="lead">Enterprise Training Suite — Deployment Wizard</p>
+ <div class="divider"></div>
+ <div class="hero"><div class="heroLogo">D</div><div><h2>Dot Ecosystem Training Suite</h2><p>A unified environment for ERP simulation, logistics, procurement, finance, HR, office administration and professional training.</p></div></div>
+ <div class="infoGrid">
+  <div class="info" style="--c:var(--accent)"><b>Full ERP Simulation</b><span>Procurement · Sales · Inventory · Finance · HR · Projects</span></div>
+  <div class="info" style="--c:var(--teal)"><b>Professional Simulators</b><span>Logistics · Office Administration · GST · UAE Tax</span></div>
+  <div class="info" style="--c:var(--amber)"><b>Offline Capabilities</b><span>Local resources and PWA application support</span></div>
+  <div class="info" style="--c:var(--rose)"><b>Central Training Hub</b><span>Unified access to the Dot Echosystem suite</span></div>
+ </div>
+ <div class="notice"><b>Before continuing:</b> close other instances of the Dot Echosystem applications. The deployment process may register application services, offline resources and shortcuts.</div>
+</div>
+
+<div class="page" id="p1">
+ <h1>Deployment Type</h1><p class="lead">Choose how the Dot Echosystem suite should be deployed.</p><div class="divider"></div>
+ <div class="installType">
+  <div class="type selected" onclick="pick(this)"><b>Standard Enterprise</b><p>Recommended. Deploys the complete training suite with all standard modules.</p></div>
+  <div class="type" onclick="pick(this)"><b>Custom Deployment</b><p>Select individual applications and platform components.</p></div>
+  <div class="type" onclick="pick(this)"><b>Complete Suite</b><p>Deploy every simulator, ERP module and shared platform service.</p></div>
+  <div class="type" onclick="pick(this)"><b>Core Platform</b><p>Install the central hub and essential runtime components only.</p></div>
+ </div>
+</div>
+
+<div class="page" id="p2">
+ <h1>Platform Components</h1><p class="lead">Select the components included in this deployment.</p><div class="divider"></div>
+ <div class="components">
+  <label class="component"><input type="checkbox" checked disabled><div><b>Dot Ecosystem Core</b><span>Central hub, authentication and shared platform services · Required</span></div></label>
+  <label class="component"><input type="checkbox" checked><div><b>Full ERP Simulator</b><span>Procurement, sales, inventory, finance, HR, projects and reporting</span></div></label>
+  <label class="component"><input type="checkbox" checked><div><b>Logistics Simulator</b><span>Logistics and supply-chain practical training environment</span></div></label>
+  <label class="component"><input type="checkbox" checked><div><b>Office Administration</b><span>Office administration and workplace practice modules</span></div></label>
+  <label class="component"><input type="checkbox" checked><div><b>GST &amp; Tax Simulators</b><span>GST and UAE tax training environments</span></div></label>
+  <label class="component"><input type="checkbox" checked><div><b>Supply Chain / TCOS</b><span>Supply-chain and operations training modules</span></div></label>
+ </div>
+</div>
+
+<div class="page" id="p3">
+ <h1>Installation Location</h1><p class="lead">Choose where the Dot Echosystem suite will be deployed.</p><div class="divider"></div>
+ <label class="field" for="installPath">Installation directory</label>
+ <div class="path"><input id="installPath" value="C:\Program Files\Dot Echosystem"><button class="secondary" type="button">Browse...</button></div>
+ <div class="disk"><span>Estimated package size: 1.8 GB</span><span>Available space: 86.4 GB</span></div>
+ <div class="summary">
+  <div class="sum"><span>Application shortcuts</span><b>Enabled</b></div>
+  <div class="sum"><span>Offline resources</span><b>Enabled</b></div>
+  <div class="sum"><span>PWA registration</span><b>Enabled</b></div>
+  <div class="sum"><span>Shared services</span><b>Enabled</b></div>
+ </div>
+</div>
+
+<div class="page" id="p4">
+ <h1>Developer Verification</h1>
+ <p class="lead">Verify the developer identity before deploying the Dot Echosystem suite.</p>
+ <div class="divider"></div>
+ <div style="max-width:500px">
+  <label class="field" for="developerName">Developer Name</label>
+  <div class="path"><input id="developerName" type="text" placeholder="Enter developer name" autocomplete="off"></div>
+  <div style="height:18px"></div>
+  <label class="field" for="developerCode">Developer Code</label>
+  <div class="path"><input id="developerCode" type="text" placeholder="Enter developer code" autocomplete="off"></div>
+  <div class="error" id="developerError"></div>
+  <div class="notice" style="margin-top:22px"><b>Developer verification</b><br>The developer name must match the registered developer identity. The developer code is required to continue deployment.</div>
+  <div class="credit">Designed &amp; Developed by <strong>Ananthu Shaji</strong></div>
+ </div>
+</div>
+
+<div class="page" id="p5">
+ <h1>Deploying Dot Echosystem</h1><p class="lead">The deployment engine is installing and configuring the selected platform components.</p><div class="divider" style="margin:16px 0 18px"></div>
+ <div class="orbWrap">
+  <div class="orb" id="orb">
+   <div class="halo"></div>
+   <div class="ring a"></div>
+   <div class="ring b"></div>
+   <div class="pulse"></div>
+   <div class="pulse two"></div>
+   <svg class="prog" viewBox="0 0 100 100" aria-hidden="true">
+    <defs><linearGradient id="orbGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5b5bd6"/><stop offset="1" stop-color="#14b8a6"/></linearGradient></defs>
+    <circle class="track" cx="50" cy="50" r="48"/>
+    <circle class="fill" id="ringFill" cx="50" cy="50" r="48"/>
+   </svg>
+   <div class="orbit"></div>
+   <div class="orbit two"></div>
+   <div class="core" id="orbPercent">0%</div>
+  </div>
+  <div class="stage" id="orbLabel">Preparing deployment environment</div>
+  <div class="detail" id="file">Checking system requirements…</div>
+ </div>
+ <div class="console" id="consoleLog"></div>
+</div>
+
+<div class="page" id="p6">
+ <div class="complete">
+  <div class="checkCircle">✓</div>
+  <h2>Deployment Completed Successfully</h2>
+  <p>Dot Echosystem Enterprise Training Suite is ready to use.</p>
+  <div class="result">
+   <div><span>✓</span>Core platform registered</div>
+   <div><span>✓</span>ERP simulator deployed</div>
+   <div><span>✓</span>Training simulators configured</div>
+   <div><span>✓</span>Offline resources initialized</div>
+   <div><span>✓</span>Application shortcuts created</div>
+   <div><span>✓</span>Deployment integrity verified</div>
+  </div>
+  <p>You can now launch the Dot Echosystem Training Suite.</p>
+ </div>
+</div>
+
+</section>
+</div>
+
+<footer class="footer">
+ <div style="display:flex;align-items:center"><div class="progressDots" id="dots"></div><span class="footerNote" id="footerNote"></span></div>
+ <div class="buttons"><button class="btn" id="back" disabled>&lt; Back</button><button class="btn primary" id="next">Next &gt;</button><button class="btn" id="cancel">Cancel</button></div>
+</footer>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+/* ---- hub integration (first-run install -> Launch opens the hub) ---- */
+const HUB_URL = "./index.html";                 // what "Launch" opens
+const INSTALLED_KEY = "dot_hub_installed_v1";   // index.html shows this wizard until this key exists
+let deferredPrompt = null;                      // Chromium's native "install app" prompt, if offered
+window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); deferredPrompt = e; });
+function markInstalled(){ try{ localStorage.setItem(INSTALLED_KEY, JSON.stringify({version:"1.0.0", at:new Date().toISOString()})); }catch(e){} }
+const isStandalone = () => (window.matchMedia && matchMedia("(display-mode: standalone)").matches) || navigator.standalone === true;
+async function launchHub(){
+  next.disabled = true; markInstalled();
+  // Launch is a user gesture, so this is the moment the browser allows its own "Install app" dialog
+  if (deferredPrompt && !isStandalone()){
+    try{ deferredPrompt.prompt(); await deferredPrompt.userChoice; }catch(e){}
+    deferredPrompt = null;
+  }
+  location.replace(HUB_URL);
+}
+const DEPLOY_MS = 60000;            // total deployment time (60 s) — change this to speed up / slow down
+const TOTAL_PAGES = 7;
+let page = 0, running = false;
+
+const back = $("back"), next = $("next"), cancel = $("cancel");
+const dotsBox = $("dots"), note = $("footerNote");
+for (let i = 0; i < TOTAL_PAGES; i++) dotsBox.appendChild(document.createElement("i"));
+const dots = [...dotsBox.children];
+
+function pick(el){
+  document.querySelectorAll(".type").forEach(x => x.classList.remove("selected"));
+  el.classList.add("selected");
+}
+
+function show(n){
+  page = n;
+  for (let i = 0; i < TOTAL_PAGES; i++) $("p" + i).classList.toggle("active", i === n);
+  dots.forEach((d, i) => { d.classList.toggle("active", i === n); d.classList.toggle("done", i < n); });
+  note.textContent = "Step " + (n + 1) + " of " + TOTAL_PAGES;
+  back.disabled = n === 0 || n >= 5;
+  cancel.disabled = n >= 5;
+  next.disabled = n === 5;
+  next.textContent = n === 6 ? "Launch" : n === 5 ? "Deploying…" : "Next >";
+  if (n === 5) deploy();
+}
+
+function validateDeveloper(){
+  const name = $("developerName").value.trim(), code = $("developerCode").value.trim(), err = $("developerError");
+  err.style.display = "none"; err.textContent = "";
+  if (name !== "Ananthu Shaji"){
+    err.textContent = "Developer Name is not recognized. Please enter the registered developer name.";
+    err.style.display = "block"; return false;
+  }
+  if (!code){
+    err.textContent = "Please enter the Developer Code.";
+    err.style.display = "block"; return false;
+  }
+  return true;
+}
+
+const phases = [
+  [0,   8,  "Preparing deployment environment", "Checking system requirements",                    "System requirements verified"],
+  [8,   15, "Verifying deployment package",     "Validating application resources",                "Package signature and resources verified"],
+  [15,  28, "Deploying Dot Echosystem Core",    "Deploying central platform",                      "Core platform files deployed"],
+  [28,  50, "Deploying Full ERP Simulator",     "Installing enterprise modules",                   "ERP modules deployed"],
+  [50,  65, "Deploying Training Simulators",    "Installing Logistics, Office, GST and Tax modules","Training simulator packages deployed"],
+  [65,  78, "Configuring Shared Services",      "Registering authentication and platform services","Shared services configured"],
+  [78,  88, "Initializing Offline Engine",      "Preparing local resources and PWA components",    "Offline resources initialized"],
+  [88,  94, "Creating Application Integration", "Registering shortcuts and application entries",   "Application integration registered"],
+  [94,  98, "Applying Developer Configuration", "Securing administrator environment",              "Developer configuration applied"],
+  [98, 100, "Final Integrity Verification",     "Running final deployment checks",                 "Deployment integrity verified"]
+];
+
+function deploy(){
+  if (running) return;
+  running = true;
+  // make the "PWA registration / offline resources" steps real: register the hub's service worker now
+  try{ if ("serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js").catch(()=>{}); }catch(e){}
+
+  const orb = $("orb"), pctEl = $("orbPercent"), ring = $("ringFill");
+  const label = $("orbLabel"), detail = $("file"), box = $("consoleLog");
+  const C = 2 * Math.PI * 48;                  // circumference of the progress ring
+  ring.style.strokeDasharray = C;
+  ring.style.strokeDashoffset = C;
+  requestAnimationFrame(() => orb.classList.add("active"));
+
+  function log(text, cls){
+    const row = document.createElement("div");
+    const t = document.createElement("span"), m = document.createElement("span");
+    t.className = "time"; t.textContent = new Date().toLocaleTimeString([], {hour12:false});
+    m.className = cls; m.textContent = (cls === "ok" ? "✓ " : "› ") + text;
+    row.append(t, m);
+    box.appendChild(row);
+    while (box.children.length > 40) box.removeChild(box.firstChild);
+    box.scrollTop = box.scrollHeight;
+  }
+
+  let cur = -1;
+  const t0 = performance.now();
+
+  function tick(now){
+    const p = Math.max(0, Math.min(100, (now - t0) / DEPLOY_MS * 100));
+
+    ring.style.strokeDashoffset = C * (1 - p / 100);
+    pctEl.textContent = Math.floor(p) + "%";
+
+    let idx = phases.findIndex(ph => p >= ph[0] && p < ph[1]);
+    if (idx < 0) idx = phases.length - 1;
+    if (idx !== cur){
+      for (let k = cur + 1; k <= idx; k++){
+        if (k > 0) log(phases[k - 1][4], "ok");
+        log(phases[k][2], "run");
+      }
+      cur = idx;
+      label.textContent = phases[idx][2];
+      detail.textContent = phases[idx][3] + "…";
+    }
+
+    if (p < 100){ requestAnimationFrame(tick); return; }
+
+    log(phases[cur][4], "ok");
+    label.textContent = "Deployment complete";
+    detail.textContent = "All components deployed";
+    setTimeout(() => { running = false; markInstalled(); show(6); }, 1000);
+  }
+  requestAnimationFrame(tick);
+}
+
+next.onclick = () => {
+  if (page < 4){ show(page + 1); return; }
+  if (page === 4){ if (!validateDeveloper()) return; show(5); return; }
+  if (page === 6) launchHub();
+};
+back.onclick = () => { if (page > 0 && page < 5) show(page - 1); };
+cancel.onclick = () => { if (confirm("Cancel the Dot Echosystem deployment?")) location.reload(); };
+["developerName", "developerCode"].forEach(id => $(id).addEventListener("input", () => { $("developerError").style.display = "none"; }));
+
+show(0);
+</script>
+</body>
+</html>

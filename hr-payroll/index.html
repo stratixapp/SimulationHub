@@ -1,0 +1,3077 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SKELORA | HR &amp; Payroll ERP Training Simulator</title>
+<meta name="description" content="SKELORA — an industry-grade HR & Payroll ERP training simulator for HR, MBA, BBA, BCom and Payroll students." />
+
+<!-- PWA: installable on desktop/mobile, works fully offline (data lives in LocalStorage). -->
+<link rel="manifest" href="manifest.json" />
+<meta name="theme-color" content="#0f1b2d" />
+<link rel="icon" href="assets/icons/favicon-32.png" sizes="32x32" type="image/png" />
+<link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="SKELORA" />
+
+<!-- Fonts: IBM Plex Sans (UI/headings), Inter (data/body, tabular figures), IBM Plex Mono (IDs/codes).
+     Falls back cleanly to system fonts if offline. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- ============================================================
+     LOGIN SCREEN — shown when there is no active session
+     ============================================================ -->
+<div class="auth-shell" id="authShell">
+  <div class="auth-card">
+    <div class="auth-brand">
+      <div class="brand-mark" aria-hidden="true">
+        <img src="assets/icons/icon-192.png" alt="" width="36" height="36" style="border-radius:50%;display:block;" />
+      </div>
+      <div>
+        <div class="auth-brand-title">SKELORA</div>
+        <div class="auth-brand-subtitle">HR &amp; Payroll ERP Training Simulator</div>
+      </div>
+    </div>
+
+    <div class="auth-tabs" role="tablist">
+      <button type="button" class="auth-tab active" id="authTabSignIn" role="tab" aria-selected="true">Sign In</button>
+      <button type="button" class="auth-tab" id="authTabSignUp" role="tab" aria-selected="false">Create Account</button>
+    </div>
+
+    <h1 class="auth-title" id="authFormTitle">Sign in</h1>
+    <form id="loginForm" novalidate>
+      <div class="form-field">
+        <label for="login_username">Username</label>
+        <input type="text" id="login_username" autocomplete="username" placeholder="e.g. admin" />
+      </div>
+      <div class="form-field">
+        <label for="login_password">Password</label>
+        <input type="password" id="login_password" autocomplete="current-password" />
+      </div>
+      <p class="auth-error" id="loginError" hidden></p>
+      <button type="submit" class="btn btn-primary" style="width:100%;margin-top:4px;">Sign In</button>
+    </form>
+
+    <form id="signupForm" novalidate hidden>
+      <div class="form-field">
+        <label for="signup_displayName">Full Name</label>
+        <input type="text" id="signup_displayName" placeholder="e.g. Priya Nair" />
+      </div>
+      <div class="form-field">
+        <label for="signup_username">Choose a Username</label>
+        <input type="text" id="signup_username" autocomplete="username" />
+      </div>
+      <div class="form-field">
+        <label for="signup_password">Choose a Password</label>
+        <input type="password" id="signup_password" autocomplete="new-password" />
+      </div>
+      <div class="form-field">
+        <label for="signup_confirmPassword">Confirm Password</label>
+        <input type="password" id="signup_confirmPassword" autocomplete="new-password" />
+      </div>
+      <p class="auth-error" id="signupError" hidden></p>
+      <button type="submit" class="btn btn-primary" style="width:100%;margin-top:4px;">Create Account &amp; Sign In</button>
+      <p class="muted-text" style="margin-top:10px;font-size:12px;line-height:1.5;">New accounts get the HR role \u2014 full access to every phase, from Job Vacancy through Full &amp; Final Settlement. Your account has its own private company data, even when classmates share this same computer/browser.</p>
+    </form>
+
+    <div class="auth-demo-box" id="authDemoBox">
+      <div class="auth-demo-title">Demo accounts</div>
+      <div class="auth-demo-row"><span>Admin — full access</span><code>admin / admin123</code></div>
+      <div class="auth-demo-row"><span>HR — recruitment → payroll</span><code>hr / hr123</code></div>
+      <p class="muted-text" style="margin-top:10px;font-size:12px;line-height:1.5;">Manager and Employee self-service logins are created per-person from <strong>Employee Master → Self-Service Login</strong> once an employee record exists.</p>
+      <p class="muted-text" style="margin-top:10px;font-size:12px;line-height:1.5;color:#b45309;">Note: the demo <strong>admin</strong>/<strong>hr</strong> logins share one workspace. If several students are on the same computer, each should use <strong>Create Account</strong> instead, so everyone gets their own private data.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     APP SHELL
+     ============================================================ -->
+<div class="app-shell" id="appShell" hidden>
+
+  <!-- ================= SIDEBAR ================= -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-mark" aria-hidden="true">
+        <img src="assets/icons/icon-192.png" alt="" width="22" height="22" style="border-radius:50%;display:block;" />
+      </div>
+      <div class="brand-text">
+        <span class="brand-title">SKELORA</span>
+        <span class="brand-subtitle">HR &amp; Payroll ERP</span>
+      </div>
+      <button class="sidebar-collapse-btn" id="sidebarCollapseBtn" title="Collapse sidebar" aria-label="Collapse sidebar">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M15 6l-6 6 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+
+    <nav class="sidebar-nav" id="sidebarNav" aria-label="Primary">
+      <!-- Populated by script.js from the PHASES config -->
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="workflow-progress" id="workflowProgress" title="Overall simulator progress">
+        <div class="workflow-progress-bar">
+          <div class="workflow-progress-fill" id="workflowProgressFill" style="width:0%"></div>
+        </div>
+        <span class="workflow-progress-label" id="workflowProgressLabel">Phase 1 of 15 unlocked</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- backdrop for mobile sidebar -->
+  <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+  <!-- ================= MAIN COLUMN ================= -->
+  <div class="main-col">
+
+    <!-- ================= TOP NAV ================= -->
+    <header class="topnav">
+      <button class="icon-btn topnav-menu-btn" id="mobileMenuBtn" aria-label="Toggle menu">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+
+      <nav class="breadcrumb" id="breadcrumb" aria-label="Breadcrumb">
+        <span class="breadcrumb-item">SKELORA</span>
+        <span class="breadcrumb-sep">/</span>
+        <span class="breadcrumb-item active" id="breadcrumbCurrent">Dashboard</span>
+      </nav>
+
+      <div class="topnav-search">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <input type="text" id="globalSearch" placeholder="Search vacancies, candidates, employees…" autocomplete="off" />
+        <kbd class="search-kbd">/</kbd>
+        <div class="global-search-results" id="globalSearchResults"></div>
+      </div>
+
+      <div class="topnav-actions">
+        <button class="icon-btn" id="themeToggleBtn" title="Toggle dark / light theme" aria-label="Toggle theme">
+          <svg id="themeIconSun" width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="2"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          <svg id="themeIconMoon" width="18" height="18" viewBox="0 0 24 24" fill="none" style="display:none"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+        </button>
+
+        <div class="topnav-popover-wrap">
+          <button class="icon-btn" id="notifBtn" title="Notifications" aria-label="Notifications">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M13.7 21a2 2 0 0 1-3.4 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            <span class="notif-dot" id="notifDot" hidden></span>
+          </button>
+          <div class="popover notif-popover" id="notifPopover">
+            <div class="popover-header">
+              <span>Notifications</span>
+              <button class="link-btn" id="clearNotifsBtn">Clear all</button>
+            </div>
+            <div class="popover-body" id="notifList"></div>
+          </div>
+        </div>
+
+        <div class="topnav-popover-wrap">
+          <button class="profile-chip" id="profileBtn">
+            <span class="avatar" id="profileAvatar">HR</span>
+            <span class="profile-name" id="profileName">Training Admin</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <div class="popover profile-popover" id="profilePopover">
+            <div class="popover-menu-item" id="profileRoleLabel" style="cursor:default;color:var(--text-tertiary);font-size:12px;">Role</div>
+            <div class="popover-menu-item" data-route="settings">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" stroke="currentColor" stroke-width="1.8"/><path d="M19.4 13.5a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1.04 1.56V20a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.04-1.56 1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.56-1.04H4a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.56-1.04 1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34H10a1.7 1.7 0 0 0 1.04-1.56V4a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1.04 1.56 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87V10a1.7 1.7 0 0 0 1.56 1.04H20a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.56 1.04Z" stroke="currentColor" stroke-width="1.5"/></svg>
+              Settings
+            </div>
+            <div class="popover-menu-item" id="resetDataBtn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Reset simulator data
+            </div>
+            <div class="popover-menu-item" id="logoutBtn" style="color:var(--danger);">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M16 17l5-5-5-5M21 12H9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Log out
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- ================= PAGE CONTENT ================= -->
+    <main class="page-content" id="pageContent">
+
+      <!-- ---------------- DASHBOARD VIEW ---------------- -->
+      <section class="view" id="view-dashboard" data-view="dashboard">
+        <div class="view-header">
+          <div>
+            <h1>Welcome back, Training Admin</h1>
+            <p class="view-subtitle">Here's the state of your HR &amp; Payroll simulation.</p>
+          </div>
+          <div class="view-header-actions">
+            <button class="btn btn-secondary" data-route="vacancy">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+              New Vacancy
+            </button>
+          </div>
+        </div>
+
+        <!-- KPI cards -->
+        <div class="kpi-grid" id="kpiGrid"></div>
+
+        <div class="dashboard-grid">
+          <!-- Recent Activities -->
+          <div class="panel">
+            <div class="panel-header">
+              <h2>Recent Activities</h2>
+            </div>
+            <div class="panel-body" id="recentActivities">
+              <div class="empty-state small">No activity yet. Actions you take will show up here.</div>
+            </div>
+          </div>
+
+          <!-- Upcoming Interviews -->
+          <div class="panel">
+            <div class="panel-header">
+              <h2>Upcoming Interviews</h2>
+              <span class="panel-header-tag">from scheduled vacancies</span>
+            </div>
+            <div class="panel-body" id="upcomingInterviews">
+              <div class="empty-state small">No interviews scheduled.</div>
+            </div>
+          </div>
+
+          <!-- Upcoming Joining -->
+          <div class="panel">
+            <div class="panel-header">
+              <h2>Upcoming Joining</h2>
+            </div>
+            <div class="panel-body" id="upcomingJoining">
+              <div class="empty-state small">No upcoming joinings.</div>
+            </div>
+          </div>
+
+          <!-- Quick Actions -->
+          <div class="panel">
+            <div class="panel-header">
+              <h2>Quick Actions</h2>
+            </div>
+            <div class="panel-body quick-actions" id="quickActions"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---------------- PHASE 1: JOB VACANCY MANAGEMENT ---------------- -->
+      <section class="view" id="view-vacancy" data-view="vacancy" hidden>
+        <div class="view-header">
+          <div>
+            <h1>Job Vacancy Management</h1>
+            <p class="view-subtitle">Phase 1 · Create and track open positions before receiving resumes.</p>
+          </div>
+          <div class="view-header-actions">
+            <button class="btn btn-ghost" id="exportVacancyBtn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 3v12m0 0 4-4m-4 4-4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Export
+            </button>
+            <button class="btn btn-primary" id="newVacancyBtn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+              New Vacancy
+            </button>
+          </div>
+        </div>
+
+        <!-- Vacancy status summary strip -->
+        <div class="status-strip" id="vacancyStatusStrip"></div>
+
+        <div class="panel table-panel">
+          <div class="table-toolbar">
+            <div class="table-search">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+              <input type="text" id="vacancySearch" placeholder="Search by designation, department, location…" autocomplete="off" />
+            </div>
+            <div class="table-filters">
+              <select id="filterDepartment" class="select-sm">
+                <option value="">All Departments</option>
+              </select>
+              <select id="filterStatus" class="select-sm">
+                <option value="">All Statuses</option>
+                <option value="Open">Open</option>
+                <option value="In Progress">In Progress</option>
+                <option value="On Hold">On Hold</option>
+                <option value="Closed">Closed</option>
+              </select>
+              <button class="btn btn-ghost btn-sm" id="clearFiltersBtn">Clear</button>
+            </div>
+          </div>
+
+          <div class="table-scroll">
+            <table class="data-table" id="vacancyTable">
+              <thead>
+                <tr>
+                  <th data-sort="id">Vacancy ID</th>
+                  <th data-sort="designation">Designation</th>
+                  <th data-sort="department">Department</th>
+                  <th data-sort="employmentType">Type</th>
+                  <th data-sort="experience">Experience</th>
+                  <th data-sort="vacanciesCount">Openings</th>
+                  <th data-sort="salary">Salary Range</th>
+                  <th data-sort="location">Location</th>
+                  <th data-sort="interviewDate">Interview Date</th>
+                  <th data-sort="status">Status</th>
+                  <th class="col-actions">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="vacancyTableBody">
+                <!-- rows injected by script.js -->
+              </tbody>
+            </table>
+            <div class="empty-state" id="vacancyEmptyState" hidden>
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none"><path d="M3 7h18M3 12h18M3 17h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+              <p><strong>No vacancies yet.</strong> Create your first job vacancy to begin the HR lifecycle.</p>
+              <div class="empty-state-actions">
+                <button class="btn btn-primary" id="emptyStateNewVacancyBtn">Create Vacancy</button>
+                <button class="btn btn-ghost" id="loadSampleDataBtn">Load 3 sample vacancies</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="table-footer">
+            <span class="table-count" id="vacancyTableCount"></span>
+            <div class="pagination" id="vacancyPagination"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---------------- PHASE 2: RESUME MANAGEMENT ---------------- -->
+      <section class="view" id="view-resume" data-view="resume" hidden>
+        <div class="view-header">
+          <div>
+            <h1>Resume Management</h1>
+            <p class="view-subtitle">Phase 2 &middot; Receive candidate resumes against your open vacancies.</p>
+          </div>
+          <div class="view-header-actions">
+            <button class="btn btn-ghost" id="exportResumeBtn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 3v12m0 0 4-4m-4 4-4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Export
+            </button>
+            <button class="btn btn-primary" id="newResumeBtn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+              Add Candidate
+            </button>
+          </div>
+        </div>
+
+        <!-- Guard state shown when there are no vacancies to apply against -->
+        <div class="panel" id="resumeNoVacancyGuard" hidden>
+          <div class="empty-state">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none"><path d="M4 8h16v11a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V8Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M8 8V6a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 12h18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            <p><strong>No open vacancies yet.</strong> Candidates apply against a specific vacancy, so create one first in Job Vacancy Management.</p>
+            <div class="empty-state-actions">
+              <button class="btn btn-primary" data-route="vacancy">Go to Job Vacancy Management</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="resumeMainArea">
+          <!-- Resume status summary strip -->
+          <div class="status-strip" id="resumeStatusStrip"></div>
+
+          <div class="panel table-panel">
+            <div class="table-toolbar">
+              <div class="table-search">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                <input type="text" id="resumeSearch" placeholder="Search by name, phone, email, position…" autocomplete="off" />
+              </div>
+              <div class="table-filters">
+                <select id="filterVacancy" class="select-sm">
+                  <option value="">All Vacancies</option>
+                </select>
+                <select id="filterResumeStatus" class="select-sm">
+                  <option value="">All Statuses</option>
+                  <option value="Received">Received</option>
+                  <option value="Accepted">Accepted</option>
+                  <option value="Rejected">Rejected</option>
+                  <option value="Moved to Screening">Moved to Screening</option>
+                </select>
+                <button class="btn btn-ghost btn-sm" id="clearResumeFiltersBtn">Clear</button>
+              </div>
+            </div>
+
+            <div class="table-scroll">
+              <table class="data-table" id="resumeTable">
+                <thead>
+                  <tr>
+                    <th data-sort="id">Candidate ID</th>
+                    <th data-sort="name">Name</th>
+                    <th data-sort="appliedForDesignation">Applied For</th>
+                    <th data-sort="phone">Phone</th>
+                    <th data-sort="education">Education</th>
+                    <th data-sort="experienceYears">Experience</th>
+                    <th data-sort="resumeScore">Resume Score</th>
+                    <th data-sort="expectedSalary">Expected Salary</th>
+                    <th data-sort="location">Location</th>
+                    <th data-sort="status">Status</th>
+                    <th class="col-actions">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="resumeTableBody"></tbody>
+              </table>
+              <div class="empty-state" id="resumeEmptyState" hidden>
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none"><path d="M6 3h9l3 3v15H6V3Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M9 12h6M9 16h6M9 8h3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                <p><strong>No candidates yet.</strong> Add a candidate's details to start the screening pipeline.</p>
+                <div class="empty-state-actions">
+                  <button class="btn btn-primary" id="emptyStateNewResumeBtn">Add Candidate</button>
+                  <button class="btn btn-ghost" id="loadSampleResumeDataBtn">Load sample candidates</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="table-footer">
+              <span class="table-count" id="resumeTableCount"></span>
+              <div class="pagination" id="resumePagination"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---------------- PHASE 3: RESUME SCREENING ---------------- -->
+      <section class="view" id="view-screening" data-view="screening" hidden>
+        <div class="view-header">
+          <div>
+            <h1>Resume Screening</h1>
+            <p class="view-subtitle">Phase 3 &middot; Automatic scoring on Education, Experience, Skills Match, Communication &amp; Certifications &mdash; then shortlist.</p>
+          </div>
+          <div class="view-header-actions">
+            <button class="btn btn-ghost" id="exportScreeningBtn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 3v12m0 0 4-4m-4 4-4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Export
+            </button>
+          </div>
+        </div>
+
+        <!-- Guard state shown when no candidates have been moved to screening yet -->
+        <div class="panel" id="screeningNoCandidateGuard" hidden>
+          <div class="empty-state">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="6.5" stroke="currentColor" stroke-width="1.5"/><path d="M20 20l-4.3-4.3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            <p><strong>No candidates in screening yet.</strong> In Resume Management, use a candidate's <em>Move to Screening</em> action to send them here.</p>
+            <div class="empty-state-actions">
+              <button class="btn btn-primary" data-route="resume">Go to Resume Management</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="screeningMainArea">
+          <div class="status-strip" id="screeningStatusStrip"></div>
+
+          <div class="panel table-panel">
+            <div class="table-toolbar">
+              <div class="table-search">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                <input type="text" id="screeningSearch" placeholder="Search by candidate or position…" autocomplete="off" />
+              </div>
+              <div class="table-filters">
+                <select id="filterScreeningDecision" class="select-sm">
+                  <option value="">All Decisions</option>
+                  <option value="Pending Review">Pending Review</option>
+                  <option value="Shortlisted">Shortlisted</option>
+                  <option value="Rejected">Rejected</option>
+                </select>
+                <button class="btn btn-ghost btn-sm" id="clearScreeningFiltersBtn">Clear</button>
+              </div>
+            </div>
+
+            <div class="table-scroll">
+              <table class="data-table" id="screeningTable">
+                <thead>
+                  <tr>
+                    <th data-sort="id">Screening ID</th>
+                    <th data-sort="candidateName">Candidate</th>
+                    <th data-sort="appliedForDesignation">Applied For</th>
+                    <th data-sort="educationScore">Education</th>
+                    <th data-sort="experienceScore">Experience</th>
+                    <th data-sort="skillsMatchScore">Skills Match</th>
+                    <th data-sort="certificationsScore">Certifications</th>
+                    <th data-sort="communicationScore">Communication</th>
+                    <th data-sort="totalScore">Total Score</th>
+                    <th data-sort="decision">Decision</th>
+                    <th class="col-actions">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="screeningTableBody"></tbody>
+              </table>
+            </div>
+
+            <div class="table-footer">
+              <span class="table-count" id="screeningTableCount"></span>
+              <div class="pagination" id="screeningPagination"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---------------- PHASE 4: CANDIDATE SHORTLISTING ---------------- -->
+      <section class="view" id="view-shortlisting" data-view="shortlisting" hidden>
+        <div class="view-header">
+          <div>
+            <h1>Candidate Shortlisting</h1>
+            <p class="view-subtitle">Phase 4 &middot; Select shortlisted candidates and schedule their interviews.</p>
+          </div>
+          <div class="view-header-actions">
+            <button class="btn btn-ghost" id="exportShortlistBtn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 3v12m0 0 4-4m-4 4-4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Export
+            </button>
+          </div>
+        </div>
+
+        <!-- Guard state shown when nothing has ever been shortlisted at screening -->
+        <div class="panel" id="shortlistNoCandidateGuard" hidden>
+          <div class="empty-state">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none"><path d="M9 12.5 11.5 15 16 9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5"/></svg>
+            <p><strong>No shortlisted candidates yet.</strong> In Resume Screening, use the <em>Shortlist</em> action on a candidate to send them here.</p>
+            <div class="empty-state-actions">
+              <button class="btn btn-primary" data-route="screening">Go to Resume Screening</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="shortlistMainArea">
+
+          <!-- Selectable pool of shortlisted-but-not-yet-scheduled candidates -->
+          <div class="panel table-panel" style="margin-bottom:18px;">
+            <div class="table-toolbar">
+              <div>
+                <strong>Shortlist Pool</strong>
+                <p class="muted-text" style="margin-top:2px;">Select one or more candidates, then schedule their interview together.</p>
+              </div>
+              <div class="table-filters">
+                <span class="table-count" id="poolSelectedCount">0 selected</span>
+                <button class="btn btn-primary btn-sm" id="scheduleSelectedBtn" disabled>Schedule Interview</button>
+              </div>
+            </div>
+            <div class="table-scroll">
+              <table class="data-table" id="poolTable">
+                <thead>
+                  <tr>
+                    <th style="cursor:default;"><input type="checkbox" id="poolSelectAll" aria-label="Select all" /></th>
+                    <th>Candidate</th>
+                    <th>Applied For</th>
+                    <th>Screening ID</th>
+                    <th>Total Score</th>
+                  </tr>
+                </thead>
+                <tbody id="poolTableBody"></tbody>
+              </table>
+              <div class="empty-state small" id="poolEmptyState" hidden>
+                All shortlisted candidates already have an interview scheduled below.
+              </div>
+            </div>
+          </div>
+
+          <!-- Interview Schedule Table -->
+          <div class="status-strip" id="shortlistStatusStrip"></div>
+
+          <div class="panel table-panel">
+            <div class="table-toolbar">
+              <div class="table-search">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                <input type="text" id="shortlistSearch" placeholder="Search by candidate or position…" autocomplete="off" />
+              </div>
+              <div class="table-filters">
+                <select id="filterShortlistStatus" class="select-sm">
+                  <option value="">All Statuses</option>
+                  <option value="Scheduled">Scheduled</option>
+                  <option value="Rescheduled">Rescheduled</option>
+                  <option value="Cancelled">Cancelled</option>
+                </select>
+                <button class="btn btn-ghost btn-sm" id="clearShortlistFiltersBtn">Clear</button>
+              </div>
+            </div>
+
+            <div class="table-scroll">
+              <table class="data-table" id="shortlistTable">
+                <thead>
+                  <tr>
+                    <th data-sort="id">Interview ID</th>
+                    <th data-sort="candidateName">Candidate</th>
+                    <th data-sort="appliedForDesignation">Applied For</th>
+                    <th data-sort="interviewDate">Interview Date</th>
+                    <th data-sort="assignedHR">Assigned HR</th>
+                    <th>Panel</th>
+                    <th data-sort="status">Status</th>
+                    <th class="col-actions">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="shortlistTableBody"></tbody>
+              </table>
+              <div class="empty-state" id="shortlistEmptyState" hidden>
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none"><path d="M20 15a2 2 0 0 1-2 2H8l-4 4V5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v10Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+                <p><strong>No interviews scheduled yet.</strong> Select candidates from the pool above to schedule the first one.</p>
+              </div>
+            </div>
+
+            <div class="table-footer">
+              <span class="table-count" id="shortlistTableCount"></span>
+              <div class="pagination" id="shortlistPagination"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---------------- PHASE 5: INTERVIEW MANAGEMENT ---------------- -->
+      <section class="view" id="view-interview" data-view="interview" hidden>
+        <div class="view-header">
+          <div>
+            <h1>Interview Management</h1>
+            <p class="view-subtitle">Phase 5 &middot; Track HR, Technical, Manager &amp; Final rounds — final score is calculated automatically.</p>
+          </div>
+          <div class="view-header-actions">
+            <button class="btn btn-ghost" id="exportInterviewBtn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 3v12m0 0 4-4m-4 4-4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Export
+            </button>
+          </div>
+        </div>
+
+        <!-- Guard state shown when there are no scheduled interviews to manage -->
+        <div class="panel" id="interviewNoCandidateGuard" hidden>
+          <div class="empty-state">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none"><path d="M20 15a2 2 0 0 1-2 2H8l-4 4V5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v10Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+            <p><strong>No interviews to manage yet.</strong> Schedule a candidate's interview in Candidate Shortlisting first.</p>
+            <div class="empty-state-actions">
+              <button class="btn btn-primary" data-route="shortlisting">Go to Candidate Shortlisting</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="interviewMainArea">
+          <!-- Interview Dashboard: quick stats for this phase -->
+          <div class="status-strip" id="interviewStatusStrip"></div>
+
+          <div class="panel table-panel">
+            <div class="table-toolbar">
+              <div class="table-search">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                <input type="text" id="interviewSearch" placeholder="Search by candidate or position…" autocomplete="off" />
+              </div>
+              <div class="table-filters">
+                <select id="filterInterviewStatus" class="select-sm">
+                  <option value="">All Statuses</option>
+                  <option value="Not Started">Not Started</option>
+                  <option value="In Progress">In Progress</option>
+                  <option value="Completed">Completed</option>
+                </select>
+                <button class="btn btn-ghost btn-sm" id="clearInterviewFiltersBtn">Clear</button>
+              </div>
+            </div>
+
+            <div class="table-scroll">
+              <table class="data-table" id="interviewTable">
+                <thead>
+                  <tr>
+                    <th data-sort="id">Interview ID</th>
+                    <th data-sort="candidateName">Candidate</th>
+                    <th data-sort="appliedForDesignation">Applied For</th>
+                    <th>HR</th>
+                    <th>Technical</th>
+                    <th>Manager</th>
+                    <th>Final</th>
+                    <th data-sort="finalScore">Final Score</th>
+                    <th data-sort="overallStatus">Overall Status</th>
+                    <th class="col-actions">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="interviewTableBody"></tbody>
+              </table>
+              <div class="empty-state" id="interviewEmptyState" hidden>
+                <p><strong>Nothing to show for these filters.</strong></p>
+              </div>
+            </div>
+
+            <div class="table-footer">
+              <span class="table-count" id="interviewTableCount"></span>
+              <div class="pagination" id="interviewPagination"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---------------- PHASE 6: CANDIDATE SELECTION ---------------- -->
+      <section class="view" id="view-selection" data-view="selection" hidden>
+        <div class="view-header">
+          <div>
+            <h1>Candidate Selection</h1>
+            <p class="view-subtitle">Phase 6 &middot; Compare finalists per vacancy, then select one and reject the rest.</p>
+          </div>
+          <div class="view-header-actions">
+            <button class="btn btn-ghost" id="exportSelectionBtn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 3v12m0 0 4-4m-4 4-4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Export
+            </button>
+          </div>
+        </div>
+
+        <!-- Guard state shown when no interviews have been completed yet -->
+        <div class="panel" id="selectionNoCandidateGuard" hidden>
+          <div class="empty-state">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none"><path d="M9 12.5 11.5 15 16 9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5"/></svg>
+            <p><strong>No completed interviews yet.</strong> Finish all four rounds for a candidate in Interview Management to bring them here for comparison.</p>
+            <div class="empty-state-actions">
+              <button class="btn btn-primary" data-route="interview">Go to Interview Management</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="selectionMainArea">
+          <div class="status-strip" id="selectionStatusStrip"></div>
+          <div id="selectionGroupsContainer"><!-- one comparison panel per vacancy, rendered by SelectionModule --></div>
+        </div>
+      </section>
+
+      <!-- ---------------- PHASE 7: OFFER LETTER ---------------- -->
+      <section class="view" id="view-offer" data-view="offer" hidden>
+        <div class="view-header">
+          <div>
+            <h1>Offer Letter</h1>
+            <p class="view-subtitle">Phase 7 &middot; Generate, preview and issue offer letters for selected candidates.</p>
+          </div>
+          <div class="view-header-actions">
+            <button class="btn btn-ghost" id="exportOfferBtn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 3v12m0 0 4-4m-4 4-4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Export
+            </button>
+          </div>
+        </div>
+
+        <!-- Guard state shown when no candidates have been Selected yet -->
+        <div class="panel" id="offerNoCandidateGuard" hidden>
+          <div class="empty-state">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none"><path d="M7 3h10l2 4v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V7l2-4Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M9 12h6M9 16h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            <p><strong>No selected candidates yet.</strong> Select a finalist in Candidate Selection to generate their offer letter here.</p>
+            <div class="empty-state-actions">
+              <button class="btn btn-primary" data-route="selection">Go to Candidate Selection</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="offerMainArea">
+          <div class="status-strip" id="offerStatusStrip"></div>
+
+          <div class="panel table-panel">
+            <div class="table-toolbar">
+              <div class="table-search">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                <input type="text" id="offerSearch" placeholder="Search by candidate or position…" autocomplete="off" />
+              </div>
+              <div class="table-filters">
+                <select id="filterOfferStatus" class="select-sm">
+                  <option value="">All Statuses</option>
+                  <option value="Draft">Draft</option>
+                  <option value="Issued">Issued</option>
+                  <option value="Accepted">Accepted</option>
+                  <option value="Declined">Declined</option>
+                </select>
+                <button class="btn btn-ghost btn-sm" id="clearOfferFiltersBtn">Clear</button>
+              </div>
+            </div>
+
+            <div class="table-scroll">
+              <table class="data-table" id="offerTable">
+                <thead>
+                  <tr>
+                    <th data-sort="id">Offer Number</th>
+                    <th data-sort="candidateName">Candidate</th>
+                    <th data-sort="appliedForDesignation">Designation</th>
+                    <th data-sort="department">Department</th>
+                    <th data-sort="joiningDate">Joining Date</th>
+                    <th data-sort="salary">Salary</th>
+                    <th data-sort="status">Status</th>
+                    <th class="col-actions">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="offerTableBody"></tbody>
+              </table>
+              <div class="empty-state" id="offerEmptyState" hidden>
+                <p><strong>Nothing to show for these filters.</strong></p>
+              </div>
+            </div>
+
+            <div class="table-footer">
+              <span class="table-count" id="offerTableCount"></span>
+              <div class="pagination" id="offerPagination"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---------------- PHASE 8: JOINING FORMALITIES ---------------- -->
+      <section class="view" id="view-joining" data-view="joining" hidden>
+        <div class="view-header">
+          <div>
+            <h1>Joining Formalities</h1>
+            <p class="view-subtitle">Phase 8 &middot; Track the 12-item onboarding checklist for each new hire.</p>
+          </div>
+          <div class="view-header-actions">
+            <button class="btn btn-ghost" id="exportJoiningBtn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 3v12m0 0 4-4m-4 4-4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Export
+            </button>
+          </div>
+        </div>
+
+        <!-- Guard state shown when no offers have been accepted yet -->
+        <div class="panel" id="joiningNoCandidateGuard" hidden>
+          <div class="empty-state">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="1.5"/><path d="M19 8v6M22 11h-6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            <p><strong>No accepted offers yet.</strong> Mark an offer as Accepted in Offer Letter to start their onboarding checklist here.</p>
+            <div class="empty-state-actions">
+              <button class="btn btn-primary" data-route="offer">Go to Offer Letter</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="joiningMainArea">
+          <div class="status-strip" id="joiningStatusStrip"></div>
+
+          <div class="panel table-panel">
+            <div class="table-toolbar">
+              <div class="table-search">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                <input type="text" id="joiningSearch" placeholder="Search by candidate or position…" autocomplete="off" />
+              </div>
+              <div class="table-filters">
+                <select id="filterJoiningStatus" class="select-sm">
+                  <option value="">All Statuses</option>
+                  <option value="Not Started">Not Started</option>
+                  <option value="In Progress">In Progress</option>
+                  <option value="Completed">Completed</option>
+                </select>
+                <button class="btn btn-ghost btn-sm" id="clearJoiningFiltersBtn">Clear</button>
+              </div>
+            </div>
+
+            <div class="table-scroll">
+              <table class="data-table" id="joiningTable">
+                <thead>
+                  <tr>
+                    <th data-sort="id">Checklist ID</th>
+                    <th data-sort="candidateName">Candidate</th>
+                    <th data-sort="appliedForDesignation">Designation</th>
+                    <th data-sort="completionPercent">Completion</th>
+                    <th data-sort="status">Status</th>
+                    <th class="col-actions">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="joiningTableBody"></tbody>
+              </table>
+              <div class="empty-state" id="joiningEmptyState" hidden>
+                <p><strong>Nothing to show for these filters.</strong></p>
+              </div>
+            </div>
+
+            <div class="table-footer">
+              <span class="table-count" id="joiningTableCount"></span>
+              <div class="pagination" id="joiningPagination"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---------------- PHASE 9: EMPLOYEE MASTER ---------------- -->
+      <section class="view" id="view-employee" data-view="employee" hidden>
+        <div class="view-header">
+          <div>
+            <h1>Employee Master</h1>
+            <p class="view-subtitle">Phase 9 &middot; The authoritative employee record — completes onboarding into a full profile.</p>
+          </div>
+          <div class="view-header-actions">
+            <button class="btn btn-ghost" id="exportEmployeeBtn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 3v12m0 0 4-4m-4 4-4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Export
+            </button>
+          </div>
+        </div>
+
+        <!-- Guard state shown when no onboarding checklist has reached 100% -->
+        <div class="panel" id="employeeNoCandidateGuard" hidden>
+          <div class="empty-state">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="1.5"/><path d="M4 21v-1a8 8 0 0 1 16 0v1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            <p><strong>No employees yet.</strong> Complete a candidate's onboarding checklist (100%) in Joining Formalities to create their Employee Master record here.</p>
+            <div class="empty-state-actions">
+              <button class="btn btn-primary" data-route="joining">Go to Joining Formalities</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="employeeMainArea">
+          <div class="status-strip" id="employeeStatusStrip"></div>
+
+          <div class="panel table-panel">
+            <div class="table-toolbar">
+              <div class="table-search">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                <input type="text" id="employeeSearch" placeholder="Search by name, designation, department…" autocomplete="off" />
+              </div>
+              <div class="table-filters">
+                <select id="filterEmployeeDepartment" class="select-sm">
+                  <option value="">All Departments</option>
+                </select>
+                <select id="filterEmployeeStatus" class="select-sm">
+                  <option value="">All Statuses</option>
+                  <option value="Active">Active</option>
+                  <option value="Inactive">Inactive</option>
+                </select>
+                <button class="btn btn-ghost btn-sm" id="clearEmployeeFiltersBtn">Clear</button>
+              </div>
+            </div>
+
+            <div class="table-scroll">
+              <table class="data-table" id="employeeTable">
+                <thead>
+                  <tr>
+                    <th data-sort="id">Employee ID</th>
+                    <th data-sort="name">Name</th>
+                    <th data-sort="designation">Designation</th>
+                    <th data-sort="department">Department</th>
+                    <th data-sort="manager">Manager</th>
+                    <th data-sort="phone">Phone</th>
+                    <th data-sort="status">Status</th>
+                    <th class="col-actions">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="employeeTableBody"></tbody>
+              </table>
+              <div class="empty-state" id="employeeEmptyState" hidden>
+                <p><strong>Nothing to show for these filters.</strong></p>
+              </div>
+            </div>
+
+            <div class="table-footer">
+              <span class="table-count" id="employeeTableCount"></span>
+              <div class="pagination" id="employeePagination"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---------------- PHASE 10: ATTENDANCE MANAGEMENT ---------------- -->
+      <section class="view" id="view-attendance" data-view="attendance" hidden>
+        <div class="view-header">
+          <div>
+            <h1>Attendance Management</h1>
+            <p class="view-subtitle">Phase 10 &middot; Daily attendance, a per-employee calendar, and monthly summaries.</p>
+          </div>
+        </div>
+
+        <!-- Guard state shown when there are no employees yet -->
+        <div class="panel" id="attendanceNoEmployeeGuard" hidden>
+          <div class="empty-state">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="16" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M8 3v4M16 3v4M3 10h18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            <p><strong>No employees yet.</strong> Complete Employee Master for at least one hire to start tracking attendance.</p>
+            <div class="empty-state-actions">
+              <button class="btn btn-primary" data-route="employee">Go to Employee Master</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="attendanceMainArea">
+          <!-- Attendance Dashboard -->
+          <div class="status-strip" id="attendanceStatusStrip"></div>
+
+          <!-- local tab nav -->
+          <div class="local-tabs" id="attendanceTabs">
+            <button class="local-tab active" data-tab="daily">Daily Attendance</button>
+            <button class="local-tab" data-tab="calendar">Attendance Calendar</button>
+            <button class="local-tab" data-tab="summary">Monthly Summary</button>
+          </div>
+
+          <!-- Daily Attendance tab -->
+          <div class="attendance-tab-panel panel table-panel" id="tab-daily">
+            <div class="table-toolbar">
+              <div style="display:flex; align-items:center; gap:10px;">
+                <label class="muted-text" style="font-weight:600;" for="dailyDateInput">Date</label>
+                <input type="date" id="dailyDateInput" class="select-sm" />
+              </div>
+              <div class="table-filters">
+                <button class="btn btn-ghost btn-sm" id="markAllPresentBtn">Mark All Present</button>
+              </div>
+            </div>
+            <div class="table-scroll">
+              <table class="data-table" id="dailyTable">
+                <thead>
+                  <tr><th>Employee</th><th>Department</th><th>Status</th><th>Check In</th><th>Check Out</th><th>Overtime</th><th class="col-actions">Actions</th></tr>
+                </thead>
+                <tbody id="dailyTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Attendance Calendar tab -->
+          <div class="attendance-tab-panel panel" id="tab-calendar" hidden style="padding:18px;">
+            <div class="table-toolbar" style="border:none; padding:0 0 16px;">
+              <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                <label class="muted-text" style="font-weight:600;" for="calendarEmployeeSelect">Employee</label>
+                <select id="calendarEmployeeSelect" class="select-sm"></select>
+                <label class="muted-text" style="font-weight:600;" for="calendarMonthInput">Month</label>
+                <input type="month" id="calendarMonthInput" class="select-sm" />
+              </div>
+            </div>
+            <div class="calendar-legend" id="calendarLegend"></div>
+            <div class="calendar-grid" id="calendarGrid"></div>
+          </div>
+
+          <!-- Monthly Summary tab -->
+          <div class="attendance-tab-panel panel table-panel" id="tab-summary" hidden>
+            <div class="table-toolbar">
+              <div style="display:flex; align-items:center; gap:10px;">
+                <label class="muted-text" style="font-weight:600;" for="summaryMonthInput">Month</label>
+                <input type="month" id="summaryMonthInput" class="select-sm" />
+              </div>
+            </div>
+            <div class="table-scroll">
+              <table class="data-table" id="summaryTable">
+                <thead>
+                  <tr><th>Employee</th><th>Present</th><th>Late</th><th>Half Day</th><th>Absent</th><th>Holidays</th><th>Overtime (hrs)</th><th>Attendance %</th></tr>
+                </thead>
+                <tbody id="summaryTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---------------- PHASE 11: LEAVE MANAGEMENT ---------------- -->
+      <section class="view" id="view-leave" data-view="leave" hidden>
+        <div class="view-header">
+          <div>
+            <h1>Leave Management</h1>
+            <p class="view-subtitle">Phase 11 &middot; Apply leave, track balances, and run it through Manager &rarr; HR approval.</p>
+          </div>
+          <div class="view-header-actions">
+            <button class="btn btn-primary" id="applyLeaveBtn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+              Apply Leave
+            </button>
+          </div>
+        </div>
+
+        <!-- Guard state shown when there are no employees yet -->
+        <div class="panel" id="leaveNoEmployeeGuard" hidden>
+          <div class="empty-state">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="16" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M8 3v4M16 3v4M3 10h18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M9 15h6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            <p><strong>No employees yet.</strong> Complete Employee Master for at least one hire before applying leave.</p>
+            <div class="empty-state-actions">
+              <button class="btn btn-primary" data-route="employee">Go to Employee Master</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="leaveMainArea">
+          <div class="status-strip" id="leaveStatusStrip"></div>
+
+          <div class="local-tabs" id="leaveTabs">
+            <button class="local-tab active" data-tab="history">Leave History</button>
+            <button class="local-tab" data-tab="balance">Leave Balance</button>
+            <button class="local-tab" data-tab="calendar">Leave Calendar</button>
+          </div>
+
+          <!-- Leave History tab -->
+          <div class="leave-tab-panel panel table-panel" id="leavetab-history">
+            <div class="table-toolbar">
+              <div class="table-search">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                <input type="text" id="leaveSearch" placeholder="Search by employee…" autocomplete="off" />
+              </div>
+              <div class="table-filters">
+                <select id="filterLeaveType" class="select-sm">
+                  <option value="">All Types</option>
+                </select>
+                <select id="filterLeaveStatus" class="select-sm">
+                  <option value="">All Statuses</option>
+                  <option value="Pending Manager Approval">Pending Manager Approval</option>
+                  <option value="Pending HR Approval">Pending HR Approval</option>
+                  <option value="Approved">Approved</option>
+                  <option value="Rejected">Rejected</option>
+                </select>
+                <button class="btn btn-ghost btn-sm" id="clearLeaveFiltersBtn">Clear</button>
+              </div>
+            </div>
+            <div class="table-scroll">
+              <table class="data-table" id="leaveTable">
+                <thead>
+                  <tr>
+                    <th data-sort="id">Leave ID</th>
+                    <th data-sort="employeeName">Employee</th>
+                    <th data-sort="leaveType">Type</th>
+                    <th data-sort="startDate">From</th>
+                    <th data-sort="endDate">To</th>
+                    <th data-sort="days">Days</th>
+                    <th data-sort="status">Status</th>
+                    <th class="col-actions">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="leaveTableBody"></tbody>
+              </table>
+              <div class="empty-state" id="leaveEmptyState" hidden>
+                <p><strong>No leave applications yet.</strong> Use "Apply Leave" to create the first one.</p>
+              </div>
+            </div>
+            <div class="table-footer">
+              <span class="table-count" id="leaveTableCount"></span>
+              <div class="pagination" id="leavePagination"></div>
+            </div>
+          </div>
+
+          <!-- Leave Balance tab -->
+          <div class="leave-tab-panel panel table-panel" id="leavetab-balance" hidden>
+            <div class="table-scroll">
+              <table class="data-table" id="balanceTable">
+                <thead>
+                  <tr><th>Employee</th><th>Leave Policy</th><th>Casual</th><th>Sick</th><th>Earned</th><th>Maternity</th><th>Paternity</th></tr>
+                </thead>
+                <tbody id="balanceTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Leave Calendar tab -->
+          <div class="leave-tab-panel panel" id="leavetab-calendar" hidden style="padding:18px;">
+            <div class="table-toolbar" style="border:none; padding:0 0 16px;">
+              <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                <label class="muted-text" style="font-weight:600;" for="leaveCalendarEmployeeSelect">Employee</label>
+                <select id="leaveCalendarEmployeeSelect" class="select-sm"></select>
+                <label class="muted-text" style="font-weight:600;" for="leaveCalendarMonthInput">Month</label>
+                <input type="month" id="leaveCalendarMonthInput" class="select-sm" />
+              </div>
+            </div>
+            <div class="calendar-legend" id="leaveCalendarLegend"></div>
+            <div class="calendar-grid" id="leaveCalendarGrid"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---------------- PHASE 12: PAYROLL PROCESSING ---------------- -->
+      <section class="view" id="view-payroll" data-view="payroll" hidden>
+        <div class="view-header">
+          <div>
+            <h1>Payroll Processing</h1>
+            <p class="view-subtitle">Phase 12 &middot; Automatic payroll engine — pulls real attendance and leave data into every run.</p>
+          </div>
+          <div class="view-header-actions">
+            <input type="month" id="payrollMonthInput" class="select-sm" style="margin-right:8px;" />
+            <button class="btn btn-primary" id="generatePayrollBtn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+              Generate Payroll
+            </button>
+          </div>
+        </div>
+
+        <!-- Guard state shown when there are no employees yet -->
+        <div class="panel" id="payrollNoEmployeeGuard" hidden>
+          <div class="empty-state">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5"/><path d="M9.5 15.5c.4.7 1.3 1.2 2.5 1.2 1.7 0 2.6-.8 2.6-1.9 0-1.2-1-1.6-2.6-2-1.6-.4-2.5-.9-2.5-2 0-1 .9-1.8 2.5-1.8 1.2 0 2 .5 2.4 1.1M12 7.5v9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+            <p><strong>No employees yet.</strong> Complete Employee Master for at least one hire before running payroll.</p>
+            <div class="empty-state-actions">
+              <button class="btn btn-primary" data-route="employee">Go to Employee Master</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="payrollMainArea">
+          <div class="status-strip" id="payrollStatusStrip"></div>
+
+          <div class="panel table-panel">
+            <div class="table-toolbar">
+              <div class="table-search">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                <input type="text" id="payrollSearch" placeholder="Search by employee…" autocomplete="off" />
+              </div>
+              <div class="table-filters">
+                <select id="filterPayrollStatus" class="select-sm">
+                  <option value="">All Statuses</option>
+                  <option value="Draft">Draft</option>
+                  <option value="Processed">Processed</option>
+                  <option value="Paid">Paid</option>
+                </select>
+                <button class="btn btn-ghost btn-sm" id="clearPayrollFiltersBtn">Clear</button>
+              </div>
+            </div>
+            <div class="table-scroll">
+              <table class="data-table" id="payrollTable">
+                <thead>
+                  <tr>
+                    <th data-sort="id">Payroll ID</th>
+                    <th data-sort="employeeName">Employee</th>
+                    <th data-sort="month">Month</th>
+                    <th data-sort="grossSalary">Gross</th>
+                    <th data-sort="totalDeductions">Deductions</th>
+                    <th data-sort="netSalary">Net Salary</th>
+                    <th data-sort="status">Status</th>
+                    <th class="col-actions">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="payrollTableBody"></tbody>
+              </table>
+              <div class="empty-state" id="payrollEmptyState" hidden>
+                <p><strong>No payroll runs yet.</strong> Pick a month and click "Generate Payroll" to create the first one.</p>
+              </div>
+            </div>
+            <div class="table-footer">
+              <span class="table-count" id="payrollTableCount"></span>
+              <div class="pagination" id="payrollPagination"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---------------- PHASE 13: SALARY SLIP ---------------- -->
+      <section class="view" id="view-payslip" data-view="payslip" hidden>
+        <div class="view-header">
+          <div>
+            <h1>Salary Slip</h1>
+            <p class="view-subtitle">Phase 13 &middot; Professional payslip generated straight from each Payroll run.</p>
+          </div>
+          <div class="view-header-actions">
+            <button class="btn btn-ghost" id="openForm16Btn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M7 3h10l2 4v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V7l2-4Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M9 11h6M9 14h6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+              Form 16 / Tax Statement
+            </button>
+          </div>
+        </div>
+
+        <!-- Guard state shown when there is no payroll data yet -->
+        <div class="panel" id="payslipNoDataGuard" hidden>
+          <div class="empty-state">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none"><path d="M7 3h10l2 4v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V7l2-4Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M9 11h6M9 14h6M9 17h3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            <p><strong>No payroll runs yet.</strong> Generate payroll for a month in Payroll Processing to create slips here.</p>
+            <div class="empty-state-actions">
+              <button class="btn btn-primary" data-route="payroll">Go to Payroll Processing</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="payslipMainArea">
+          <div class="panel table-panel">
+            <div class="table-toolbar">
+              <div class="table-search">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                <input type="text" id="payslipSearch" placeholder="Search by employee…" autocomplete="off" />
+              </div>
+              <div class="table-filters">
+                <select id="filterPayslipMonth" class="select-sm"><option value="">All Months</option></select>
+                <button class="btn btn-ghost btn-sm" id="clearPayslipFiltersBtn">Clear</button>
+              </div>
+            </div>
+            <div class="table-scroll">
+              <table class="data-table" id="payslipTable">
+                <thead>
+                  <tr>
+                    <th data-sort="id">Payroll ID</th>
+                    <th data-sort="employeeName">Employee</th>
+                    <th data-sort="department">Department</th>
+                    <th data-sort="month">Pay Period</th>
+                    <th data-sort="netSalary">Net Pay</th>
+                    <th data-sort="status">Payroll Status</th>
+                    <th class="col-actions">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="payslipTableBody"></tbody>
+              </table>
+            </div>
+            <div class="table-footer">
+              <span class="table-count" id="payslipTableCount"></span>
+              <div class="pagination" id="payslipPagination"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---------------- PHASE 14: EXIT MANAGEMENT ---------------- -->
+      <section class="view" id="view-exit" data-view="exit" hidden>
+        <div class="view-header">
+          <div>
+            <h1>Exit Management</h1>
+            <p class="view-subtitle">Phase 14 &middot; Resignation through Manager &rarr; HR approval, asset return, and exit interview.</p>
+          </div>
+          <div class="view-header-actions">
+            <button class="btn btn-primary" id="newResignationBtn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+              New Resignation
+            </button>
+          </div>
+        </div>
+
+        <!-- Guard state shown when there are no employees yet -->
+        <div class="panel" id="exitNoEmployeeGuard" hidden>
+          <div class="empty-state">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M16 17l5-5-5-5M21 12H9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <p><strong>No employees yet.</strong> Complete Employee Master for at least one hire before recording a resignation.</p>
+            <div class="empty-state-actions">
+              <button class="btn btn-primary" data-route="employee">Go to Employee Master</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="exitMainArea">
+          <div class="status-strip" id="exitStatusStrip"></div>
+
+          <div class="panel table-panel">
+            <div class="table-toolbar">
+              <div class="table-search">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                <input type="text" id="exitSearch" placeholder="Search by employee…" autocomplete="off" />
+              </div>
+              <div class="table-filters">
+                <select id="filterExitStatus" class="select-sm">
+                  <option value="">All Statuses</option>
+                  <option value="Pending Manager Approval">Pending Manager Approval</option>
+                  <option value="Pending HR Approval">Pending HR Approval</option>
+                  <option value="Approved">Approved</option>
+                  <option value="Rejected">Rejected</option>
+                </select>
+                <button class="btn btn-ghost btn-sm" id="clearExitFiltersBtn">Clear</button>
+              </div>
+            </div>
+            <div class="table-scroll">
+              <table class="data-table" id="exitTable">
+                <thead>
+                  <tr>
+                    <th data-sort="id">Exit ID</th>
+                    <th data-sort="employeeName">Employee</th>
+                    <th data-sort="department">Department</th>
+                    <th data-sort="resignationDate">Resignation Date</th>
+                    <th data-sort="lastWorkingDay">Last Working Day</th>
+                    <th data-sort="clearancePercent">Clearance</th>
+                    <th data-sort="status">Status</th>
+                    <th class="col-actions">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="exitTableBody"></tbody>
+              </table>
+              <div class="empty-state" id="exitEmptyState" hidden>
+                <p><strong>No resignations yet.</strong> Use "New Resignation" to record the first one.</p>
+              </div>
+            </div>
+            <div class="table-footer">
+              <span class="table-count" id="exitTableCount"></span>
+              <div class="pagination" id="exitPagination"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---------------- PHASE 15: FULL & FINAL SETTLEMENT ---------------- -->
+      <section class="view" id="view-settlement" data-view="settlement" hidden>
+        <div class="view-header">
+          <div>
+            <h1>Full &amp; Final Settlement</h1>
+            <p class="view-subtitle">Phase 15 &middot; Pulls Employee Master, Attendance, Leave, Payroll and Exit Management together into one settlement.</p>
+          </div>
+        </div>
+
+        <!-- Guard state shown when no exit has finished clearance yet -->
+        <div class="panel" id="settlementNoDataGuard" hidden>
+          <div class="empty-state">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            <p><strong>No settlements ready yet.</strong> An exit must be Approved in Exit Management before its settlement appears here — any assets not yet returned will show up as a recovery deduction.</p>
+            <div class="empty-state-actions">
+              <button class="btn btn-primary" data-route="exit">Go to Exit Management</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="settlementMainArea">
+          <div class="status-strip" id="settlementStatusStrip"></div>
+
+          <div class="panel table-panel">
+            <div class="table-toolbar">
+              <div class="table-search">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                <input type="text" id="settlementSearch" placeholder="Search by employee…" autocomplete="off" />
+              </div>
+              <div class="table-filters">
+                <select id="filterSettlementStatus" class="select-sm">
+                  <option value="">All Statuses</option>
+                  <option value="Draft">Draft</option>
+                  <option value="Processed">Processed</option>
+                  <option value="Settled">Settled</option>
+                </select>
+                <button class="btn btn-ghost btn-sm" id="clearSettlementFiltersBtn">Clear</button>
+              </div>
+            </div>
+            <div class="table-scroll">
+              <table class="data-table" id="settlementTable">
+                <thead>
+                  <tr>
+                    <th data-sort="id">Settlement ID</th>
+                    <th data-sort="employeeName">Employee</th>
+                    <th data-sort="department">Department</th>
+                    <th data-sort="actualLastWorkingDay">Last Working Day</th>
+                    <th data-sort="netSettlement">Net Settlement</th>
+                    <th data-sort="status">Status</th>
+                    <th class="col-actions">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="settlementTableBody"></tbody>
+              </table>
+              <div class="empty-state" id="settlementEmptyState" hidden>
+                <p><strong>Nothing to show for these filters.</strong></p>
+              </div>
+            </div>
+            <div class="table-footer">
+              <span class="table-count" id="settlementTableCount"></span>
+              <div class="pagination" id="settlementPagination"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---------------- LOCKED / UPCOMING PHASE PLACEHOLDER ---------------- -->
+      <section class="view" id="view-locked" data-view="locked" hidden>
+        <div class="locked-phase">
+          <div class="locked-phase-icon">
+            <svg width="34" height="34" viewBox="0 0 24 24" fill="none"><rect x="4" y="10" width="16" height="10" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M8 10V7a4 4 0 1 1 8 0v3" stroke="currentColor" stroke-width="1.6"/></svg>
+          </div>
+          <h2 id="lockedPhaseTitle">Phase locked</h2>
+          <p id="lockedPhaseDesc">Complete the earlier phases of the HR lifecycle to unlock this module.</p>
+          <button class="btn btn-secondary" data-route="dashboard">Back to Dashboard</button>
+        </div>
+      </section>
+
+      <!-- ---------------- SETTINGS VIEW ---------------- -->
+      <section class="view" id="view-settings" data-view="settings" hidden>
+        <div class="view-header">
+          <div>
+            <h1>Settings</h1>
+            <p class="view-subtitle">Simulator preferences. Everything is stored locally in this browser.</p>
+          </div>
+        </div>
+        <div class="panel" style="padding:20px;max-width:520px;">
+          <div class="settings-row">
+            <div>
+              <strong>Appearance</strong>
+              <p class="muted-text">Switch between light and dark theme.</p>
+            </div>
+            <button class="btn btn-ghost btn-sm" id="settingsThemeBtn">Toggle theme</button>
+          </div>
+          <div class="settings-row">
+            <div>
+              <strong>Simulator data</strong>
+              <p class="muted-text">Clears every record across all 15 phases stored in this browser.</p>
+            </div>
+            <button class="btn btn-danger-ghost btn-sm" id="settingsResetBtn">Reset all data</button>
+          </div>
+        </div>
+
+        <div class="panel" style="padding:20px;max-width:520px;margin-top:16px;">
+          <strong>Company &amp; Statutory Details</strong>
+          <p class="muted-text" style="margin-bottom:12px;">Used on the payslip masthead and the Form 16 tax statement.</p>
+          <div class="form-grid">
+            <div class="form-field form-field-wide">
+              <label for="cs_name">Company Name</label>
+              <input type="text" id="cs_name" maxlength="120" />
+            </div>
+            <div class="form-field form-field-wide">
+              <label for="cs_address">Registered Address</label>
+              <input type="text" id="cs_address" maxlength="160" />
+            </div>
+            <div class="form-field">
+              <label for="cs_tan">Deductor TAN</label>
+              <input type="text" id="cs_tan" maxlength="10" style="text-transform:uppercase;" />
+            </div>
+            <div class="form-field">
+              <label for="cs_employerPan">Deductor PAN</label>
+              <input type="text" id="cs_employerPan" maxlength="10" style="text-transform:uppercase;" />
+            </div>
+          </div>
+          <button class="btn btn-primary btn-sm" id="settingsSaveCompanyBtn" style="margin-top:6px;">Save company details</button>
+        </div>
+
+        <div class="panel" style="padding:20px;max-width:640px;margin-top:16px;" id="loginAccountsPanel">
+          <strong>Login Accounts</strong>
+          <p class="muted-text" style="margin-bottom:12px;">Every self-service login created from Employee Master, plus the built-in Admin/HR accounts.</p>
+          <table class="data-table" id="loginAccountsTable">
+            <thead><tr><th>User</th><th>Username</th><th>Role</th><th>Status</th><th></th></tr></thead>
+            <tbody id="loginAccountsTableBody"></tbody>
+          </table>
+        </div>
+
+        <!-- ---------------- ABOUT ---------------- -->
+        <div class="panel about-panel" style="padding:20px;max-width:640px;margin-top:16px;">
+          <div class="about-brand-row">
+            <img src="assets/icons/icon-192.png" alt="" width="48" height="48" />
+            <div>
+              <h2>SKELORA</h2>
+              <p>HR &amp; Payroll ERP Training Simulator · Version 9.0 · Part of the Dot Ecosystem</p>
+            </div>
+          </div>
+
+          <div class="about-section">
+            <h3>About the Developer</h3>
+            <p><strong>Ananthu Shaji</strong> is an independent software developer, technology entrepreneur, logistics educator, and published author building modern digital solutions for education, enterprise management, business operations, logistics, productivity, and artificial intelligence. His mission is to bridge the gap between learning and real-world industry practices with software that is intuitive, reliable, and future-ready.</p>
+          </div>
+
+          <div class="about-section">
+            <h3>About the Dot Ecosystem</h3>
+            <p><strong>Dot Ecosystem</strong> is a unified technology platform of interconnected software products, enterprise applications, educational simulators, AI-powered tools, and cloud infrastructure — built on shared architecture so products work independently while integrating seamlessly with one another. SKELORA is part of this ecosystem.</p>
+            <div class="about-chip-row">
+              <span class="about-chip">Enterprise Security</span>
+              <span class="about-chip">Modern UX</span>
+              <span class="about-chip">Scalable Architecture</span>
+              <span class="about-chip">Cloud-Ready</span>
+              <span class="about-chip">AI Integration</span>
+              <span class="about-chip">Cross-Platform</span>
+            </div>
+          </div>
+
+          <button class="btn btn-ghost btn-sm about-toggle-btn" id="aboutToggleBtn" type="button" aria-expanded="false">View full ecosystem details</button>
+
+          <div class="about-full" id="aboutFullDetails" hidden>
+            <div class="about-section">
+              <h3>Dot Ecosystem Products</h3>
+              <div class="about-product-grid">
+                <div class="about-product-card"><strong>Stratix One</strong><span>Integrated CRM, HR, Finance, Inventory, Projects &amp; Analytics platform.</span></div>
+                <div class="about-product-card"><strong>Stratix Lite</strong><span>Lightweight business management for startups &amp; small teams.</span></div>
+                <div class="about-product-card"><strong>Stratix Pro</strong><span>Enterprise-grade platform for medium &amp; large organizations.</span></div>
+                <div class="about-product-card"><strong>BuildBoss</strong><span>Construction &amp; project management for contractors and engineers.</span></div>
+                <div class="about-product-card"><strong>Connect Flow</strong><span>Workflow automation for approvals, tasks &amp; operations.</span></div>
+                <div class="about-product-card"><strong>Connect</strong><span>Secure collaboration &amp; team communication platform.</span></div>
+                <div class="about-product-card"><strong>Paisa+</strong><span>Personal finance — expenses, budgets &amp; savings.</span></div>
+                <div class="about-product-card"><strong>Paisa Pro+</strong><span>Advanced financial management for professionals.</span></div>
+                <div class="about-product-card"><strong>Fund Circle</strong><span>Shared funds, contributions &amp; group finance.</span></div>
+                <div class="about-product-card"><strong>LAM ERP</strong><span>Logistics, warehousing &amp; supply chain ERP.</span></div>
+                <div class="about-product-card"><strong>Filio</strong><span>Secure document &amp; digital asset management.</span></div>
+                <div class="about-product-card"><strong>StorySoul</strong><span>Creative writing workspace for ideas &amp; manuscripts.</span></div>
+                <div class="about-product-card"><strong>NovelForge AI</strong><span>AI-assisted novel planning, drafting &amp; publishing.</span></div>
+                <div class="about-product-card"><strong>Kshetra</strong><span>Structured organizational &amp; administrative management.</span></div>
+                <div class="about-product-card"><strong>Saathi</strong><span>Productivity &amp; team coordination app.</span></div>
+              </div>
+            </div>
+
+            <div class="about-section">
+              <h3>Dot Infrastructure</h3>
+              <p>The core technology foundation powering every application in the Dot Ecosystem.</p>
+              <div class="about-infra-list">
+                <div><strong>Ghost Backend</strong> — auth, API routing &amp; business logic</div>
+                <div><strong>DotBase</strong> — centralized data &amp; storage platform</div>
+                <div><strong>DotPulse</strong> — monitoring &amp; observability</div>
+                <div><strong>Dotploy</strong> — deployment automation</div>
+                <div><strong>DotMesh</strong> — secure service communication</div>
+                <div><strong>DotX Runway</strong> — unified dev &amp; delivery platform</div>
+                <div><strong>DotX1 Apache</strong> — enterprise hosting environment</div>
+                <div><strong>DotAIL</strong> — async jobs &amp; event handling</div>
+                <div><strong>DotSQL</strong> — structured enterprise data platform</div>
+                <div><strong>DotIntent OS</strong> — workflow &amp; automation orchestration</div>
+                <div><strong>Dot Neural Net Fabric</strong> — AI foundation for the ecosystem</div>
+              </div>
+            </div>
+
+            <div class="about-section">
+              <h3>Vision</h3>
+              <p style="font-style:italic;">"Building intelligent software for education, business, enterprise, and the future." — a world-class ecosystem of software solutions that empowers individuals, educational institutions, businesses, and enterprises through innovation and practical digital transformation.</p>
+            </div>
+          </div>
+
+          <div class="about-footer">
+            © 2026 Ananthu Shaji. All Rights Reserved. Dot Ecosystem™, its applications, infrastructure components, trademarks, software architecture, user interface designs, documentation, and associated technologies are proprietary intellectual property. Unauthorized copying, modification, redistribution, reverse engineering, commercial resale, or reproduction without prior written permission is strictly prohibited.<br />
+            Developer: <strong>Ananthu Shaji</strong> · Platform: <strong>Dot Ecosystem</strong> · Status: Under Continuous Development
+          </div>
+        </div>
+      </section>
+
+      <!-- ---------------- MANAGER VIEW — "My Team" ---------------- -->
+      <section class="view" id="view-my-team" data-view="my-team" hidden>
+        <div class="view-header">
+          <div>
+            <h1 id="myTeamGreeting">My Team</h1>
+            <p class="view-subtitle">Direct reports, pending approvals, and today's attendance.</p>
+          </div>
+        </div>
+
+        <div class="panel" style="padding:20px;margin-bottom:16px;">
+          <div class="form-section-title" style="margin-bottom:10px;">Pending Leave Approvals</div>
+          <div class="empty-state" id="myTeamApprovalsEmpty" hidden><p>No leave requests are waiting on you right now.</p></div>
+          <table class="data-table" id="myTeamApprovalsTable">
+            <thead><tr><th>Employee</th><th>Type</th><th>From</th><th>To</th><th>Days</th><th></th></tr></thead>
+            <tbody id="myTeamApprovalsTableBody"></tbody>
+          </table>
+        </div>
+
+        <div class="panel" style="padding:20px;margin-bottom:16px;">
+          <div class="form-section-title" style="margin-bottom:10px;">Today's Attendance — My Team</div>
+          <div class="kpi-grid" id="myTeamAttendanceKpis"></div>
+        </div>
+
+        <div class="panel" style="padding:20px;">
+          <div class="form-section-title" style="margin-bottom:10px;">Team Roster</div>
+          <div class="empty-state" id="myTeamRosterEmpty" hidden><p>No one reports to you yet.</p></div>
+          <table class="data-table" id="myTeamRosterTable">
+            <thead><tr><th>Name</th><th>Designation</th><th>Department</th><th>Status</th></tr></thead>
+            <tbody id="myTeamRosterTableBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ---------------- EMPLOYEE SELF-SERVICE VIEW — "My Workspace" ---------------- -->
+      <section class="view" id="view-my-workspace" data-view="my-workspace" hidden>
+        <div class="view-header">
+          <div>
+            <h1 id="myWorkspaceGreeting">My Workspace</h1>
+            <p class="view-subtitle">Your profile, leave balance, and payslips — self-service, view only where noted.</p>
+          </div>
+        </div>
+
+        <div class="panel" style="padding:20px;margin-bottom:16px;">
+          <div class="form-section-title" style="margin-bottom:10px;">My Profile</div>
+          <div class="payslip-meta-grid" id="myProfileGrid"></div>
+        </div>
+
+        <div class="panel" style="padding:20px;margin-bottom:16px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <div class="form-section-title" style="margin-bottom:0;">My Leave</div>
+            <button class="btn btn-secondary btn-sm" id="myWorkspaceApplyLeaveBtn">Apply for Leave</button>
+          </div>
+          <div class="kpi-grid" id="myLeaveBalanceKpis"></div>
+          <table class="data-table" id="myLeaveHistoryTable" style="margin-top:16px;">
+            <thead><tr><th>Type</th><th>From</th><th>To</th><th>Days</th><th>Status</th></tr></thead>
+            <tbody id="myLeaveHistoryTableBody"></tbody>
+          </table>
+        </div>
+
+        <div class="panel" style="padding:20px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <div class="form-section-title" style="margin-bottom:0;">My Payslips</div>
+            <button class="btn btn-ghost btn-sm" id="myWorkspaceForm16Btn">Form 16 / Tax Statement</button>
+          </div>
+          <div class="empty-state" id="myPayslipsEmpty" hidden><p>No payslips generated yet.</p></div>
+          <table class="data-table" id="myPayslipsTable">
+            <thead><tr><th>Month</th><th>Gross</th><th>Deductions</th><th>Net Pay</th><th></th></tr></thead>
+            <tbody id="myPayslipsTableBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ---------------- REPORTS & ANALYTICS ---------------- -->
+      <section class="view" id="view-reports" data-view="reports" hidden>
+        <div class="view-header">
+          <div>
+            <h1>Reports &amp; Analytics</h1>
+            <p class="view-subtitle">Headcount, payroll cost, and exportable registers.</p>
+          </div>
+        </div>
+
+        <div class="kpi-grid" id="reportsKpis" style="margin-bottom:16px;"></div>
+
+        <div class="panel" style="padding:20px;margin-bottom:16px;">
+          <div class="form-section-title" style="margin-bottom:12px;">Headcount by Department</div>
+          <div id="reportsDeptChart"></div>
+        </div>
+
+        <div class="panel" style="padding:20px;margin-bottom:16px;">
+          <div class="form-section-title" style="margin-bottom:12px;">Monthly Payroll Cost (Net Pay)</div>
+          <div id="reportsPayrollTrend"></div>
+        </div>
+
+        <div class="panel" style="padding:20px;">
+          <div class="form-section-title" style="margin-bottom:12px;">Export Registers (CSV)</div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+            <button class="btn btn-secondary btn-sm" id="exportEmployeesCsvBtn">Employee Master</button>
+            <select id="exportPayrollMonthSelect" class="select-sm"></select>
+            <button class="btn btn-secondary btn-sm" id="exportPayrollCsvBtn">Payroll Register</button>
+            <button class="btn btn-secondary btn-sm" id="exportBankAdviceBtn">Bank Transfer Advice (NEFT)</button>
+            <button class="btn btn-secondary btn-sm" id="exportLeaveCsvBtn">Leave Register</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---------------- AUDIT LOG (Admin only) ---------------- -->
+      <section class="view" id="view-audit" data-view="audit" hidden>
+        <div class="view-header">
+          <div>
+            <h1>Audit Log</h1>
+            <p class="view-subtitle">Who changed what, and when — salary, status, payroll, leave decisions, and login accounts.</p>
+          </div>
+          <div class="view-header-actions">
+            <button class="btn btn-ghost" id="exportAuditCsvBtn">Export CSV</button>
+          </div>
+        </div>
+
+        <div class="panel table-panel">
+          <div class="table-toolbar">
+            <div class="table-search">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+              <input type="text" id="auditSearch" placeholder="Search by user or target…" autocomplete="off" />
+            </div>
+            <div class="table-filters">
+              <select id="filterAuditModule" class="select-sm"><option value="">All Modules</option></select>
+              <button class="btn btn-ghost btn-sm" id="clearAuditFiltersBtn">Clear</button>
+            </div>
+          </div>
+
+          <div class="empty-state" id="auditEmptyState" hidden><p>No audit events recorded yet.</p></div>
+          <table class="data-table" id="auditTable">
+            <thead><tr><th>Time</th><th>User</th><th>Role</th><th>Module</th><th>Action</th><th>Target</th><th>Detail</th></tr></thead>
+            <tbody id="auditTableBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ---------------- COMPLIANCE CALENDAR ---------------- -->
+      <section class="view" id="view-compliance" data-view="compliance" hidden>
+        <div class="view-header">
+          <div>
+            <h1>Compliance Calendar</h1>
+            <p class="view-subtitle">Upcoming statutory due dates — PF, ESI, Professional Tax, TDS returns, bonus.</p>
+          </div>
+        </div>
+        <div class="panel table-panel">
+          <table class="data-table" id="complianceTable">
+            <thead><tr><th>Category</th><th>Obligation</th><th>Period</th><th>Due Date</th><th>Status</th><th></th></tr></thead>
+            <tbody id="complianceTableBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ---------------- LETTERS GENERATOR ---------------- -->
+      <section class="view" id="view-letters" data-view="letters" hidden>
+        <div class="view-header">
+          <div>
+            <h1>Letters Generator</h1>
+            <p class="view-subtitle">Increment, promotion, warning, relieving, and experience letters — signed and PDF-ready.</p>
+          </div>
+        </div>
+
+        <div class="panel" style="padding:20px;margin-bottom:16px;">
+          <div class="form-section-title" style="margin-bottom:12px;">Generate a Letter</div>
+          <div class="form-grid">
+            <div class="form-field">
+              <label for="lt_employee">Employee <span class="req">*</span></label>
+              <select id="lt_employee"><option value="">Select employee</option></select>
+            </div>
+            <div class="form-field">
+              <label for="lt_type">Letter Type <span class="req">*</span></label>
+              <select id="lt_type"><option value="">Select type</option></select>
+            </div>
+          </div>
+          <div class="form-grid" id="lt_dynamicFields"></div>
+          <button class="btn btn-primary btn-sm" id="lt_generateBtn" style="margin-top:10px;">Generate Letter</button>
+        </div>
+
+        <div class="panel table-panel">
+          <div class="form-section-title" style="margin:20px 20px 0;">Previously Generated Letters</div>
+          <div class="empty-state" id="lettersEmptyState" hidden><p>No letters generated yet.</p></div>
+          <table class="data-table" id="lettersTable">
+            <thead><tr><th>Employee</th><th>Letter Type</th><th>Issue Date</th><th></th></tr></thead>
+            <tbody id="lettersTableBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<!-- ============================================================
+     VACANCY FORM MODAL (create / edit)
+     ============================================================ -->
+<div class="modal-overlay" id="vacancyModalOverlay" hidden>
+  <div class="modal modal-lg" role="dialog" aria-modal="true" aria-labelledby="vacancyModalTitle">
+    <div class="modal-header">
+      <h2 id="vacancyModalTitle">New Job Vacancy</h2>
+      <button class="icon-btn" id="vacancyModalCloseBtn" aria-label="Close">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <form id="vacancyForm" novalidate>
+      <div class="modal-body">
+        <div class="form-grid">
+
+          <div class="form-field">
+            <label for="f_department">Department <span class="req">*</span></label>
+            <select id="f_department" name="department">
+              <option value="">Select department</option>
+            </select>
+            <span class="field-error" id="err_department"></span>
+          </div>
+
+          <div class="form-field">
+            <label for="f_designation">Designation <span class="req">*</span></label>
+            <input type="text" id="f_designation" name="designation" placeholder="e.g. HR Executive" maxlength="80" />
+            <span class="field-error" id="err_designation"></span>
+          </div>
+
+          <div class="form-field">
+            <label for="f_employmentType">Employment Type <span class="req">*</span></label>
+            <select id="f_employmentType" name="employmentType">
+              <option value="">Select type</option>
+              <option>Full-Time</option>
+              <option>Part-Time</option>
+              <option>Contract</option>
+              <option>Internship</option>
+              <option>Temporary</option>
+            </select>
+            <span class="field-error" id="err_employmentType"></span>
+          </div>
+
+          <div class="form-field">
+            <label for="f_qualification">Qualification <span class="req">*</span></label>
+            <select id="f_qualification" name="qualification">
+              <option value="">Select qualification</option>
+            </select>
+            <span class="field-error" id="err_qualification"></span>
+          </div>
+
+          <div class="form-field form-field-split">
+            <label>Experience Required (years) <span class="req">*</span></label>
+            <div class="split-inputs">
+              <input type="number" id="f_expMin" name="expMin" min="0" max="40" placeholder="Min" />
+              <span class="split-sep">to</span>
+              <input type="number" id="f_expMax" name="expMax" min="0" max="40" placeholder="Max" />
+            </div>
+            <span class="field-error" id="err_experience"></span>
+          </div>
+
+          <div class="form-field form-field-split">
+            <label>Salary Range (₹ / month) <span class="req">*</span></label>
+            <div class="split-inputs">
+              <input type="number" id="f_salaryMin" name="salaryMin" min="0" step="500" placeholder="Min" />
+              <span class="split-sep">to</span>
+              <input type="number" id="f_salaryMax" name="salaryMax" min="0" step="500" placeholder="Max" />
+            </div>
+            <span class="field-error" id="err_salary"></span>
+          </div>
+
+          <div class="form-field">
+            <label for="f_vacanciesCount">Number of Vacancies <span class="req">*</span></label>
+            <input type="number" id="f_vacanciesCount" name="vacanciesCount" min="1" max="500" placeholder="e.g. 2" />
+            <span class="field-error" id="err_vacanciesCount"></span>
+          </div>
+
+          <div class="form-field">
+            <label for="f_location">Location <span class="req">*</span></label>
+            <input type="text" id="f_location" name="location" placeholder="e.g. Kochi, Kerala" maxlength="80" />
+            <span class="field-error" id="err_location"></span>
+          </div>
+
+          <div class="form-field">
+            <label for="f_reportingManager">Reporting Manager <span class="req">*</span></label>
+            <input type="text" id="f_reportingManager" name="reportingManager" placeholder="e.g. Priya Nair" maxlength="80" />
+            <span class="field-error" id="err_reportingManager"></span>
+          </div>
+
+          <div class="form-field">
+            <label for="f_interviewDate">Interview Date <span class="req">*</span></label>
+            <input type="date" id="f_interviewDate" name="interviewDate" />
+            <span class="field-error" id="err_interviewDate"></span>
+          </div>
+
+          <div class="form-field">
+            <label for="f_status">Status <span class="req">*</span></label>
+            <select id="f_status" name="status">
+              <option>Open</option>
+              <option>In Progress</option>
+              <option>On Hold</option>
+              <option>Closed</option>
+            </select>
+            <span class="field-error" id="err_status"></span>
+          </div>
+
+          <div class="form-field form-field-wide">
+            <label for="f_skills">Skills <span class="req">*</span></label>
+            <input type="text" id="f_skillsInput" placeholder="Type a skill and press Enter — e.g. Payroll, Excel, Communication" />
+            <div class="tag-list" id="skillsTagList"></div>
+            <input type="hidden" id="f_skills" name="skills" />
+            <span class="field-error" id="err_skills"></span>
+          </div>
+
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" id="vacancyCancelBtn">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="vacancySaveBtn">Save Vacancy</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ============================================================
+     RESUME FORM MODAL (create / edit) — Phase 2
+     ============================================================ -->
+<div class="modal-overlay" id="resumeModalOverlay" hidden>
+  <div class="modal modal-lg" role="dialog" aria-modal="true" aria-labelledby="resumeModalTitle">
+    <div class="modal-header">
+      <h2 id="resumeModalTitle">Add Candidate</h2>
+      <button class="icon-btn" id="resumeModalCloseBtn" aria-label="Close">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <form id="resumeForm" novalidate>
+      <div class="modal-body">
+        <div class="form-grid">
+
+          <div class="form-field form-field-wide">
+            <label for="r_vacancyId">Applied For (Vacancy) <span class="req">*</span></label>
+            <select id="r_vacancyId" name="vacancyId">
+              <option value="">Select a vacancy</option>
+            </select>
+            <span class="field-error" id="err_r_vacancyId"></span>
+          </div>
+
+          <div class="form-field form-field-wide">
+            <label for="r_resumeFile">Upload Resume <span class="muted-text" style="font-weight:400;">(dummy — simulated, no file is stored)</span></label>
+            <input type="file" id="r_resumeFile" accept=".pdf,.doc,.docx" />
+            <span class="field-error" id="err_r_resumeFile"></span>
+          </div>
+
+          <div class="form-field">
+            <label for="r_name">Candidate Name <span class="req">*</span></label>
+            <input type="text" id="r_name" name="name" placeholder="e.g. Anjali Krishnan" maxlength="80" />
+            <span class="field-error" id="err_r_name"></span>
+          </div>
+
+          <div class="form-field">
+            <label for="r_phone">Phone <span class="req">*</span></label>
+            <input type="text" id="r_phone" name="phone" placeholder="e.g. 9847012345" maxlength="20" />
+            <span class="field-error" id="err_r_phone"></span>
+          </div>
+
+          <div class="form-field">
+            <label for="r_email">Email <span class="req">*</span></label>
+            <input type="email" id="r_email" name="email" placeholder="e.g. anjali@example.com" maxlength="100" />
+            <span class="field-error" id="err_r_email"></span>
+          </div>
+
+          <div class="form-field">
+            <label for="r_education">Education <span class="req">*</span></label>
+            <select id="r_education" name="education">
+              <option value="">Select qualification</option>
+            </select>
+            <span class="field-error" id="err_r_education"></span>
+          </div>
+
+          <div class="form-field">
+            <label for="r_experienceYears">Experience (years) <span class="req">*</span></label>
+            <input type="number" id="r_experienceYears" name="experienceYears" min="0" max="45" placeholder="e.g. 2" />
+            <span class="field-error" id="err_r_experienceYears"></span>
+          </div>
+
+          <div class="form-field">
+            <label for="r_expectedSalary">Expected Salary (₹ / month) <span class="req">*</span></label>
+            <input type="number" id="r_expectedSalary" name="expectedSalary" min="0" step="500" placeholder="e.g. 22000" />
+            <span class="field-error" id="err_r_expectedSalary"></span>
+          </div>
+
+          <div class="form-field">
+            <label for="r_location">Location <span class="req">*</span></label>
+            <input type="text" id="r_location" name="location" placeholder="e.g. Kochi, Kerala" maxlength="80" />
+            <span class="field-error" id="err_r_location"></span>
+          </div>
+
+          <div class="form-field">
+            <label for="r_status">Status <span class="req">*</span></label>
+            <select id="r_status" name="status">
+              <option>Received</option>
+              <option>Accepted</option>
+              <option>Rejected</option>
+              <option>Moved to Screening</option>
+            </select>
+            <span class="field-error" id="err_r_status"></span>
+          </div>
+
+          <div class="form-field">
+            <label for="r_resumeScore">Resume Score (0&ndash;100) <span class="req">*</span></label>
+            <div class="split-inputs">
+              <input type="number" id="r_resumeScore" name="resumeScore" min="0" max="100" placeholder="e.g. 72" />
+              <button type="button" class="btn btn-ghost btn-sm" id="r_suggestScoreBtn" title="Suggest a score based on the selected vacancy, education, experience and skills">Suggest</button>
+            </div>
+            <span class="field-error" id="err_r_resumeScore"></span>
+          </div>
+
+          <div class="form-field form-field-wide">
+            <label for="r_skillsInput">Skills <span class="req">*</span></label>
+            <input type="text" id="r_skillsInput" placeholder="Type a skill and press Enter — e.g. Tally, GST, Excel" />
+            <div class="tag-list" id="r_skillsTagList"></div>
+            <input type="hidden" id="r_skills" name="skills" />
+            <span class="field-error" id="err_r_skills"></span>
+          </div>
+
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" id="resumeCancelBtn">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="resumeSaveBtn">Save Candidate</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ============================================================
+     SCREENING REVIEW MODAL — Phase 3
+     Education / Experience / Skills Match / Certifications are
+     auto-calculated from the resume + vacancy; Communication is
+     the one criterion that genuinely needs a human screener, so
+     it's the only manually-entered score.
+     ============================================================ -->
+<div class="modal-overlay" id="screeningModalOverlay" hidden>
+  <div class="modal modal-lg" role="dialog" aria-modal="true" aria-labelledby="screeningModalTitle">
+    <div class="modal-header">
+      <h2 id="screeningModalTitle">Screen Candidate</h2>
+      <button class="icon-btn" id="screeningModalCloseBtn" aria-label="Close">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <form id="screeningForm" novalidate>
+      <div class="modal-body">
+
+        <div class="resume-preview-header" id="screeningCandidateHeader">
+          <div class="resume-preview-avatar" id="screeningAvatarInitials">—</div>
+          <div>
+            <div class="resume-preview-name" id="screeningCandidateName">—</div>
+            <div class="resume-preview-meta" id="screeningCandidateMeta">—</div>
+          </div>
+        </div>
+
+        <div class="form-grid">
+
+          <div class="form-field">
+            <label for="s_educationScore">Education <span class="muted-text" style="font-weight:400;">(auto, /20)</span></label>
+            <input type="number" id="s_educationScore" readonly class="input-readonly" />
+          </div>
+
+          <div class="form-field">
+            <label for="s_experienceScore">Experience <span class="muted-text" style="font-weight:400;">(auto, /20)</span></label>
+            <input type="number" id="s_experienceScore" readonly class="input-readonly" />
+          </div>
+
+          <div class="form-field">
+            <label for="s_skillsMatchScore">Skills Match <span class="muted-text" style="font-weight:400;">(auto, /30)</span></label>
+            <input type="number" id="s_skillsMatchScore" readonly class="input-readonly" />
+          </div>
+
+          <div class="form-field">
+            <label for="s_certificationsScore">Certifications <span class="muted-text" style="font-weight:400;">(auto, /15)</span></label>
+            <input type="number" id="s_certificationsScore" readonly class="input-readonly" />
+          </div>
+
+          <div class="form-field form-field-wide">
+            <label for="s_certificationsInput">Certifications held</label>
+            <input type="text" id="s_certificationsInput" placeholder="Type a certification and press Enter — e.g. Tally Certified, CIPD" />
+            <div class="tag-list" id="s_certificationsTagList"></div>
+            <span class="field-error" id="err_s_certifications"></span>
+          </div>
+
+          <div class="form-field">
+            <label for="s_communicationScore">Communication <span class="req">*</span> <span class="muted-text" style="font-weight:400;">(your assessment, /15)</span></label>
+            <input type="number" id="s_communicationScore" min="0" max="15" placeholder="0-15" />
+            <span class="field-error" id="err_s_communicationScore"></span>
+          </div>
+
+          <div class="form-field">
+            <label for="s_totalScore">Total Score <span class="muted-text" style="font-weight:400;">(auto, /100)</span></label>
+            <input type="number" id="s_totalScore" readonly class="input-readonly" />
+          </div>
+
+          <div class="form-field">
+            <label for="s_decision">Decision <span class="req">*</span></label>
+            <select id="s_decision" name="decision">
+              <option>Pending Review</option>
+              <option>Shortlisted</option>
+              <option>Rejected</option>
+            </select>
+            <span class="field-error" id="err_s_decision"></span>
+          </div>
+
+          <div class="form-field form-field-wide">
+            <label for="s_remarks">Screening Remarks <span class="muted-text" style="font-weight:400;">(optional)</span></label>
+            <input type="text" id="s_remarks" placeholder="Notes from the screening call or review…" maxlength="200" />
+          </div>
+
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" id="screeningCancelBtn">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="screeningSaveBtn">Save Screening</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ============================================================
+     SCHEDULE INTERVIEW MODAL — Phase 4
+     Doubles as the bulk-schedule form (from the pool, multiple
+     candidates at once) and the single-record edit form (from
+     the Interview Schedule table's Edit action).
+     ============================================================ -->
+<div class="modal-overlay" id="shortlistModalOverlay" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="shortlistModalTitle">
+    <div class="modal-header">
+      <h2 id="shortlistModalTitle">Schedule Interview</h2>
+      <button class="icon-btn" id="shortlistModalCloseBtn" aria-label="Close">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <form id="shortlistForm" novalidate>
+      <div class="modal-body">
+        <div id="shortlistCandidateList" class="muted-text" style="margin-bottom:14px;"></div>
+
+        <div class="form-grid">
+          <div class="form-field">
+            <label for="sl_interviewDate">Interview Date <span class="req">*</span></label>
+            <input type="date" id="sl_interviewDate" name="interviewDate" />
+            <span class="field-error" id="err_sl_interviewDate"></span>
+          </div>
+
+          <div class="form-field" id="sl_statusField" hidden>
+            <label for="sl_status">Status</label>
+            <select id="sl_status" name="status">
+              <option>Scheduled</option>
+              <option>Rescheduled</option>
+              <option>Cancelled</option>
+            </select>
+          </div>
+
+          <div class="form-field">
+            <label for="sl_assignedHR">Assigned HR <span class="req">*</span></label>
+            <input type="text" id="sl_assignedHR" name="assignedHR" placeholder="e.g. Priya Nair" maxlength="80" />
+            <span class="field-error" id="err_sl_assignedHR"></span>
+          </div>
+
+          <div class="form-field form-field-wide">
+            <label for="sl_panelInput">Interview Panel <span class="req">*</span></label>
+            <input type="text" id="sl_panelInput" placeholder="Type a panel member's name and press Enter" />
+            <div class="tag-list" id="sl_panelTagList"></div>
+            <span class="field-error" id="err_sl_panel"></span>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" id="shortlistCancelBtn">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="shortlistSaveBtn">Schedule</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ============================================================
+     INTERVIEW ROUNDS MODAL — Phase 5
+     The four round sections (HR / Technical / Manager / Final)
+     are generated once into #roundsContainer by script.js, since
+     they're structurally identical and repeating them by hand in
+     markup would be 4x duplication for no benefit.
+     ============================================================ -->
+<div class="modal-overlay" id="interviewModalOverlay" hidden>
+  <div class="modal modal-lg" role="dialog" aria-modal="true" aria-labelledby="interviewModalTitle">
+    <div class="modal-header">
+      <h2 id="interviewModalTitle">Manage Interview</h2>
+      <button class="icon-btn" id="interviewModalCloseBtn" aria-label="Close">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <form id="interviewForm" novalidate>
+      <div class="modal-body">
+        <div class="resume-preview-header" id="interviewCandidateHeader">
+          <div class="resume-preview-avatar" id="interviewAvatarInitials">—</div>
+          <div>
+            <div class="resume-preview-name" id="interviewCandidateName">—</div>
+            <div class="resume-preview-meta" id="interviewCandidateMeta">—</div>
+          </div>
+        </div>
+
+        <div id="roundsContainer"><!-- populated by ManagementModule.buildRoundSections() --></div>
+
+        <div class="final-score-summary" id="finalScoreSummary">
+          <span>Final Score (auto — average of completed rounds)</span>
+          <span class="final-score-value" id="finalScoreValue">—</span>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" id="interviewCancelBtn">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="interviewSaveBtn">Save Interview</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ============================================================
+     OFFER LETTER FORM MODAL — Phase 7 (data entry)
+     ============================================================ -->
+<div class="modal-overlay" id="offerModalOverlay" hidden>
+  <div class="modal modal-lg" role="dialog" aria-modal="true" aria-labelledby="offerModalTitle">
+    <div class="modal-header">
+      <h2 id="offerModalTitle">Edit Offer Letter</h2>
+      <button class="icon-btn" id="offerModalCloseBtn" aria-label="Close">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <form id="offerForm" novalidate>
+      <div class="modal-body">
+        <div class="resume-preview-header" id="offerCandidateHeader">
+          <div class="resume-preview-avatar" id="offerAvatarInitials">—</div>
+          <div>
+            <div class="resume-preview-name" id="offerCandidateName">—</div>
+            <div class="resume-preview-meta" id="offerCandidateMeta">—</div>
+          </div>
+        </div>
+
+        <div class="form-grid">
+          <div class="form-field">
+            <label for="o_joiningDate">Joining Date <span class="req">*</span></label>
+            <input type="date" id="o_joiningDate" />
+            <span class="field-error" id="err_o_joiningDate"></span>
+          </div>
+
+          <div class="form-field">
+            <label for="o_salary">Salary (₹ / month) <span class="req">*</span></label>
+            <input type="number" id="o_salary" min="0" step="500" />
+            <span class="field-error" id="err_o_salary"></span>
+          </div>
+
+          <div class="form-field">
+            <label for="o_signatory">Authorized Signatory <span class="req">*</span></label>
+            <select id="o_signatory">
+              <option value="">Select signatory</option>
+            </select>
+            <span class="field-error" id="err_o_signatory"></span>
+          </div>
+
+          <div class="form-field">
+            <label for="o_status">Status</label>
+            <select id="o_status">
+              <option>Draft</option>
+              <option>Issued</option>
+              <option>Accepted</option>
+              <option>Declined</option>
+            </select>
+          </div>
+
+          <div class="form-field form-field-wide">
+            <label for="o_allowancesInput">Allowances</label>
+            <input type="text" id="o_allowancesInput" placeholder="Type an allowance and press Enter — e.g. HRA, Travel Allowance" />
+            <div class="tag-list" id="o_allowancesTagList"></div>
+          </div>
+
+          <div class="form-field form-field-wide">
+            <label for="o_terms">Terms <span class="req">*</span></label>
+            <textarea id="o_terms" rows="2" style="width:100%;padding:9px 11px;border-radius:var(--radius-sm);border:1px solid var(--border-color-strong);background:var(--bg-surface);color:var(--text-primary);font-family:inherit;font-size:13px;resize:vertical;"></textarea>
+            <span class="field-error" id="err_o_terms"></span>
+          </div>
+
+          <div class="form-field form-field-wide">
+            <label for="o_conditions">Conditions <span class="req">*</span></label>
+            <textarea id="o_conditions" rows="2" style="width:100%;padding:9px 11px;border-radius:var(--radius-sm);border:1px solid var(--border-color-strong);background:var(--bg-surface);color:var(--text-primary);font-family:inherit;font-size:13px;resize:vertical;"></textarea>
+            <span class="field-error" id="err_o_conditions"></span>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" id="offerCancelBtn">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="offerSaveBtn">Save Offer</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ============================================================
+     OFFER LETTER PREVIEW MODAL — Phase 7 (formatted letter + print/PDF)
+     ============================================================ -->
+<div class="modal-overlay" id="offerPreviewOverlay" hidden>
+  <div class="modal modal-lg" role="dialog" aria-modal="true" aria-labelledby="offerPreviewTitle">
+    <div class="modal-header">
+      <h2 id="offerPreviewTitle">Offer Letter Preview</h2>
+      <button class="icon-btn" id="offerPreviewCloseBtn" aria-label="Close">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="offer-letter-paper printable-offer-letter" id="offerLetterPaper"><!-- rendered by OfferModule.renderLetter() --></div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-ghost" id="offerPreviewCloseBtn2">Close</button>
+      <button type="button" class="btn btn-ghost" id="offerPrintBtn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 9V3h12v6M6 18H4a1 1 0 0 1-1-1v-6a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-2M6 14h12v7H6v-7Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+        Print
+      </button>
+      <button type="button" class="btn btn-primary" id="offerDownloadBtn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 3v12m0 0 4-4m-4 4-4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Download PDF
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     JOINING CHECKLIST MODAL — Phase 8
+     The 12 checklist items are generated once into #checklistItemsContainer
+     by script.js from the CHECKLIST_ITEMS config, same approach as the
+     Phase 5 round sections.
+     ============================================================ -->
+<div class="modal-overlay" id="joiningModalOverlay" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="joiningModalTitle">
+    <div class="modal-header">
+      <h2 id="joiningModalTitle">Onboarding Checklist</h2>
+      <button class="icon-btn" id="joiningModalCloseBtn" aria-label="Close">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <form id="joiningForm" novalidate>
+      <div class="modal-body">
+        <div class="resume-preview-header" id="joiningCandidateHeader">
+          <div class="resume-preview-avatar" id="joiningAvatarInitials">—</div>
+          <div>
+            <div class="resume-preview-name" id="joiningCandidateName">—</div>
+            <div class="resume-preview-meta" id="joiningCandidateMeta">—</div>
+          </div>
+        </div>
+
+        <div class="progress-summary">
+          <div class="progress-bar-track"><div class="progress-bar-fill" id="joiningProgressFill" style="width:0%"></div></div>
+          <span class="progress-summary-label" id="joiningProgressLabel">0% complete</span>
+        </div>
+
+        <div id="checklistItemsContainer" class="checklist-grid"><!-- populated by JoiningModule.buildChecklistItems() --></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" id="joiningCancelBtn">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="joiningSaveBtn">Save Checklist</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ============================================================
+     EMPLOYEE MASTER FORM MODAL — Phase 9
+     ============================================================ -->
+<div class="modal-overlay" id="employeeModalOverlay" hidden>
+  <div class="modal modal-lg" role="dialog" aria-modal="true" aria-labelledby="employeeModalTitle">
+    <div class="modal-header">
+      <h2 id="employeeModalTitle">Edit Employee Profile</h2>
+      <button class="icon-btn" id="employeeModalCloseBtn" aria-label="Close">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <form id="employeeForm" novalidate>
+      <div class="modal-body">
+        <div class="resume-preview-header" id="employeeProfileHeader">
+          <div class="resume-preview-avatar" id="employeeAvatarInitials">—</div>
+          <div>
+            <div class="resume-preview-name" id="employeeProfileName">—</div>
+            <div class="resume-preview-meta" id="employeeProfileMeta">—</div>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <div class="form-section-title">Personal Details</div>
+          <div class="form-grid">
+            <div class="form-field">
+              <label for="e_phone">Phone <span class="req">*</span></label>
+              <input type="text" id="e_phone" />
+              <span class="field-error" id="err_e_phone"></span>
+            </div>
+            <div class="form-field">
+              <label for="e_email">Personal Email <span class="req">*</span></label>
+              <input type="email" id="e_email" />
+              <span class="field-error" id="err_e_email"></span>
+            </div>
+            <div class="form-field form-field-wide">
+              <label for="e_address">Address <span class="req">*</span></label>
+              <input type="text" id="e_address" placeholder="e.g. 24, MG Road, Kochi, Kerala" />
+              <span class="field-error" id="err_e_address"></span>
+            </div>
+            <div class="form-field">
+              <label for="e_emergencyContactName">Emergency Contact Name <span class="req">*</span></label>
+              <input type="text" id="e_emergencyContactName" />
+              <span class="field-error" id="err_e_emergencyContactName"></span>
+            </div>
+            <div class="form-field">
+              <label for="e_emergencyContactPhone">Emergency Contact Phone <span class="req">*</span></label>
+              <input type="text" id="e_emergencyContactPhone" />
+              <span class="field-error" id="err_e_emergencyContactPhone"></span>
+            </div>
+            <div class="form-field form-field-wide">
+              <label for="e_photoFile">Photo <span class="muted-text" style="font-weight:400;">(dummy — simulated, no file is stored)</span></label>
+              <input type="file" id="e_photoFile" accept="image/*" />
+            </div>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <div class="form-section-title">Official Details</div>
+          <div class="form-grid">
+            <div class="form-field">
+              <label for="e_designation">Designation <span class="req">*</span></label>
+              <input type="text" id="e_designation" />
+              <span class="field-error" id="err_e_designation"></span>
+            </div>
+            <div class="form-field">
+              <label for="e_department">Department <span class="req">*</span></label>
+              <select id="e_department"><option value="">Select department</option></select>
+              <span class="field-error" id="err_e_department"></span>
+            </div>
+            <div class="form-field">
+              <label for="e_manager">Reporting Manager <span class="muted-text" style="font-weight:400;">(optional — links this employee into the org hierarchy and enables the Manager self-service role for whoever is picked)</span></label>
+              <select id="e_manager"><option value="">No reporting manager (top of hierarchy)</option></select>
+              <span class="field-error" id="err_e_manager"></span>
+            </div>
+            <div class="form-field">
+              <label for="e_officialEmail">Official Email <span class="req">*</span></label>
+              <input type="email" id="e_officialEmail" />
+              <span class="field-error" id="err_e_officialEmail"></span>
+            </div>
+            <div class="form-field">
+              <label for="e_salary">Salary (₹ / month) <span class="req">*</span></label>
+              <input type="number" id="e_salary" min="0" step="500" />
+              <span class="field-error" id="err_e_salary"></span>
+            </div>
+            <div class="form-field">
+              <label for="e_status">Status</label>
+              <select id="e_status"><option>Active</option><option>Inactive</option></select>
+            </div>
+            <div class="form-field">
+              <label for="e_attendanceRule">Attendance Rule <span class="req">*</span></label>
+              <select id="e_attendanceRule"><option value="">Select rule</option></select>
+              <span class="field-error" id="err_e_attendanceRule"></span>
+            </div>
+            <div class="form-field">
+              <label for="e_leavePolicy">Leave Policy <span class="req">*</span></label>
+              <select id="e_leavePolicy"><option value="">Select policy</option></select>
+              <span class="field-error" id="err_e_leavePolicy"></span>
+            </div>
+            <div class="form-field">
+              <label for="e_shift">Shift <span class="req">*</span></label>
+              <select id="e_shift"><option value="">Select shift</option></select>
+              <span class="field-error" id="err_e_shift"></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <div class="form-section-title">Statutory &amp; Tax Details</div>
+          <div class="form-grid">
+            <div class="form-field">
+              <label for="e_pan">PAN Number <span class="req">*</span></label>
+              <input type="text" id="e_pan" placeholder="ABCDE1234F" maxlength="10" style="text-transform:uppercase;" />
+              <span class="field-error" id="err_e_pan"></span>
+            </div>
+            <div class="form-field">
+              <label for="e_state">State <span class="muted-text" style="font-weight:400;">(Professional Tax)</span> <span class="req">*</span></label>
+              <select id="e_state"><option value="">Select state</option></select>
+              <span class="field-error" id="err_e_state"></span>
+            </div>
+            <div class="form-field">
+              <label for="e_city">City <span class="muted-text" style="font-weight:400;">(HRA metro check)</span> <span class="req">*</span></label>
+              <select id="e_city"><option value="">Select city</option></select>
+              <span class="field-error" id="err_e_city"></span>
+            </div>
+            <div class="form-field">
+              <label for="e_taxRegime">Income Tax Regime <span class="req">*</span></label>
+              <select id="e_taxRegime">
+                <option value="new">New Regime (default)</option>
+                <option value="old">Old Regime</option>
+              </select>
+              <span class="field-error" id="err_e_taxRegime"></span>
+            </div>
+            <div class="form-field" data-regime-only="old">
+              <label for="e_rentPaidMonthly">Rent Paid — Monthly (₹) <span class="muted-text" style="font-weight:400;">(for HRA exemption)</span></label>
+              <input type="number" id="e_rentPaidMonthly" min="0" step="500" />
+              <span class="field-error" id="err_e_rentPaidMonthly"></span>
+            </div>
+            <div class="form-field" data-regime-only="old">
+              <label for="e_declared80C">Declared 80C Investments — Annual (₹) <span class="muted-text" style="font-weight:400;">(LIC/PPF/ELSS, capped ₹1.5L)</span></label>
+              <input type="number" id="e_declared80C" min="0" step="1000" />
+              <span class="field-error" id="err_e_declared80C"></span>
+            </div>
+          </div>
+          <p class="muted-text" id="regimeHint" style="margin-top:6px;">New regime: flat slabs, ₹75,000 standard deduction, no HRA/80C claims. Old regime: HRA exemption + 80C deductions apply, ₹50,000 standard deduction.</p>
+        </div>
+
+        <div class="form-section">
+          <div class="form-section-title">Bank Details</div>
+          <div class="form-grid">
+            <div class="form-field">
+              <label for="e_bankName">Bank Name <span class="req">*</span></label>
+              <input type="text" id="e_bankName" />
+              <span class="field-error" id="err_e_bankName"></span>
+            </div>
+            <div class="form-field">
+              <label for="e_accountNumber">Account Number <span class="req">*</span></label>
+              <input type="text" id="e_accountNumber" />
+              <span class="field-error" id="err_e_accountNumber"></span>
+            </div>
+            <div class="form-field">
+              <label for="e_ifsc">IFSC Code <span class="req">*</span></label>
+              <input type="text" id="e_ifsc" style="text-transform:uppercase;" />
+              <span class="field-error" id="err_e_ifsc"></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <div class="form-section-title">Documents on File <span class="muted-text" style="font-weight:400;">(from onboarding checklist)</span></div>
+          <div class="tag-list" id="employeeDocumentsList"></div>
+        </div>
+
+        <div class="form-section" id="employeeLoginSection" hidden>
+          <div class="form-section-title">Self-Service Login</div>
+          <div id="employeeLoginStatus" class="muted-text" style="margin-bottom:10px;">No login account yet.</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button type="button" class="btn btn-secondary btn-sm" id="employeeCreateLoginBtn">Create Login</button>
+            <button type="button" class="btn btn-ghost btn-sm" id="employeeResetLoginBtn" hidden>Reset Password</button>
+            <button type="button" class="btn btn-danger-ghost btn-sm" id="employeeDeactivateLoginBtn" hidden>Deactivate Login</button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" id="employeeCancelBtn">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="employeeSaveBtn">Save Profile</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ============================================================
+     ATTENDANCE EDIT MODAL — Phase 10 (one employee, one date)
+     ============================================================ -->
+<div class="modal-overlay" id="attendanceModalOverlay" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="attendanceModalTitle">
+    <div class="modal-header">
+      <h2 id="attendanceModalTitle">Mark Attendance</h2>
+      <button class="icon-btn" id="attendanceModalCloseBtn" aria-label="Close">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <form id="attendanceForm" novalidate>
+      <div class="modal-body">
+        <div class="resume-preview-header" id="attendanceEmployeeHeader">
+          <div class="resume-preview-avatar" id="attendanceAvatarInitials">—</div>
+          <div>
+            <div class="resume-preview-name" id="attendanceEmployeeName">—</div>
+            <div class="resume-preview-meta" id="attendanceEmployeeMeta">—</div>
+          </div>
+        </div>
+        <div class="form-grid">
+          <div class="form-field">
+            <label for="a_status">Status <span class="req">*</span></label>
+            <select id="a_status">
+              <option>Present</option>
+              <option>Late Entry</option>
+              <option>Half Day</option>
+              <option>Absent</option>
+              <option>Holiday</option>
+              <option>Weekend</option>
+            </select>
+          </div>
+          <div class="form-field"></div>
+          <div class="form-field">
+            <label for="a_checkIn">Check In</label>
+            <input type="time" id="a_checkIn" />
+          </div>
+          <div class="form-field">
+            <label for="a_checkOut">Check Out</label>
+            <input type="time" id="a_checkOut" />
+          </div>
+          <div class="form-field">
+            <label for="a_overtime">Overtime (hrs) <span class="muted-text" style="font-weight:400;">(auto)</span></label>
+            <input type="text" id="a_overtime" readonly class="input-readonly" />
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" id="attendanceCancelBtn">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="attendanceSaveBtn">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ============================================================
+     APPLY LEAVE MODAL — Phase 11
+     ============================================================ -->
+<div class="modal-overlay" id="leaveModalOverlay" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="leaveModalTitle">
+    <div class="modal-header">
+      <h2 id="leaveModalTitle">Apply Leave</h2>
+      <button class="icon-btn" id="leaveModalCloseBtn" aria-label="Close">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <form id="leaveForm" novalidate>
+      <div class="modal-body">
+        <div class="form-grid">
+          <div class="form-field">
+            <label for="lv_employeeId">Employee <span class="req">*</span></label>
+            <select id="lv_employeeId"><option value="">Select employee</option></select>
+            <span class="field-error" id="err_lv_employeeId"></span>
+          </div>
+          <div class="form-field">
+            <label for="lv_leaveType">Leave Type <span class="req">*</span></label>
+            <select id="lv_leaveType"><option value="">Select type</option></select>
+            <span class="field-error" id="err_lv_leaveType"></span>
+          </div>
+          <div class="form-field">
+            <label for="lv_startDate">From <span class="req">*</span></label>
+            <input type="date" id="lv_startDate" />
+            <span class="field-error" id="err_lv_startDate"></span>
+          </div>
+          <div class="form-field">
+            <label for="lv_endDate">To <span class="req">*</span></label>
+            <input type="date" id="lv_endDate" />
+            <span class="field-error" id="err_lv_endDate"></span>
+          </div>
+          <div class="form-field">
+            <label>Balance Available</label>
+            <input type="text" id="lv_balancePreview" readonly class="input-readonly" />
+          </div>
+          <div class="form-field">
+            <label>Days Requested <span class="muted-text" style="font-weight:400;">(auto)</span></label>
+            <input type="text" id="lv_daysPreview" readonly class="input-readonly" />
+          </div>
+          <div class="form-field form-field-wide">
+            <label for="lv_reason">Reason <span class="req">*</span></label>
+            <input type="text" id="lv_reason" placeholder="Brief reason for the leave…" maxlength="200" />
+            <span class="field-error" id="err_lv_reason"></span>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" id="leaveCancelBtn">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="leaveSaveBtn">Submit Application</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ============================================================
+     PAYROLL EDIT MODAL — Phase 12
+     Salary structure, statutory deductions, overtime, and leave
+     deduction are all auto-calculated (read-only here). Bonus,
+     Incentives, Advance and Loan EMI are the discretionary inputs
+     for this specific payroll run.
+     ============================================================ -->
+<div class="modal-overlay" id="payrollModalOverlay" hidden>
+  <div class="modal modal-lg" role="dialog" aria-modal="true" aria-labelledby="payrollModalTitle">
+    <div class="modal-header">
+      <h2 id="payrollModalTitle">Edit Payroll</h2>
+      <button class="icon-btn" id="payrollModalCloseBtn" aria-label="Close">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <form id="payrollForm" novalidate>
+      <div class="modal-body">
+        <div class="resume-preview-header" id="payrollEmployeeHeader">
+          <div class="resume-preview-avatar" id="payrollAvatarInitials">—</div>
+          <div>
+            <div class="resume-preview-name" id="payrollEmployeeName">—</div>
+            <div class="resume-preview-meta" id="payrollEmployeeMeta">—</div>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <div class="form-section-title">Salary Structure <span class="muted-text" style="font-weight:400;">(auto)</span></div>
+          <div class="form-grid">
+            <div class="form-field"><label>Basic</label><input type="text" id="p_basic" readonly class="input-readonly" /></div>
+            <div class="form-field"><label>HRA</label><input type="text" id="p_hra" readonly class="input-readonly" /></div>
+            <div class="form-field"><label>DA</label><input type="text" id="p_da" readonly class="input-readonly" /></div>
+            <div class="form-field"><label>Special Allowance</label><input type="text" id="p_specialAllowance" readonly class="input-readonly" /></div>
+            <div class="form-field"><label>Medical</label><input type="text" id="p_medical" readonly class="input-readonly" /></div>
+            <div class="form-field"><label>Travel</label><input type="text" id="p_travel" readonly class="input-readonly" /></div>
+            <div class="form-field"><label>Overtime <span class="muted-text" style="font-weight:400;">(from Attendance)</span></label><input type="text" id="p_overtime" readonly class="input-readonly" /></div>
+            <div class="form-field"><label for="p_bonus">Bonus</label><input type="number" id="p_bonus" min="0" step="500" /></div>
+            <div class="form-field"><label for="p_incentives">Incentives</label><input type="number" id="p_incentives" min="0" step="500" /></div>
+            <div class="form-field"><label>Gross Salary</label><input type="text" id="p_grossSalary" readonly class="input-readonly" /></div>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <div class="form-section-title">Deductions</div>
+          <div class="form-grid">
+            <div class="form-field"><label>PF <span class="muted-text" style="font-weight:400;">(auto)</span></label><input type="text" id="p_pf" readonly class="input-readonly" /></div>
+            <div class="form-field"><label>ESI <span class="muted-text" style="font-weight:400;">(auto)</span></label><input type="text" id="p_esi" readonly class="input-readonly" /></div>
+            <div class="form-field"><label>Professional Tax <span class="muted-text" style="font-weight:400;">(auto)</span></label><input type="text" id="p_professionalTax" readonly class="input-readonly" /></div>
+            <div class="form-field"><label>Income Tax <span class="muted-text" style="font-weight:400;">(est.)</span></label><input type="text" id="p_incomeTax" readonly class="input-readonly" /></div>
+            <div class="form-field"><label>Leave Deduction <span class="muted-text" style="font-weight:400;">(from LOP leave)</span></label><input type="text" id="p_leaveDeduction" readonly class="input-readonly" /></div>
+            <div class="form-field"><label>Late Penalty <span class="muted-text" style="font-weight:400;">(from Attendance)</span></label><input type="text" id="p_latePenalty" readonly class="input-readonly" /></div>
+            <div class="form-field"><label for="p_advance">Advance</label><input type="number" id="p_advance" min="0" step="500" /></div>
+            <div class="form-field"><label for="p_loanEmi">Loan EMI</label><input type="number" id="p_loanEmi" min="0" step="500" /></div>
+            <div class="form-field"><label>Total Deductions</label><input type="text" id="p_totalDeductions" readonly class="input-readonly" /></div>
+            <div class="form-field">
+              <label for="p_status">Status</label>
+              <select id="p_status"><option>Draft</option><option>Processed</option><option>Paid</option></select>
+            </div>
+          </div>
+        </div>
+
+        <div class="final-score-summary"><span>Net Salary</span><span class="final-score-value" id="p_netSalaryPreview">—</span></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" id="payrollCancelBtn">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="payrollSaveBtn">Save Payroll</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ============================================================
+     LOGIN CREDENTIALS MODAL — shows a generated username/password once
+     ============================================================ -->
+<div class="modal-overlay" id="credentialsModalOverlay" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="credentialsModalTitle">
+    <div class="modal-header">
+      <h2 id="credentialsModalTitle">Login Created</h2>
+      <button class="icon-btn" id="credentialsModalCloseBtn" aria-label="Close">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <p class="muted-text" style="margin-bottom:14px;">Share these with the employee. The password is only shown this once — resetting will generate a new one.</p>
+      <div class="payslip-meta-grid" style="background:var(--surface-2, #f4f6f9);border-radius:8px;padding:14px;">
+        <div><div class="payslip-meta-label">Role</div><div class="payslip-meta-value" id="cred_role">—</div></div>
+        <div><div class="payslip-meta-label">Username</div><div class="payslip-meta-value" id="cred_username" style="font-family:'IBM Plex Mono',monospace;">—</div></div>
+        <div><div class="payslip-meta-label">Password</div><div class="payslip-meta-value" id="cred_password" style="font-family:'IBM Plex Mono',monospace;">—</div></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-primary" id="credentialsModalDoneBtn">Done</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     FORM 16 / ANNUAL TAX STATEMENT — SELECTOR MODAL
+     ============================================================ -->
+<div class="modal-overlay" id="form16SelectModalOverlay" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="form16SelectModalTitle">
+    <div class="modal-header">
+      <h2 id="form16SelectModalTitle">Generate Form 16 / Tax Statement</h2>
+      <button class="icon-btn" id="form16SelectCloseBtn" aria-label="Close">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <p class="muted-text" style="margin-bottom:14px;">Aggregates every Payroll run for the selected employee within the chosen financial year (April&ndash;March) into an annual tax computation sheet.</p>
+      <div class="form-grid">
+        <div class="form-field form-field-wide">
+          <label for="f16_employee">Employee <span class="req">*</span></label>
+          <select id="f16_employee"><option value="">Select employee</option></select>
+          <span class="field-error" id="err_f16_employee"></span>
+        </div>
+        <div class="form-field form-field-wide">
+          <label for="f16_fy">Financial Year <span class="req">*</span></label>
+          <select id="f16_fy"><option value="">Select financial year</option></select>
+          <span class="field-error" id="err_f16_fy"></span>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-ghost" id="form16SelectCancelBtn">Cancel</button>
+      <button type="button" class="btn btn-primary" id="form16GenerateBtn">Generate</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     SALARY SLIP PREVIEW MODAL — Phase 13
+     ============================================================ -->
+<div class="modal-overlay" id="payslipPreviewOverlay" hidden>
+  <div class="modal modal-lg" role="dialog" aria-modal="true" aria-labelledby="payslipPreviewTitle">
+    <div class="modal-header">
+      <h2 id="payslipPreviewTitle">Salary Slip</h2>
+      <button class="icon-btn" id="payslipPreviewCloseBtn" aria-label="Close">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="offer-letter-paper printable-offer-letter" id="payslipPaper"><!-- rendered by SalarySlipModule.renderSlip() --></div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-ghost" id="payslipPreviewCloseBtn2">Close</button>
+      <button type="button" class="btn btn-ghost" id="payslipPrintBtn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 9V3h12v6M6 18H4a1 1 0 0 1-1-1v-6a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-2M6 14h12v7H6v-7Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+        Print
+      </button>
+      <button type="button" class="btn btn-primary" id="payslipDownloadBtn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 3v12m0 0 4-4m-4 4-4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Download PDF
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     NEW RESIGNATION MODAL — Phase 14
+     ============================================================ -->
+<div class="modal-overlay" id="resignationModalOverlay" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="resignationModalTitle">
+    <div class="modal-header">
+      <h2 id="resignationModalTitle">New Resignation</h2>
+      <button class="icon-btn" id="resignationModalCloseBtn" aria-label="Close">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <form id="resignationForm" novalidate>
+      <div class="modal-body">
+        <div class="form-grid">
+          <div class="form-field">
+            <label for="rs_employeeId">Employee <span class="req">*</span></label>
+            <select id="rs_employeeId"><option value="">Select employee</option></select>
+            <span class="field-error" id="err_rs_employeeId"></span>
+          </div>
+          <div class="form-field">
+            <label for="rs_resignationDate">Resignation Date <span class="req">*</span></label>
+            <input type="date" id="rs_resignationDate" />
+            <span class="field-error" id="err_rs_resignationDate"></span>
+          </div>
+          <div class="form-field">
+            <label for="rs_noticePeriod">Notice Period (days) <span class="req">*</span></label>
+            <select id="rs_noticePeriod">
+              <option value="15">15 days</option>
+              <option value="30" selected>30 days</option>
+              <option value="45">45 days</option>
+              <option value="60">60 days</option>
+              <option value="90">90 days</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label>Last Working Day <span class="muted-text" style="font-weight:400;">(auto)</span></label>
+            <input type="text" id="rs_lastWorkingDayPreview" readonly class="input-readonly" />
+          </div>
+          <div class="form-field form-field-wide">
+            <label for="rs_reason">Reason <span class="req">*</span></label>
+            <input type="text" id="rs_reason" placeholder="Reason for resignation…" maxlength="200" />
+            <span class="field-error" id="err_rs_reason"></span>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" id="resignationCancelBtn">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="resignationSaveBtn">Submit Resignation</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ============================================================
+     MANAGE EXIT MODAL — Phase 14 (asset return + exit interview)
+     ============================================================ -->
+<div class="modal-overlay" id="exitModalOverlay" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="exitModalTitle">
+    <div class="modal-header">
+      <h2 id="exitModalTitle">Manage Exit</h2>
+      <button class="icon-btn" id="exitModalCloseBtn" aria-label="Close">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <form id="exitForm" novalidate>
+      <div class="modal-body">
+        <div class="resume-preview-header" id="exitEmployeeHeader">
+          <div class="resume-preview-avatar" id="exitAvatarInitials">—</div>
+          <div>
+            <div class="resume-preview-name" id="exitEmployeeName">—</div>
+            <div class="resume-preview-meta" id="exitEmployeeMeta">—</div>
+          </div>
+        </div>
+
+        <div class="form-section-title">Asset Return</div>
+        <div class="progress-summary">
+          <div class="progress-bar-track"><div class="progress-bar-fill" id="exitProgressFill" style="width:0%"></div></div>
+          <span class="progress-summary-label" id="exitProgressLabel">0% complete</span>
+        </div>
+        <div id="assetItemsContainer" class="checklist-grid"><!-- populated by ExitModule.buildAssetItems() --></div>
+
+        <div class="form-section" style="margin-top:16px;">
+          <div class="form-section-title">Exit Interview</div>
+          <div class="form-grid">
+            <div class="form-field">
+              <label for="ex_interviewDate">Interview Date</label>
+              <input type="date" id="ex_interviewDate" />
+            </div>
+            <div class="form-field form-field-wide">
+              <label for="ex_interviewFeedback">Feedback / Notes</label>
+              <input type="text" id="ex_interviewFeedback" placeholder="Notes from the exit interview…" maxlength="300" />
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" id="exitCancelBtn">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="exitSaveBtn">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ============================================================
+     SETTLEMENT EDIT MODAL — Phase 15
+     Pending Salary, Leave Encashment, Gratuity and Notice Recovery
+     are all auto-calculated by pulling from Employee Master,
+     Attendance, Leave Management, Payroll and Exit Management.
+     Bonus, Loan Recovery and Other Recovery are the discretionary
+     inputs; Actual Last Working Day can override the exit record's
+     computed date if the employee left earlier than planned.
+     ============================================================ -->
+<div class="modal-overlay" id="settlementModalOverlay" hidden>
+  <div class="modal modal-lg" role="dialog" aria-modal="true" aria-labelledby="settlementModalTitle">
+    <div class="modal-header">
+      <h2 id="settlementModalTitle">Edit Settlement</h2>
+      <button class="icon-btn" id="settlementModalCloseBtn" aria-label="Close">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <form id="settlementForm" novalidate>
+      <div class="modal-body">
+        <div class="resume-preview-header" id="settlementEmployeeHeader">
+          <div class="resume-preview-avatar" id="settlementAvatarInitials">—</div>
+          <div>
+            <div class="resume-preview-name" id="settlementEmployeeName">—</div>
+            <div class="resume-preview-meta" id="settlementEmployeeMeta">—</div>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <div class="form-section-title">Notice Period</div>
+          <div class="form-grid">
+            <div class="form-field">
+              <label>Exit-Computed Last Working Day</label>
+              <input type="text" id="s_exitLastWorkingDay" readonly class="input-readonly" />
+            </div>
+            <div class="form-field">
+              <label for="s_actualLastWorkingDay">Actual Last Working Day <span class="req">*</span></label>
+              <input type="date" id="s_actualLastWorkingDay" />
+            </div>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <div class="form-section-title">Earnings <span class="muted-text" style="font-weight:400;">(from Employee Master, Attendance, Leave &amp; Payroll)</span></div>
+          <div class="form-grid">
+            <div class="form-field">
+              <label>Pending Salary <span class="muted-text" style="font-weight:400;">(auto)</span></label>
+              <input type="text" id="s_pendingSalary" readonly class="input-readonly" />
+              <span class="field-error" id="s_pendingSalaryNote" style="color:var(--text-tertiary);"></span>
+            </div>
+            <div class="form-field">
+              <label>Leave Encashment <span class="muted-text" style="font-weight:400;">(unused Earned Leave)</span></label>
+              <input type="text" id="s_leaveEncashment" readonly class="input-readonly" />
+            </div>
+            <div class="form-field">
+              <label>Gratuity <span class="muted-text" style="font-weight:400;">(auto, 5+ yrs service)</span></label>
+              <input type="text" id="s_gratuity" readonly class="input-readonly" />
+            </div>
+            <div class="form-field"><label for="s_bonus">Bonus</label><input type="number" id="s_bonus" min="0" step="500" /></div>
+            <div class="form-field"><label>Gross Settlement</label><input type="text" id="s_grossSettlement" readonly class="input-readonly" /></div>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <div class="form-section-title">Recoveries</div>
+          <div class="form-grid">
+            <div class="form-field"><label for="s_loanRecovery">Loan Recovery</label><input type="number" id="s_loanRecovery" min="0" step="500" /></div>
+            <div class="form-field">
+              <label>Notice Recovery <span class="muted-text" style="font-weight:400;">(auto, if left early)</span></label>
+              <input type="text" id="s_noticeRecovery" readonly class="input-readonly" />
+            </div>
+            <div class="form-field">
+              <label for="s_otherRecovery">Other Recovery <span class="muted-text" style="font-weight:400;">(suggested from unreturned assets)</span></label>
+              <input type="number" id="s_otherRecovery" min="0" step="500" />
+            </div>
+            <div class="form-field"><label>Total Recovery</label><input type="text" id="s_totalRecovery" readonly class="input-readonly" /></div>
+            <div class="form-field">
+              <label for="s_status">Status</label>
+              <select id="s_status"><option>Draft</option><option>Processed</option><option>Settled</option></select>
+            </div>
+          </div>
+        </div>
+
+        <div class="final-score-summary"><span>Net Settlement</span><span class="final-score-value" id="s_netSettlementPreview">—</span></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" id="settlementCancelBtn">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="settlementSaveBtn">Save Settlement</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ============================================================
+     SETTLEMENT CERTIFICATE PREVIEW MODAL — Phase 15
+     ============================================================ -->
+<div class="modal-overlay" id="settlementPreviewOverlay" hidden>
+  <div class="modal modal-lg" role="dialog" aria-modal="true" aria-labelledby="settlementPreviewTitle">
+    <div class="modal-header">
+      <h2 id="settlementPreviewTitle">Settlement Certificate</h2>
+      <button class="icon-btn" id="settlementPreviewCloseBtn" aria-label="Close">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="offer-letter-paper printable-offer-letter" id="settlementCertPaper"><!-- rendered by SettlementModule.renderCertificate() --></div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-ghost" id="settlementPreviewCloseBtn2">Close</button>
+      <button type="button" class="btn btn-ghost" id="settlementPrintBtn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 9V3h12v6M6 18H4a1 1 0 0 1-1-1v-6a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-2M6 14h12v7H6v-7Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+        Print
+      </button>
+      <button type="button" class="btn btn-primary" id="settlementDownloadBtn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 3v12m0 0 4-4m-4 4-4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Generate Settlement Report (PDF)
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     SHARED READ-ONLY DETAIL MODAL — reused by Vacancy, Resume, Screening, Shortlisting and Interview Management
+     ============================================================ -->
+<div class="modal-overlay" id="viewModalOverlay" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="viewModalTitle">
+    <div class="modal-header">
+      <h2 id="viewModalTitle">Vacancy Details</h2>
+      <button class="icon-btn" id="viewModalCloseBtn" aria-label="Close">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <div class="modal-body" id="viewModalBody"></div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-ghost" id="viewModalCloseBtn2">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     CONFIRM DIALOG (generic, reused across app)
+     ============================================================ -->
+<div class="modal-overlay" id="confirmOverlay" hidden>
+  <div class="modal modal-sm" role="alertdialog" aria-modal="true">
+    <div class="modal-body confirm-body">
+      <div class="confirm-icon" id="confirmIcon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h16.9a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>
+      </div>
+      <h3 id="confirmTitle">Are you sure?</h3>
+      <p id="confirmMessage">This action cannot be undone.</p>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-ghost" id="confirmCancelBtn">Cancel</button>
+      <button type="button" class="btn btn-danger" id="confirmOkBtn">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     TOAST CONTAINER
+     ============================================================ -->
+<div class="toast-container" id="toastContainer" aria-live="polite"></div>
+
+<script src="assets/js/vendor/html2canvas.min.js"></script>
+<script src="assets/js/vendor/jspdf.umd.min.js"></script>
+<script src="script.js"></script>
+<script>
+  // PWA install + offline support. Registering over file:// will fail
+  // silently (service workers require http/https or localhost) — the app
+  // still works fine, it just won't be installable until served that way.
+  if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch((err) => {
+        console.warn('SKELORA: service worker registration failed —', err.message);
+      });
+    });
+  }
+</script>
+</body>
+</html>
