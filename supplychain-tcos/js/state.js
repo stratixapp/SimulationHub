@@ -14,7 +14,7 @@
    ============================================================ */
 
 const SESSION_KEY = 'icegate_training_session_supplychain_v1'; // namespaced — this is the Supply Chain suite's paired copy of TCOS, kept separate from the hub's main TCOS so progress/sessions in one never overwrite the other
-const STORAGE_PREFIX = 'icegate_training_state_supplychain_v1::'; // namespaced — see SESSION_KEY note above; without this, a student's saved progress here would silently overwrite (or be overwritten by) their progress in the hub's main TCOS, since both apps would otherwise write to the exact same per-user key on the same origin
+const STORAGE_PREFIX = 'icegate_training_state_supplychain_v1::'; // namespaced — without this, a student's saved progress here would silently overwrite (or be overwritten by) their progress in the hub's main TCOS, since both apps would otherwise write to the same per-user key on the same origin
 
 function dataKeyFor(userId) {
   return STORAGE_PREFIX + String(userId || 'anonymous').toUpperCase();

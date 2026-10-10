@@ -23,6 +23,7 @@ function openLicenseWorkstation(jobId) {
   if (!doc) {
     doc = { id: newId('XDOC-LIC'), exportJobId: jobId, type: 'EXPORT_LICENSE', version: 1, status: 'DRAFT', createdAt: Date.now(), updatedAt: Date.now(), fields: blankLicenseFields() };
     doc.fields.product = job.brief.commodity || ''; doc.fields.hsCode = job.brief.hsCode || ''; doc.fields.destinationCountry = job.brief.destinationCountry || '';
+    xdSeedDoc(doc, job);
     STATE.exportDocs.push(doc);
     saveState();
   }

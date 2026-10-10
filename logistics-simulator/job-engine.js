@@ -424,6 +424,16 @@ function skGenerateRefNumber(userId, fieldKey, digits){
   digits = digits || 6;
   return String(skNextSeq(userId, fieldKey)).padStart(digits, "0");
 }
+/* Same number skGenerateRefNumber would hand out next, but WITHOUT
+   consuming it — so merely opening (and abandoning) the Create Job form
+   no longer burns a PO number and leaves a gap in the sequence. The
+   counter is only advanced when the Job is actually created. */
+function skPeekRefNumber(userId, fieldKey, digits){
+  digits = digits || 6;
+  let counters = {};
+  try{ counters = JSON.parse(localStorage.getItem(SKELORA_SEQNUM_PREFIX + userId)) || {}; }catch(e){}
+  return String((counters[fieldKey] || 0) + 1).padStart(digits, "0");
+}
 /* Pattern-aware version — reads the field's own validation `pattern` (if
    any) and builds a value shaped to match it (PREFIX-YYYY-NNNNN,
    PREFIX-NNNNN, plain digits, or an ABBR-NNNNN built from the document's
@@ -666,6 +676,29 @@ function skGenerateJobId(userId){
   return `SKL-${year}-${String(n).padStart(5,"0")}`;
 }
 
+/* Unsaved "Create a Job" form draft — one per student, only for a brand-new
+   Shipment Lot (editing an existing one is untouched). Written as the
+   student types, restored the next time the form is opened, cleared the
+   moment a Job is actually created (see skCreateJob) or the student
+   discards it. */
+const SKELORA_JOB_DRAFT_PREFIX = "skelora_jobdraft_v1_";
+function skGetJobDraft(userId){
+  if(!userId) return null;
+  try{
+    const raw = localStorage.getItem(SKELORA_JOB_DRAFT_PREFIX + userId);
+    const d = raw ? JSON.parse(raw) : null;
+    return (d && d.fields && typeof d.fields === "object") ? d : null;
+  }catch(e){ return null; }
+}
+function skSaveJobDraft(userId, draft){
+  if(!userId || !draft) return;
+  try{ localStorage.setItem(SKELORA_JOB_DRAFT_PREFIX + userId, JSON.stringify(draft)); }catch(e){}
+}
+function skClearJobDraft(userId){
+  if(!userId) return;
+  try{ localStorage.removeItem(SKELORA_JOB_DRAFT_PREFIX + userId); }catch(e){}
+}
+
 function skGetActiveJob(userId){
   if(!userId) return null;
   try{
@@ -727,6 +760,7 @@ function skCreateJob(userId, fields, assignmentId, docSlugs, autofillTier, autoA
     autoAddedSlugs: Array.isArray(autoAddedSlugs) ? autoAddedSlugs.slice() : []
   };
   try{ localStorage.setItem(_sk_jobKey(userId), JSON.stringify(job)); }catch(e){}
+  skClearJobDraft(userId); // a real Job now exists — any half-filled draft is obsolete
   return job;
 }
 

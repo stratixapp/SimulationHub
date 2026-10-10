@@ -19,6 +19,7 @@ function openInsuranceWorkstation(jobId) {
   if (!doc) {
     doc = { id: newId('XDOC-INS'), exportJobId: jobId, type: 'INSURANCE_CERTIFICATE', version: 1, status: 'DRAFT', createdAt: Date.now(), updatedAt: Date.now(), fields: blankInsuranceFields() };
     doc.fields.currency = job.brief.currency || '';
+    xdSeedDoc(doc, job);
     STATE.exportDocs.push(doc);
     saveState();
   }

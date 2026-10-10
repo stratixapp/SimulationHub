@@ -10,6 +10,7 @@
 var XD_BRIEF_DRAFT = null; // in-progress Export Brief form state, before a job exists
 
 function startNewExportJob() {
+  if (typeof XD_BRIDGE_SOURCE !== 'undefined') XD_BRIDGE_SOURCE = null; // a manual job must never inherit a stale bridge snapshot
   XD_BRIEF_DRAFT = {
     buyerName: '', commodity: '', commodityCategory: '', hsCode: '', quantity: '', unit: '',
     currency: '', incoterm: '', paymentMethod: '', mode: '', destinationCountry: '',
@@ -114,6 +115,7 @@ function submitExportBrief() {
     documentPlan: computeDocumentPlan(b),
     documentIds: {}
   };
+  if (typeof XD_BRIDGE_SOURCE !== 'undefined' && XD_BRIDGE_SOURCE) { job.sourceJobData = XD_BRIDGE_SOURCE; XD_BRIDGE_SOURCE = null; }
   setExportJobStatus(job, 'DOCUMENTS_IN_PROGRESS');
   STATE.exportJobs.unshift(job);
   saveState();
@@ -237,6 +239,7 @@ function navToExportAudit(jobId) { CURRENT_EXPORT_JOB_ID = jobId; navTo('exportA
    a normal new filing does, and the Export Brief is pre-filled but
    still requires the student's review and explicit "Create" action. */
 function startExportJobFromScenario(scenarioId) {
+  if (typeof XD_BRIDGE_SOURCE !== 'undefined') XD_BRIDGE_SOURCE = null;
   const scenario = SCENARIOS.find(s => s.id === scenarioId && s.type === 'export');
   if (!scenario) return;
   const filing = startNewFiling('export', scenario);

@@ -185,12 +185,41 @@ const FOREIGN_PORTS = [
   "Warsaw Chopin (WAW) Airport, Poland"
 ];
 
-const COUNTRIES = ['United Arab Emirates', 'United States of America', 'United Kingdom', 'Germany', 'Singapore', 'Netherlands', 'China', 'Japan', 'Saudi Arabia', 'Australia'];
+/* BUGFIX (requested): FOREIGN_PORTS above already carries full Sea + Air
+   port/airport data for 38 countries — but this dropdown, which every
+   filing form (Export AND Import alike, see filingForm.js) and every
+   Consignia Desk export document (Invoice, Certificate of Origin,
+   License, Commodity Certs) uses for its Country field, only listed 10 of
+   them. That silently hid 28 of the 38 countries FOREIGN_PORTS already
+   supports — a student could never file for Sri Lanka, France, Vietnam,
+   Kenya, etc. even though the ports/airports were sitting right there in
+   the data. Expanded to all 38, one shared list feeding every form at
+   once. Same country set as the Logistics Simulator's own Discharge
+   Country list (job-engine.js DISCHARGE_PORTS_BY_COUNTRY), so cross-app
+   bridging (bridgeMatchCountry below) now matches far more shipments
+   too — previously anything outside the original 10 + the 3 short-form
+   aliases (UAE/USA/UK) silently failed to bridge and left the field
+   blank for the student to fill in by hand. */
+const COUNTRIES = [
+  'United Arab Emirates', 'Sri Lanka', 'Singapore', 'China', 'United States of America', 'Egypt',
+  'Germany', 'United Kingdom', 'France', 'Spain', 'Argentina', 'Brazil',
+  'Japan', 'South Korea', 'Vietnam', 'Thailand', 'Malaysia', 'Indonesia',
+  'Bangladesh', 'Nepal', 'Saudi Arabia', 'Qatar', 'Kuwait', 'Oman',
+  'Bahrain', 'Netherlands', 'Italy', 'Turkey', 'Russia', 'South Africa',
+  'Australia', 'Canada', 'Mexico', 'Kenya', 'Nigeria', 'Iran',
+  'Israel', 'Poland'
+];
 
 const CURRENCIES = ['USD', 'EUR', 'GBP', 'AED', 'SGD', 'JPY', 'INR'];
 const FX_TO_INR = { USD: 83.2, EUR: 90.1, GBP: 105.4, AED: 22.65, SGD: 61.8, JPY: 0.56, INR: 1 };
 
-const INCOTERMS = ['FOB', 'CIF', 'CFR', 'EXW', 'DAP', 'FCA'];
+// BUGFIX: CIP was missing — under Incoterms 2020, CIF/CFR/FOB are valid
+// only for sea/inland waterway transport; the correct equivalents for
+// any other mode (air, road, multimodal) are CIP and FCA. FCA was
+// already here, but an air/road shipment had no CIP option and could
+// only be given the sea-only CIF/CFR terms, which is a real, common
+// mistake this list should help a student avoid, not reinforce.
+const INCOTERMS = ['FOB', 'CIF', 'CFR', 'CIP', 'EXW', 'DAP', 'FCA'];
 const MODES_OF_TRANSPORT = ['Sea', 'Air', 'Land (ICD/LCS)'];
 const UNITS = ['PCS', 'KGS', 'BOX', 'CTN', 'SET', 'MTR', 'DOZ', 'PAIR'];
 const PACKAGE_TYPES = ['Carton', 'Wooden Crate', 'Pallet', 'Drum', 'Bag', 'Case'];
@@ -208,7 +237,24 @@ const HS_CODE_TABLE = {
   '61091000': { desc: 'T-shirts, cotton, knitted', bcdRate: 0.20, cessRate: 0, addRate: 0, pgaAgency: null, riskTier: 'Low', ftaPrefix: '61', drawbackAIR: 0.022, rodtepRate: 0.028 },
   '71131900': { desc: 'Jewellery of precious metal', bcdRate: 0.25, cessRate: 0, addRate: 0, pgaAgency: null, riskTier: 'High', ftaPrefix: '71', drawbackAIR: 0.002, rodtepRate: 0.003 },
   '87089900': { desc: 'Motor vehicle parts, other', bcdRate: 0.15, cessRate: 0, addRate: 0, pgaAgency: null, riskTier: 'Medium', ftaPrefix: '87', drawbackAIR: 0.017, rodtepRate: 0.015 },
-  '52081100': { desc: 'Cotton woven fabric, unbleached', bcdRate: 0.10, cessRate: 0, addRate: 0, pgaAgency: 'TEXTILE_COMMITTEE', riskTier: 'Low', ftaPrefix: '52', drawbackAIR: 0.014, rodtepRate: 0.020 }
+  '52081100': { desc: 'Cotton woven fabric, unbleached', bcdRate: 0.10, cessRate: 0, addRate: 0, pgaAgency: 'TEXTILE_COMMITTEE', riskTier: 'Low', ftaPrefix: '52', drawbackAIR: 0.014, rodtepRate: 0.020 },
+  /* BUGFIX (requested): HS Code here is a closed dropdown sourced from
+     this table, not free text — a scenario needs the commodity's actual
+     code to already exist here, or the Item Details step simply cannot
+     be completed for it. These entries were missing entirely for two
+     genuinely common categories: medical devices (as opposed to just
+     "medicaments", which 30049099 already covered) and watches (no
+     Chapter 91 entry existed at all). */
+  '30043100': { desc: 'Medicaments containing insulin', bcdRate: 0.10, cessRate: 0, addRate: 0, pgaAgency: 'DRUG_CONTROLLER', riskTier: 'Medium', ftaPrefix: '30', drawbackAIR: 0.015, rodtepRate: 0.007 },
+  '90183100': { desc: 'Syringes, with or without needles', bcdRate: 0.075, cessRate: 0, addRate: 0, pgaAgency: 'DRUG_CONTROLLER', riskTier: 'Low', ftaPrefix: '90', drawbackAIR: 0.012, rodtepRate: 0.006 },
+  '90189099': { desc: 'Other medical/surgical instruments and appliances (BP monitors, infusion pumps, etc.)', bcdRate: 0.075, cessRate: 0, addRate: 0, pgaAgency: 'DRUG_CONTROLLER', riskTier: 'Medium', ftaPrefix: '90', drawbackAIR: 0.012, rodtepRate: 0.006 },
+  '63079090': { desc: 'Made-up textile articles, other (incl. surgical/face masks)', bcdRate: 0.10, cessRate: 0, addRate: 0, pgaAgency: null, riskTier: 'Low', ftaPrefix: '63', drawbackAIR: 0.014, rodtepRate: 0.018 },
+  '91011900': { desc: 'Wrist-watches, case of precious metal, other than automatic', bcdRate: 0.20, cessRate: 0, addRate: 0, pgaAgency: null, riskTier: 'High', ftaPrefix: '91', drawbackAIR: 0.005, rodtepRate: 0.003 },
+  '91012100': { desc: 'Wrist-watches, case of precious metal, with automatic winding', bcdRate: 0.20, cessRate: 0, addRate: 0, pgaAgency: null, riskTier: 'High', ftaPrefix: '91', drawbackAIR: 0.005, rodtepRate: 0.003 },
+  '91021900': { desc: 'Wrist-watches, case not of precious metal, mechanical/automatic', bcdRate: 0.20, cessRate: 0, addRate: 0, pgaAgency: null, riskTier: 'Medium', ftaPrefix: '91', drawbackAIR: 0.008, rodtepRate: 0.005 },
+  '91022900': { desc: 'Wrist-watches, case not of precious metal, electrically operated (quartz)', bcdRate: 0.20, cessRate: 0, addRate: 0, pgaAgency: null, riskTier: 'Medium', ftaPrefix: '91', drawbackAIR: 0.008, rodtepRate: 0.005 },
+  '91119000': { desc: 'Watch cases and parts thereof, other', bcdRate: 0.10, cessRate: 0, addRate: 0, pgaAgency: null, riskTier: 'Low', ftaPrefix: '91', drawbackAIR: 0.010, rodtepRate: 0.006 },
+  '91131000': { desc: 'Watch straps/bands and parts, of precious or base metal', bcdRate: 0.10, cessRate: 0, addRate: 0, pgaAgency: null, riskTier: 'Low', ftaPrefix: '91', drawbackAIR: 0.010, rodtepRate: 0.006 }
 };
 const IGST_RATE_DEFAULT = 0.18;
 const SWS_RATE = 0.10; /* Social Welfare Surcharge — 10% of Basic Customs Duty, standard rate */
@@ -236,7 +282,17 @@ const FTA_AGREEMENTS = [
 const COUNTRY_RISK = {
   'United Arab Emirates': 'Low', 'Singapore': 'Low', 'Japan': 'Low', 'Germany': 'Low', 'United Kingdom': 'Low', 'Netherlands': 'Low',
   'United States of America': 'Medium', 'Australia': 'Medium', 'Saudi Arabia': 'Medium',
-  'China': 'High'
+  'China': 'High',
+  // BUGFIX: only 10 of the 38 countries in COUNTRIES had an explicit risk
+  // tier here — every other country silently fell back to 'Medium'
+  // (harmless, but incomplete). Filled in the rest so risk tiers are an
+  // actual judgment call for every country, not a default for most of
+  // them.
+  'France': 'Low', 'Vietnam': 'Medium', 'Sri Lanka': 'Low', 'Egypt': 'Medium', 'Spain': 'Low', 'Argentina': 'Medium',
+  'Brazil': 'Medium', 'South Korea': 'Low', 'Thailand': 'Low', 'Malaysia': 'Low', 'Indonesia': 'Medium', 'Bangladesh': 'Medium',
+  'Nepal': 'Medium', 'Qatar': 'Low', 'Kuwait': 'Low', 'Oman': 'Low', 'Bahrain': 'Low', 'Italy': 'Low', 'Turkey': 'Medium',
+  'Russia': 'High', 'South Africa': 'Medium', 'Canada': 'Low', 'Mexico': 'Medium', 'Kenya': 'Medium', 'Nigeria': 'High',
+  'Iran': 'High', 'Israel': 'Low', 'Poland': 'Low'
 };
 
 const EXPORT_SCHEMES = ['None', 'Advance Authorization', 'EPCG (Export Promotion Capital Goods)', 'RoDTEP', 'Duty Drawback'];

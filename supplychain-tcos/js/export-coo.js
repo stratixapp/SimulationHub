@@ -28,6 +28,7 @@ function openCooWorkstation(jobId) {
     doc.fields.type = job.brief.ftaClaim ? 'Preferential' : 'Non-Preferential';
     doc.fields.countryOfDestination = job.brief.destinationCountry || '';
     doc.fields.hsCode = job.brief.hsCode || '';
+    xdSeedDoc(doc, job);
     STATE.exportDocs.push(doc);
     saveState();
   }

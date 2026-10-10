@@ -84,7 +84,7 @@
       const body = document.getElementById("exciseFilingsBody");
       body.innerHTML = "";
       filings.forEach((f) => {
-        const overdue = f.status !== "Submitted" && new Date(f.period.dueDate) < new Date();
+        const overdue = f.status !== "Submitted" && VATSIM.isPastDue(f.period.dueDate);
         const statusLabel = f.status === "Submitted" ? "Submitted" : overdue ? "Overdue" : "Draft";
         const dotClass = f.status === "Submitted" ? "submitted" : overdue ? "overdue" : "draft";
         const tr = document.createElement("tr");

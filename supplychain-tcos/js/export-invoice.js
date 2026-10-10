@@ -30,6 +30,7 @@ function openInvoiceWorkstation(jobId) {
     doc.fields.shipment.mode = job.brief.mode || '';
     doc.fields.shipment.countryOfFinalDestination = job.brief.destinationCountry || '';
     doc.fields.commercialTerms.incoterm = job.brief.incoterm || '';
+    xdSeedDoc(doc, job);
     STATE.exportDocs.push(doc);
     saveState();
   }

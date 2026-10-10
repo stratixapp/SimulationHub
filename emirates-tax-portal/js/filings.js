@@ -125,7 +125,7 @@
     const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
     const period = {
       from: fmt(periodFrom), to: fmt(periodTo), dueDate: fmt(due), taxYearEnd: fmt(taxYearEnd),
-      stagger: "Stagger 2 – Quarterly (Jan to Dec)",
+      stagger: "Quarterly (calendar quarters)",
       taxYear: String(periodFrom.getFullYear()),
       label: MONTHS[periodFrom.getMonth()] + " " + periodFrom.getFullYear() + " – " + MONTHS[periodTo.getMonth()] + " " + periodTo.getFullYear(),
     };

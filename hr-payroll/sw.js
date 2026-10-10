@@ -5,7 +5,7 @@
 // Bump CACHE_NAME (e.g. 'skelora-v2') whenever you ship changes to
 // index.html / script.js / style.css / vendor files, so returning users
 // get the new version instead of a stale cached copy.
-const CACHE_NAME = 'skelora-v4';
+const CACHE_NAME = 'skelora-hr-v5';
 
 const PRECACHE_URLS = [
   './',
@@ -33,7 +33,7 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys()
-      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k))))
+      .then((keys) => Promise.all(keys.filter((k) => (/^skelora-hr-/.test(k) || k === 'skelora-v4') && k !== CACHE_NAME).map((k) => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });

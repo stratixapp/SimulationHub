@@ -2,8 +2,13 @@
    ICEGATE TRAINING SIMULATOR — FREIGHT FORWARDING REFERENCE DATA
    ============================================================ */
 
-const OCEAN_CARRIERS = ['Maersk Line', 'MSC Mediterranean Shipping', 'CMA CGM', 'Hapag-Lloyd', 'ONE (Ocean Network Express)', 'COSCO Shipping'];
-const AIR_CARRIERS = ['Air India Cargo', 'Emirates SkyCargo', 'Singapore Airlines Cargo', 'Lufthansa Cargo', 'Qatar Airways Cargo', 'IndiGo CarGo'];
+// BUGFIX (requested): a real India-Vietnam sea trade lane commonly runs on
+// intra-Asia carriers like Wan Hai Lines — and a France-India air shipment
+// naturally routes on Air France Cargo — neither existed in these two
+// lists at all, so a training scenario built around either carrier
+// couldn't actually be booked here.
+const OCEAN_CARRIERS = ['Maersk Line', 'MSC Mediterranean Shipping', 'CMA CGM', 'Hapag-Lloyd', 'ONE (Ocean Network Express)', 'COSCO Shipping', 'Wan Hai Lines', 'Evergreen Line'];
+const AIR_CARRIERS = ['Air India Cargo', 'Emirates SkyCargo', 'Singapore Airlines Cargo', 'Lufthansa Cargo', 'Qatar Airways Cargo', 'IndiGo CarGo', 'Air France Cargo', 'Cathay Pacific Cargo'];
 
 const FREIGHT_TERMS = ['Prepaid', 'Collect'];
 const BL_RELEASE_TYPES_SEA = ['Original Bill of Lading', 'Telex Release', 'Surrendered Bill of Lading'];

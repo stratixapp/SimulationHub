@@ -298,12 +298,18 @@ const VATSIM = (function () {
   }
   function fmtDate(iso) {
     if (!iso) return "—";
-    const d = new Date(iso);
+    // Date-only strings ("2026-10-28") are calendar dates: parse them as LOCAL dates, otherwise the
+    // UTC-midnight parse shows the previous day for anyone west of UTC.
+    const d = /^\d{4}-\d{2}-\d{2}$/.test(String(iso)) ? parseLocalDate(iso) : new Date(iso);
     if (isNaN(d)) return iso;
     return d.toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" });
   }
   function todayISO() {
-    return new Date().toISOString().slice(0, 10);
+    // LOCAL calendar date (toISOString() is UTC: between midnight and 04:00 in the UAE it still
+    // returned yesterday, so a payment made just after midnight on the day after the due date
+    // was dated on time).
+    const d = new Date();
+    return d.getFullYear() + "-" + pad(d.getMonth() + 1, 2) + "-" + pad(d.getDate(), 2);
   }
   function uid(prefix) {
     return (prefix || "ID") + "-" + Math.random().toString(36).slice(2, 8).toUpperCase();
@@ -699,7 +705,7 @@ const VATSIM = (function () {
       const fmt = (d) => d.getFullYear() + "-" + pad(d.getMonth() + 1, 2) + "-" + pad(d.getDate(), 2);
       return {
         from: fmt(from), to: fmt(to), dueDate: fmt(due), taxYearEnd: fmt(taxYearEnd),
-        stagger: "Stagger 2 – Quarterly (Jan to Dec)",
+        stagger: "Quarterly (calendar quarters)",
         taxYear: String(from.getFullYear()),
         label: MONTHS[from.getMonth()] + " " + from.getFullYear() + " – " + MONTHS[to.getMonth()] + " " + to.getFullYear(),
       };
@@ -772,7 +778,7 @@ const VATSIM = (function () {
       const fmt = (d) => d.getFullYear() + "-" + pad(d.getMonth() + 1, 2) + "-" + pad(d.getDate(), 2);
       return {
         from: fmt(from), to: fmt(to), dueDate: fmt(due), taxYearEnd: fmt(taxYearEnd),
-        stagger: "Stagger 1 – Monthly (Jan to Dec)",
+        stagger: "Monthly (calendar months)",
         taxYear: String(year),
         label: MONTHS[monthIdx] + " " + year,
       };
@@ -785,7 +791,7 @@ const VATSIM = (function () {
       const fmt = (d) => d.getFullYear() + "-" + pad(d.getMonth() + 1, 2) + "-" + pad(d.getDate(), 2);
       return {
         from: fmt(from), to: fmt(to), dueDate: fmt(due), taxYearEnd: fmt(taxYearEnd),
-        stagger: "Stagger 2 – Quarterly (Jan to Dec)",
+        stagger: "Quarterly (calendar quarters)",
         taxYear: String(from.getFullYear()),
         label: MONTHS[from.getMonth()] + " " + from.getFullYear() + " – " + MONTHS[to.getMonth()] + " " + to.getFullYear(),
       };
@@ -822,31 +828,49 @@ const VATSIM = (function () {
       });
 
     saveFilings(keptSubmitted.concat(newDrafts));
-    logActivity("Settings", "Filing stagger changed to " + (staggerType === "1" ? "Stagger 1 (Monthly)" : "Stagger 2 (Quarterly)") + " — upcoming periods regenerated.");
+    logActivity("Settings", "Filing stagger changed to " + (staggerType === "1" ? "Monthly" : "Quarterly") + " — upcoming periods regenerated.");
     return getFilings();
   }
 
-  /* Seed the simulated Box 2 / Box 6 integration data once per filing,
-     deterministically from the filing id (NOT a fake pre-answered box —
-     these values are read-only integration data exactly like the real
-     portal, only editable via the training "View Details" adjustment
-     the FTA portal itself exposes as Box 7). */
+  /* Box 2 (Tourist Refund Scheme operator) and Box 6 (UAE Customs) are LOCKED feeds on the
+     real VAT201: the taxpayer cannot type in them, and they only hold a figure when the FTA
+     has actually received tourist-refund / customs-declaration records for that TRN and period.
+     A business with no such records sees 0.00. So the simulator now behaves the same way:
+       - default (account.simulateFeeds off): Box 2 = Box 6 = 0.00 on every open return;
+       - training option (Settings > Practice Tools): a stable, per-filing simulated feed is
+         generated so students can practise Box 6 -> Box 7 corrections and the Box 10 recovery.
+     Submitted returns always keep exactly what was filed. */
+  function simulateFeedsOn() {
+    const a = getAccount();
+    return !!(a && a.simulateFeeds);
+  }
   function seedIntegrationFeeds(filing) {
-    if (!filing.boxes.b2.seeded) {
-      const seed = hashSeed(filing.id + "b2");
-      const amt = 5000 + (seed % 40000);
-      filing.boxes.b2.amount = round2(amt);
-      filing.boxes.b2.vat = round2(amt * 0.05);
-      filing.boxes.b2.seeded = true;
-    }
-    if (!filing.boxes.b6.seeded) {
-      const seed = hashSeed(filing.id + "b6");
-      const amt = 8000 + (seed % 90000);
-      filing.boxes.b6.amount = round2(amt);
-      filing.boxes.b6.vat = round2(amt * 0.05);
-      filing.boxes.b6.seeded = true;
-    }
+    if (!filing || filing.status === "Submitted") return filing;
+    const on = simulateFeedsOn();
+    [["b2", 5000, 40000], ["b6", 8000, 90000]].forEach(([k, base, span]) => {
+      const bx = filing.boxes[k];
+      if (on) {
+        if (!bx.seeded) {
+          const amt = base + (hashSeed(filing.id + k) % span);
+          bx.amount = round2(amt);
+          bx.vat = round2(amt * 0.05);
+          bx.seeded = true;
+        }
+      } else if (bx.seeded || n(bx.amount) !== 0 || n(bx.vat) !== 0) {
+        bx.amount = 0;
+        bx.vat = 0;
+        bx.seeded = false;
+      }
+    });
     return filing;
+  }
+  function setSimulateFeeds(on) {
+    const acc = getAccount();
+    if (!acc) return;
+    acc.simulateFeeds = !!on;
+    saveAccount(acc);
+    saveFilings(getFilings().map((f) => seedIntegrationFeeds(f)));
+    logActivity("Settings", "Simulated Customs / tourist-refund feed (Box 2 & Box 6) turned " + (on ? "ON" : "OFF") + " for open returns.");
   }
   function hashSeed(str) {
     let h = 0;
@@ -904,9 +928,12 @@ const VATSIM = (function () {
       n(boxes.b1.abudhabi.adj) + n(boxes.b1.dubai.adj) + n(boxes.b1.sharjah.adj) +
       n(boxes.b1.ajman.adj) + n(boxes.b1.uaq.adj) + n(boxes.b1.rak.adj) + n(boxes.b1.fujairah.adj);
 
-    // Box 8 = total of boxes 1-7 (amount col only meaningful for 1,4,5; vat col sums 1,2,3,6,7)
-    const box8amount = round2(b1amt + b4amt + b5amt + b6amt + b7amt);
-    const box8vat = round2(b1vat - b2vat + b3vat + b6vat + b7vat);
+    // Box 8 = total of Boxes 1-7 in every column. Box 2 (tourist refunds) is always a
+    // NEGATIVE figure on the real VAT201 (both Amount and VAT), so it is subtracted; Box 3
+    // (reverse-charge supplies) carries a real net value and is included; Box 7 is signed.
+    // (QA fix: the old formula left Box 2 and Box 3 amounts out of the Amount column.)
+    const box8amount = round2(b1amt - Math.abs(b2amt) + b3amt + b4amt + b5amt + b6amt + b7amt);
+    const box8vat = round2(b1vat - Math.abs(b2vat) + b3vat + b6vat + b7vat);
     const box8adj = round2(b1adj);
 
     const b9amt = n(boxes.b9.amount);
@@ -1007,8 +1034,7 @@ const VATSIM = (function () {
       relatedFilingId: null,
     });
     (filings || []).forEach((f) => {
-      const due = new Date(f.period.dueDate);
-      const daysLeft = Math.ceil((due - new Date()) / 86400000);
+      const daysLeft = daysUntilDue(f.period.dueDate);
       if (daysLeft <= 30) {
         list.push({
           id: uid("MSG"), folder: "inbox", category: "Reminder Letter",
@@ -1280,10 +1306,32 @@ const VATSIM = (function () {
      balance. Applies automatically wherever a filing is overdue or was
      filed/paid late — Filings list, Dashboard, and the return itself.
   --------------------------------------------------------------------- */
+  /* A return is on time if filed/paid ANY time on the due date itself: the due day runs to
+     23:59:59 local time. (Fix: comparing against new Date("YYYY-MM-DD") = midnight UTC made a
+     return filed on the due date itself count as late and cost AED 1,000.) */
+  function dueDayEnd(dueDate) {
+    const d = parseLocalDate(dueDate);
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999);
+  }
+  function isPastDue(dueDate, when) {
+    return (when ? new Date(when) : new Date()) > dueDayEnd(dueDate);
+  }
+  /* Whole calendar days from today to the due date (0 on the due date, negative once past). */
+  function daysUntilDue(dueDate) {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    return Math.round((parseLocalDate(dueDate) - today) / 86400000);
+  }
+  /* Old saved filings carry the earlier "Stagger 1/2 – ..." wording; show them with the neutral label. */
+  function staggerLabel(raw) {
+    const s = String(raw || "");
+    if (/^Stagger 1/i.test(s)) return "Monthly (calendar months)";
+    if (/^Stagger 2/i.test(s)) return "Quarterly (calendar quarters)";
+    return s || "—";
+  }
   function isFilingLate(f) {
-    const due = new Date(f.period.dueDate);
-    if (f.status === "Submitted") return new Date(f.submittedAt) > due;
-    return new Date() > due;
+    if (f.status === "Submitted") return isPastDue(f.period.dueDate, f.submittedAt);
+    return isPastDue(f.period.dueDate);
   }
   function isRepeatLateFiling(currentFiling, allFilings) {
     const filings = allFilings || getFilings();
@@ -1296,26 +1344,76 @@ const VATSIM = (function () {
       return isFilingLate(f);
     });
   }
+  /* Late-payment months under CD 129/2025: 14% p.a. is charged for each month OR PART of a
+     month, the first period starting the day after the due date and each next period starting
+     on the same calendar date a month later. (QA fix: was ceil(days/30), which drifts from
+     calendar months.) Returns 0 when endDate is on/before the due date. */
+  function parseLocalDate(v) {
+    if (v instanceof Date) return new Date(v.getFullYear(), v.getMonth(), v.getDate());
+    const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(v));
+    if (m) return new Date(+m[1], +m[2] - 1, +m[3]);
+    const d = new Date(v);
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  }
+  function addMonthsClamped(d, k) {
+    const t = new Date(d.getFullYear(), d.getMonth() + k, 1);
+    const last = new Date(t.getFullYear(), t.getMonth() + 1, 0).getDate();
+    return new Date(t.getFullYear(), t.getMonth(), Math.min(d.getDate(), last));
+  }
+  function lateMonths(dueDate, endDate) {
+    const due = parseLocalDate(dueDate), end = parseLocalDate(endDate);
+    const start = new Date(due.getFullYear(), due.getMonth(), due.getDate() + 1);
+    if (end < start) return 0;
+    let count = 1;
+    for (let k = 1; k < 600 && addMonthsClamped(start, k) <= end; k++) count++;
+    return count;
+  }
+  /* Box 15 = "No": the excess recoverable tax is NOT refunded, it stays as a credit with the FTA
+     and is set off against the next payable return(s). Credit brought forward into `filing` =
+     credits created by EARLIER submitted returns (Box 14 < 0 and Box 15 = "No") minus whatever
+     later earlier-returns already used up. Box 14 itself is never altered: the credit is applied
+     when working out what is actually payable (the real portal also applies it at account level). */
+  function creditBroughtForward(filing, allFilings) {
+    const target = parseLocalDate(filing.period.from);
+    const earlier = (allFilings || getFilings())
+      .filter((f) => f.id !== filing.id && f.status === "Submitted" && parseLocalDate(f.period.from) < target)
+      .sort((a, b) => parseLocalDate(a.period.from) - parseLocalDate(b.period.from));
+    let credit = 0;
+    earlier.forEach((f) => {
+      const t = computeTotals(f.boxes);
+      if (t.box14 > 0) credit = round2(credit - Math.min(credit, t.box14));
+      else if (t.box14 < 0 && f.boxes.requestRefund === "No") credit = round2(credit + Math.abs(t.box14));
+    });
+    return credit;
+  }
+  /* What is really payable for a return after any carried-forward credit. */
+  function netPayable(filing, allFilings) {
+    const t = computeTotals(filing.boxes);
+    if (!(t.box14 > 0)) return { box14: t.box14, credit: 0, net: 0 };
+    const applied = Math.min(creditBroughtForward(filing, allFilings), t.box14);
+    return { box14: t.box14, credit: round2(applied), net: round2(t.box14 - applied) };
+  }
   function computeFilingPenalty(filing, allFilings) {
     const result = { lateFiling: 0, latePayment: 0, total: 0, monthsLate: 0, isLateFiling: false, isLatePayment: false, repeat: false };
-    if (!isFilingLate(filing)) return result;
-    result.isLateFiling = true;
-    result.repeat = isRepeatLateFiling(filing, allFilings);
-    result.lateFiling = result.repeat ? 2000 : 1000;
+    // QA fix: late filing and late payment are independent. A return filed on time but paid
+    // late used to escape the late-payment charge because of an early return on !isFilingLate.
+    if (isFilingLate(filing)) {
+      result.isLateFiling = true;
+      result.repeat = isRepeatLateFiling(filing, allFilings);
+      result.lateFiling = result.repeat ? 2000 : 1000;
+    }
 
-    const t = computeTotals(filing.boxes);
-    const payable = t.box14 > 0 ? t.box14 : 0;
+    const payable = netPayable(filing, allFilings).net;
+    const settled = filing.payment && filing.payment.status === "Paid";
+    // Late payment only accrues on a return that has actually been filed/submitted-or-overdue:
+    // a draft that is not yet overdue has endDate <= due, so lateMonths() is 0 anyway.
     if (payable > 0) {
-      const paidOnTime = filing.payment && filing.payment.status === "Paid" && new Date(filing.payment.date) <= new Date(filing.period.dueDate);
-      if (!paidOnTime) {
-        const endDate = filing.payment && filing.payment.status === "Paid" ? new Date(filing.payment.date) : new Date();
-        const dueDate = new Date(filing.period.dueDate);
-        const daysLate = Math.max(0, Math.ceil((endDate - dueDate) / 86400000));
-        if (daysLate > 0) {
-          result.isLatePayment = true;
-          result.monthsLate = Math.ceil(daysLate / 30);
-          result.latePayment = round2(payable * 0.14 * (result.monthsLate / 12));
-        }
+      const endDate = settled ? filing.payment.date : new Date();
+      const months = lateMonths(filing.period.dueDate, endDate);
+      if (months > 0) {
+        result.isLatePayment = true;
+        result.monthsLate = months;
+        result.latePayment = round2(payable * 0.14 * (months / 12));
       }
     }
     result.total = round2(result.lateFiling + result.latePayment);
@@ -1359,7 +1457,7 @@ const VATSIM = (function () {
       if (stage) return { label: stage.label, dotClass: stage.key };
       return { label: "Approved", dotClass: "approved" };
     }
-    const overdue = new Date(filing.period.dueDate) < new Date();
+    const overdue = isPastDue(filing.period.dueDate);
     return overdue ? { label: "Overdue", dotClass: "overdue" } : { label: "Draft", dotClass: "draft" };
   }
 
@@ -1410,8 +1508,13 @@ const VATSIM = (function () {
   }
   function buildCorrectedBoxes(originalBoxes, corrected) {
     const cloned = JSON.parse(JSON.stringify(originalBoxes));
+    // The Adjustment columns (bad-debt relief, annual apportionment ...) are not part of what a VD
+    // corrects here, so the ORIGINAL ones are carried over; dropping them made an unchanged VD
+    // show a phantom tax difference.
+    const origB1Adj = round2(Object.keys(originalBoxes.b1 || {}).reduce((s, k) => s + n(originalBoxes.b1[k] && originalBoxes.b1[k].adj), 0));
+    const origB9Adj = n(originalBoxes.b9 && originalBoxes.b9.adj);
     cloned.b1 = {
-      abudhabi: { amount: corrected.b1amount, vat: corrected.b1vat, adj: 0 },
+      abudhabi: { amount: corrected.b1amount, vat: corrected.b1vat, adj: origB1Adj },
       dubai: { amount: 0, vat: 0, adj: 0 },
       sharjah: { amount: 0, vat: 0, adj: 0 },
       ajman: { amount: 0, vat: 0, adj: 0 },
@@ -1423,7 +1526,7 @@ const VATSIM = (function () {
     cloned.b4 = { amount: corrected.b4amount };
     cloned.b5 = { amount: corrected.b5amount };
     cloned.b7 = { amount: corrected.b7amount, vat: corrected.b7vat };
-    cloned.b9 = { amount: corrected.b9amount, vat: corrected.b9vat, adj: 0 };
+    cloned.b9 = { amount: corrected.b9amount, vat: corrected.b9vat, adj: origB9Adj };
     cloned.b10 = { amount: corrected.b10amount, vat: corrected.b10vat };
     return cloned;
   }
@@ -1436,10 +1539,10 @@ const VATSIM = (function () {
      late-payment-style penalty). */
   function computeVdPenalty(taxDifference, originalDueDate, vdDate, auditNotified) {
     if (taxDifference <= 0) return { applicable: false, monthsElapsed: 0, monthlyPortion: 0, surcharge: 0, total: 0 };
-    const due = new Date(originalDueDate);
-    const filed = new Date(vdDate);
-    const daysElapsed = Math.max(0, Math.ceil((filed - due) / 86400000));
-    const monthsElapsed = Math.max(1, Math.ceil(daysElapsed / 30));
+    // 1% for each month or part of a month from the day after the original due date until the
+    // disclosure is submitted: the same calendar-month count as late payment (lateMonths).
+    const monthsElapsed = lateMonths(originalDueDate, vdDate);
+    if (monthsElapsed === 0) return { applicable: false, monthsElapsed: 0, monthlyPortion: 0, surcharge: 0, total: 0, beforeDue: true };
     const monthlyPortion = round2(taxDifference * 0.01 * monthsElapsed);
     const surcharge = auditNotified ? round2(taxDifference * 0.15) : 0;
     return { applicable: true, monthsElapsed, monthlyPortion, surcharge, total: round2(monthlyPortion + surcharge) };
@@ -1485,7 +1588,9 @@ const VATSIM = (function () {
         (originalTotals.isRefund ? " (refundable)" : " (payable)") + "\nCorrected net tax: AED " + fmtAED(Math.abs(correctedTotals.box14)) +
         (correctedTotals.isRefund ? " (refundable)" : " (payable)") + "\nTax difference: AED " + fmtAED(Math.abs(taxDifference)) +
         (taxDifference >= 0 ? " additional payable" : " additional refundable") +
-        (penalty.applicable
+        (penalty.beforeDue
+          ? "\n\nThis disclosure was submitted on or before the original due date, so no monthly Voluntary Disclosure penalty accrues."
+          : penalty.applicable
           ? "\n\nVoluntary Disclosure Penalty (Cabinet Decision No. 129 of 2025): AED " + fmtAED(penalty.total) +
             " (" + (auditNotified ? "15% fixed surcharge + " : "") + "1% per month × " + penalty.monthsElapsed + " month(s) on the tax difference)."
           : "\n\nNo Voluntary Disclosure penalty applies, as this correction does not result in additional tax due.") +
@@ -1505,20 +1610,96 @@ const VATSIM = (function () {
     ["abudhabi", "Abu Dhabi"], ["dubai", "Dubai"], ["sharjah", "Sharjah"],
     ["ajman", "Ajman"], ["uaq", "Umm Al Quwain"], ["rak", "Ras Al Khaimah"], ["fujairah", "Fujairah"],
   ];
-  function validateBoxPairs(boxes) {
-    const issues = [];
-    function checkPair(amount, vat, label) {
-      const hasAmt = amount !== "" && amount != null;
-      const hasVat = vat !== "" && vat != null;
-      if (hasAmt !== hasVat) issues.push(label + ": amount/VAT pair incomplete");
-      else if (hasAmt && hasVat && n(vat) > n(amount)) issues.push(label + ": VAT exceeds taxable amount");
+  /* Amount/VAT pair rules shared by the return screen, the review screen and the grader.
+     (kept for backward compatibility — the portal logic now lives in validateBoxes below) */
+  function pairIssue(amount, vat) {
+    const hasAmt = amount !== "" && amount != null;
+    const hasVat = vat !== "" && vat != null;
+    if (hasAmt !== hasVat) return "incomplete";
+    if (hasAmt && hasVat && Math.abs(n(vat)) > Math.abs(n(amount))) return "exceeds";
+    return null;
+  }
+
+  /* VAT201 validation, modelled on the real EmaraTax behaviour:
+       - Boxes 1, 3, 4, 5, 7, 9 and 10 accept NEGATIVE figures (credit notes / adjustments), so
+         sign is never rejected on its own.
+       - The portal does not block a return when the VAT is not 5% of the amount: it shows the
+         message "VAT value is not equal to 5% of net value" and still lets the return go through.
+         So that is a WARNING here (it still counts against a "clean return" in grading).
+       - Only rules the form itself can't accept are ERRORS (Box 1 adjustment must be <= 0).
+     Returns { errors: [...], warnings: [...] } — plain strings, no DOM. */
+  const VAT_RATE = 0.05;
+  const RATE_TOLERANCE = 1.0; // AED, allows for rounding across many invoices
+  function pairFindings(amount, vat, label, mode) {
+    const out = { errors: [], warnings: [] };
+    const hasAmt = amount !== "" && amount != null;
+    const hasVat = vat !== "" && vat != null;
+    if (!hasAmt && !hasVat) return out;
+    if (hasAmt !== hasVat) {
+      out.warnings.push(label + ": only " + (hasAmt ? "Amount" : "VAT Amount") + " is filled in — enter 0.00 in the other field if that is intended (e.g. a zero-rated reverse-charge supply).");
+      return out;
     }
-    DEFAULT_EMIRATES.forEach(([key, label]) => checkPair(boxes.b1[key].amount, boxes.b1[key].vat, label));
-    checkPair(boxes.b3.amount, boxes.b3.vat, "Box 3 (Reverse charge supplies)");
-    checkPair(boxes.b7.amount, boxes.b7.vat, "Box 7 (Import adjustments)");
-    checkPair(boxes.b9.amount, boxes.b9.vat, "Box 9 (Standard rated expenses)");
-    checkPair(boxes.b10.amount, boxes.b10.vat, "Box 10 (Reverse charge purchases)");
-    return issues;
+    const a = n(amount), v = n(vat);
+    const expected = round2(a * VAT_RATE);
+    if (mode === "exact") {
+      if (Math.abs(v - expected) > RATE_TOLERANCE) {
+        out.warnings.push(label + ": VAT " + fmtAED(v) + " is not 5% of the amount " + fmtAED(a) + " (expected " + fmtAED(expected) + "). The real portal flags this as \"VAT value is not equal to 5% of net value\".");
+      }
+    } else {
+      // Boxes 9 / 10: only the recoverable part is entered, so less than 5% is fine, more is not.
+      if (v * a < 0 || Math.abs(v) > Math.abs(expected) + RATE_TOLERANCE) {
+        out.warnings.push(label + ": recoverable VAT " + fmtAED(v) + " is more than 5% of the amount " + fmtAED(a) + " (max " + fmtAED(expected) + ").");
+      }
+    }
+    return out;
+  }
+  /* What Boxes 3, 6 and 7 have declared as self-charged (reverse charge) output — i.e. the most
+     that Box 10 can legitimately recover. */
+  function reverseChargeDeclared(boxes) {
+    return {
+      amount: round2(n(boxes.b3.amount) + n(boxes.b6.amount) + n(boxes.b7.amount)),
+      vat: round2(n(boxes.b3.vat) + n(boxes.b6.vat) + n(boxes.b7.vat)),
+    };
+  }
+  function validateBoxes(boxes) {
+    const errors = [], warnings = [];
+    function add(r) { r.errors.forEach((e) => errors.push(e)); r.warnings.forEach((w) => warnings.push(w)); }
+    DEFAULT_EMIRATES.forEach(([key, label]) => {
+      const row = boxes.b1[key];
+      add(pairFindings(row.amount, row.vat, label, "exact"));
+      if (n(row.adj) > 0) errors.push(label + ": the Box 1 adjustment must be zero or negative (bad-debt relief and the real-estate adjustment reduce output tax).");
+    });
+    add(pairFindings(boxes.b3.amount, boxes.b3.vat, "Box 3 (Reverse charge supplies)", "exact"));
+    add(pairFindings(boxes.b7.amount, boxes.b7.vat, "Box 7 (Adjustments to imports)", "exact"));
+    add(pairFindings(boxes.b9.amount, boxes.b9.vat, "Box 9 (Standard rated expenses)", "max"));
+    add(pairFindings(boxes.b10.amount, boxes.b10.vat, "Box 10 (Reverse charge purchases)", "max"));
+
+    // Box 10 is the recovery side of Boxes 3, 6 and 7.
+    const rc = reverseChargeDeclared(boxes);
+    const b10Entered = (boxes.b10.amount !== "" && boxes.b10.amount != null) || (boxes.b10.vat !== "" && boxes.b10.vat != null);
+    if (b10Entered) {
+      if (n(boxes.b10.vat) > rc.vat + RATE_TOLERANCE || n(boxes.b10.amount) > rc.amount + RATE_TOLERANCE) {
+        warnings.push("Box 10: you are recovering more reverse-charge input tax (VAT " + fmtAED(boxes.b10.vat) + ") than the reverse-charge output declared in Boxes 3, 6 and 7 (VAT " + fmtAED(rc.vat) + "). Box 10 can only recover what Boxes 3, 6 and 7 charged.");
+      }
+    } else if (rc.vat > RATE_TOLERANCE) {
+      warnings.push("Boxes 3, 6 and 7 declare reverse-charge VAT of " + fmtAED(rc.vat) + " but Box 10 is empty. A fully taxable business recovers the same amount in Box 10; leave it empty only if none of it is recoverable.");
+    }
+    return { errors: errors, warnings: warnings };
+  }
+  /* Flat list (errors then warnings) — used by the grader and older callers. */
+  function validateBoxPairs(boxes) {
+    const r = validateBoxes(boxes);
+    return r.errors.concat(r.warnings);
+  }
+  /* Keep money inputs to what the portal accepts: digits, one dot, max 2 decimals,
+     optional leading minus only where a field may be negative. */
+  function sanitizeMoney(raw, allowNegative) {
+    let v = String(raw == null ? "" : raw).replace(/[^0-9.\-]/g, "");
+    const neg = allowNegative && v.trim().startsWith("-");
+    v = v.replace(/-/g, "");
+    const d = v.indexOf(".");
+    if (d !== -1) v = v.slice(0, d + 1) + v.slice(d + 1).replace(/\./g, "").slice(0, 2);
+    return (neg && v ? "-" : "") + v;
   }
 
   /* ---------------------------------------------------------------------
@@ -1549,7 +1730,7 @@ const VATSIM = (function () {
         if (penalty.total === 0) penaltyFree++;
         return {
           period: f.period.label, referenceNumber: f.referenceNumber || "—",
-          status: isSubmitted ? "Submitted" : (new Date(f.period.dueDate) < new Date() ? "Overdue" : "Draft"),
+          status: isSubmitted ? "Submitted" : (isPastDue(f.period.dueDate) ? "Overdue" : "Draft"),
           onTime: isSubmitted ? !late : null,
           issues, penalty: penalty.total,
           voluntaryDisclosure: vd ? { referenceNumber: vd.referenceNumber, taxDifference: vd.taxDifference } : null,
@@ -1998,8 +2179,7 @@ const VATSIM = (function () {
   function getNotifications() {
     const items = [];
     getFilings().forEach((f) => {
-      const due = new Date(f.period.dueDate);
-      const daysLeft = Math.ceil((due - new Date()) / 86400000);
+      const daysLeft = daysUntilDue(f.period.dueDate);
       if (f.status !== "Submitted" && daysLeft <= 15) {
         items.push({
           type: daysLeft < 0 ? "overdue" : "due-soon",
@@ -2010,8 +2190,7 @@ const VATSIM = (function () {
       }
     });
     getExciseFilings().forEach((f) => {
-      const due = new Date(f.period.dueDate);
-      const daysLeft = Math.ceil((due - new Date()) / 86400000);
+      const daysLeft = daysUntilDue(f.period.dueDate);
       if (f.status !== "Submitted" && daysLeft <= 15) {
         items.push({
           type: daysLeft < 0 ? "overdue" : "due-soon",
@@ -2232,8 +2411,12 @@ const VATSIM = (function () {
     doc.setFont("helvetica", "bold");
     doc.setFontSize(11.5);
     doc.setTextColor(12, 31, 56);
-    doc.text("الشروط والأحكام والإفصاح", pageW - marginX, y, { align: "right" });
-    y += 6;
+    // Arabic heading: jsPDF's built-in Helvetica has no Arabic glyphs (it printed garbled characters),
+    // so it is drawn through the same canvas-to-image path as the Arabic terms block below.
+    const arHead = pdfArabicBlockToImage(["الشروط والأحكام والإفصاح"], { fontSize: 17, widthPx: 1000 });
+    const arHeadH = (arHead.heightPx / arHead.widthPx) * (pageW - marginX * 2);
+    doc.addImage(arHead.dataUrl, "PNG", marginX, y - 3, pageW - marginX * 2, arHeadH);
+    y += arHeadH + 1;
     const arImg = pdfArabicBlockToImage(PDF_TERMS_AR, { fontSize: 15, widthPx: 1000 });
     const arWmm = pageW - marginX * 2;
     const arHmm = (arImg.heightPx / arImg.widthPx) * arWmm;
@@ -2481,6 +2664,88 @@ const VATSIM = (function () {
     return window.location.pathname.includes("/pages/") ? "./" : "pages/";
   }
 
+  /* ---------------------------------------------------------------------
+     Data management (Settings → Account & Data)
+     Everything below only ever touches keys owned by THIS simulator
+     (vatsim_*, emaratax_ct_*, uae_tax_portal_*, uae_ct_*). The Simulator
+     Hub and every other simulator share this browser origin, so
+     localStorage.clear() must never be used here.
+  --------------------------------------------------------------------- */
+  const STUDENT_SUFFIXES = ["account", "session", "filings", "settings", "messages", "authusers", "activity",
+    "excisefilings", "voluntarydisclosures", "invoices", "tbattempts", "uaepass", "emiratesid"];
+  const PORTAL_REGISTRY_KEY = "uae_tax_portal_students_v1";
+  const OWN_PREFIXES = ["vatsim_v1_", "vatsim_global_", "emaratax_ct_return_v1", "uae_ct_sim_state", "uae_tax_portal_"];
+
+  function readRaw(key, fallback) {
+    try { const r = localStorage.getItem(key); return r ? JSON.parse(r) : fallback; } catch (e) { return fallback; }
+  }
+  /* Every localStorage key that belongs to one student (VAT, UAE PASS /
+     Emirates ID, Corporate Tax, shared identity). */
+  function keysForStudent(id) {
+    id = id || "";
+    const ns = studentNamespace(id);
+    const keys = STUDENT_SUFFIXES.map((x) => ns + x);
+    const sfx = id ? "_" + id : "";
+    keys.push("emaratax_ct_return_v1" + sfx, "uae_ct_sim_state" + sfx, "uae_tax_portal_shared_identity_v1" + sfx);
+    if (id) { // any other key in this student's private namespace
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.indexOf(ns) === 0 && keys.indexOf(k) < 0) keys.push(k);
+      }
+    }
+    return keys.filter((k) => localStorage.getItem(k) !== null);
+  }
+  /* Where the CURRENT student's ids / passwords / PINs are stored. */
+  function getCredentialsOverview() {
+    const id = getActiveStudentId();
+    const ns = studentNamespace(id);
+    const acc = readRaw(ns + "account", null);
+    const pass = readRaw(ns + "uaepass", null);
+    const eid = readRaw(ns + "emiratesid", null);
+    const portal = id ? readRaw(PORTAL_REGISTRY_KEY, []).find((s) => s.id === id) : null;
+    const groups = [];
+    if (acc) groups.push({ title: "VAT portal login (EmaraTax)", storedIn: ns + "account", rows: [
+      ["Login e-mail (ID)", acc.email], ["Password", acc.password, true], ["TRN", acc.trn], ["Company", acc.companyName]] });
+    if (pass) groups.push({ title: "UAE PASS", storedIn: ns + "uaepass", rows: [
+      ["Emirates ID", pass.emiratesId], ["Mobile", pass.mobile], ["E-mail", pass.email],
+      ["PIN", pass.pin, true], ["Password", pass.password, true]] });
+    if (eid) groups.push({ title: "Emirates ID record", storedIn: ns + "emiratesid", rows: [
+      ["Emirates ID", eid.emiratesId || eid.idNumber || eid.number], ["Name", eid.fullName || eid.nameEn || eid.name]] });
+    if (portal) groups.push({ title: "Portal (name + PIN) login", storedIn: PORTAL_REGISTRY_KEY, rows: [
+      ["Name (ID)", portal.name], ["PIN", portal.pin, true]] });
+    return { studentId: id, groups };
+  }
+  /* Erase ONE student completely: every key of theirs + registry entries. */
+  function eraseCurrentStudent() {
+    const id = getActiveStudentId();
+    const removed = keysForStudent(id);
+    removed.forEach((k) => { try { localStorage.removeItem(k); } catch (e) {} });
+    saveStudentRegistry(getStudentRegistry().filter((s) => s.id !== id));
+    try {
+      const reg = readRaw(PORTAL_REGISTRY_KEY, []).filter((s) => s.id !== id);
+      localStorage.setItem(PORTAL_REGISTRY_KEY, JSON.stringify(reg));
+    } catch (e) {}
+    return removed.length;
+  }
+  /* Everything this simulator stored on this computer, for every student. */
+  function ownKeysOnThisBrowser() {
+    const out = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && OWN_PREFIXES.some((p) => k.indexOf(p) === 0)) out.push(k);
+    }
+    return out;
+  }
+  function countAllStudents() {
+    return { vatAccounts: getStudentRegistry().length, portalLogins: readRaw(PORTAL_REGISTRY_KEY, []).length, keys: ownKeysOnThisBrowser().length };
+  }
+  function eraseAllStudents() {
+    const keys = ownKeysOnThisBrowser();
+    keys.forEach((k) => { try { localStorage.removeItem(k); } catch (e) {} });
+    try { sessionStorage.clear(); } catch (e) {}
+    return keys.length;
+  }
+
   return {
     KEYS,
     read, write,
@@ -2490,7 +2755,7 @@ const VATSIM = (function () {
     getSettings, saveSettings, applyTextScale, getStorageUsageEstimate,
     DEMO_COMPANIES, getDemoCompany, getSelectedTaxablePerson, setSelectedTaxablePerson,
     getFilings, saveFilings, getFiling, upsertFiling, deleteFiling, canEditFiling,
-    newFilingSkeleton, seedIntegrationFeeds, generateInitialFilings, computeTotals, n,
+    newFilingSkeleton, seedIntegrationFeeds, setSimulateFeeds, simulateFeedsOn, generateInitialFilings, computeTotals, n,
     getMessages, saveMessages, addMessage, markMessageRead, setMessageFolder, unreadMessageCount,
     generateInitialMessages, addSubmissionCorrespondence, addPaymentCorrespondence,
     ROLES, getAuthUsers, saveAuthUsers, generateInitialAuthUsers, addAuthUser, removeAuthUser, approveAuthUser,
@@ -2498,13 +2763,14 @@ const VATSIM = (function () {
     generatePdf, pdfArabicBlockToImage, generateIdCardPdf,
     EXCISE_CATEGORIES, SWEETENED_TIERS, exciseRateFor, sweetenedTierRate, getExciseFilings, saveExciseFilings, getExciseFiling, upsertExciseFiling,
     registerForExcise, computeExciseTotals,
-    isFilingLate, isRepeatLateFiling, computeFilingPenalty, accountTotalPenalties, getFilingReviewStage, filingStatusBadge, getEffectivePaymentStatus, isPaymentSettled,
+    isFilingLate, isPastDue, daysUntilDue, staggerLabel, creditBroughtForward, netPayable, isRepeatLateFiling, computeFilingPenalty, lateMonths, accountTotalPenalties, getFilingReviewStage, filingStatusBadge, getEffectivePaymentStatus, isPaymentSettled,
     getVoluntaryDisclosures, saveVoluntaryDisclosures, addVoluntaryDisclosure, buildCorrectedBoxes, computeVdPenalty,
-    validateBoxPairs, gradeAccount, gradeStudentById, setFilingStagger,
+    validateBoxPairs, validateBoxes, pairFindings, reverseChargeDeclared, pairIssue, sanitizeMoney, gradeAccount, gradeStudentById, setFilingStagger,
     getInvoices, saveInvoices, addInvoice,
     getTbAttempts, addTbAttempt,
     getUaePass, saveUaePass, getEmiratesIdRecord, saveEmiratesIdRecord, compressImageFile, generateIdCardImage,
     getActiveStudentId, setActiveStudentId, getStudentRegistry, saveStudentRegistry,
+    getCredentialsOverview, eraseCurrentStudent, eraseAllStudents, countAllStudents, keysForStudent,
     registerNewStudent, switchActiveStudent, syncActiveStudentRegistryEntry, readForStudent, stagePendingSignup,
     findAccountByEmail, findStudentByIdentifier, setSessionForStudent,
     toast, showLoading, wireChrome, rootPath, pagesPath,
@@ -2517,9 +2783,25 @@ const VATSIM = (function () {
 --------------------------------------------------------------------- */
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    const swPath = (window.location.pathname.includes("/pages/") ? "../" : "./") + "sw.js";
+    const swPath = (/\/(pages|ct)\//.test(window.location.pathname) ? "../" : "./") + "sw.js"; // /ct/ pages are one level deep too
     navigator.serviceWorker.register(swPath).catch((err) => {
       console.warn("VATSIM: service worker registration failed", err);
     });
   });
 }
+
+/* After an update, the OLD service worker still serves the OLD page on the first load. When the new worker takes
+   over right after the page opened (and the student has not started working yet), reload once so the new version
+   is what they see. Never reloads once the student has touched the page. */
+(function () {
+  if (!("serviceWorker" in navigator)) return;
+  var hadController = !!navigator.serviceWorker.controller, t0 = Date.now(), touched = false, reloaded = false;
+  ["pointerdown", "keydown", "touchstart"].forEach(function (ev) {
+    window.addEventListener(ev, function () { touched = true; }, { capture: true, passive: true });
+  });
+  navigator.serviceWorker.addEventListener("controllerchange", function () {
+    if (!hadController || reloaded || touched || Date.now() - t0 > 20000) return;
+    reloaded = true;
+    location.reload();
+  });
+})();

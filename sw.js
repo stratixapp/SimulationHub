@@ -12,10 +12,11 @@
    get the new version instead of a stale cached copy.
    ========================================================================= */
 
-const CACHE_VERSION = "dot-ecosystem-hub-v3";
+const CACHE_VERSION = "dot-ecosystem-hub-v8";
 const APP_SHELL = [
   "./",
   "./index.html",
+  "./install.html",
   "./manifest.json",
   "./favicon.ico",
   "./favicon-192.png",
@@ -25,6 +26,7 @@ const APP_SHELL = [
   "./icon-maskable-192.png",
   "./icon-maskable-512.png",
   "./apple-touch-icon.png",
+  "./shared/access-id.js",
 ];
 
 self.addEventListener("install", (event) => {
@@ -37,7 +39,7 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches
       .keys()
-      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE_VERSION).map((k) => caches.delete(k))))
+      .then((keys) => Promise.all(keys.filter((k) => /^dot-ecosystem-hub-/.test(k) && k !== CACHE_VERSION).map((k) => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });
@@ -51,10 +53,28 @@ self.addEventListener("fetch", (event) => {
   // so each simulator's own service worker (or the network) handles it.
   const isSameOrigin = url.origin === self.location.origin;
   const pathAfterScope = url.pathname.replace(self.registration.scope.replace(url.origin, ""), "");
-  const isRootLevelFile = isSameOrigin && !pathAfterScope.includes("/");
+  const isRootLevelFile = isSameOrigin && (!pathAfterScope.includes("/") || pathAfterScope === "shared/access-id.js");
 
   if (event.request.method !== "GET" || !isRootLevelFile) {
     return; // not our concern — default browser behaviour applies
+  }
+
+  // The access code check must never be served stale: if the code is changed, students have to
+  // get the new shared/access-id.js on the very next load, not one visit later. So this one file
+  // is network-first (cache is only the offline fallback).
+  if (pathAfterScope === "shared/access-id.js") {
+    event.respondWith(
+      fetch(event.request, { cache: "no-cache" })
+        .then((response) => {
+          if (response && response.ok) {
+            const copy = response.clone();
+            caches.open(CACHE_VERSION).then((cache) => cache.put(event.request, copy));
+          }
+          return response;
+        })
+        .catch(() => caches.match(event.request))
+    );
+    return;
   }
 
   event.respondWith(

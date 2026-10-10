@@ -142,12 +142,12 @@
           <div class="box-section-label">Box 1 — Standard rated supplies, by Emirate</div>
           <div class="info-banner" style="margin-bottom:10px">
             <span class="i">ⓘ</span>
-            <span><strong>Designated Zone rule:</strong> supplies of goods made and consumed wholly within a Designated Zone (e.g. JAFZA, DAFZA) are generally treated as outside the scope of UAE VAT under Cabinet Decision No. 52 of 2017, and should not be entered in Box 1. Tick "Designated Zone" on a row to exclude it here — record it under Box 4 (Zero-rated) instead if it qualifies.
+            <span><strong>Designated Zone rule:</strong> supplies of goods between persons in a Designated Zone (e.g. JAFZA, DAFZA) are treated as made outside the UAE — and are <em>not reported anywhere on the VAT201</em> — only while the goods are not consumed inside the zone (Cabinet Decision No. 52 of 2017). If the goods are consumed in the zone, the supply is standard rated and belongs in Box 1. Tick "Designated Zone" on a row to exclude an out-of-scope supply from Box 1; goods exported out of the UAE go in Box 4.
             <a href="invoice-generator.html" style="color:inherit;text-decoration:underline;white-space:nowrap"> · Generate a tax invoice for a sale →</a></span>
           </div>
           <div class="info-banner" style="margin-bottom:10px;background:var(--bg);border-color:var(--border);color:var(--text-muted)">
             <span class="i">ⓘ</span>
-            <span><strong>Adjustment column:</strong> only for VAT Bad Debt Relief or a taxable commercial property sale adjustment. VAT amounts only, and can only be <strong>negative</strong> (e.g. type <code>-500</code>). Leave at 0.00 if neither applies.</span>
+            <span><strong>Amount / VAT columns:</strong> enter figures <em>net of credit notes</em> issued in the period — a negative total is allowed. <strong>Adjustment column:</strong> only for VAT Bad Debt Relief or a taxable commercial property sale adjustment. VAT amounts only, and can only be <strong>negative</strong> (e.g. type <code>-500</code>). Leave at 0.00 if neither applies.</span>
           </div>
           <table class="box-table">
             <thead><tr><th style="width:40%">Description</th><th>Amount (AED)</th><th>VAT Amount (AED)</th><th>Adjustment (AED)</th><th style="width:90px">Designated Zone</th></tr></thead>
@@ -158,7 +158,7 @@
           <table class="box-table">
             <tbody>
               <tr>
-                <td class="desc" style="width:46%"><i class="info-dot" title="Auto-populated from the Tax Refunds for Tourists Scheme (Planet Tax Free) integration">i</i>Tax refunds provided to tourists under the Tax Refunds for Tourists Scheme</td>
+                <td class="desc" style="width:46%"><i class="info-dot" title="Locked — filled by the Tax Refunds for Tourists Scheme operator. Shows 0.00 unless refunds were reported for your TRN. Always a negative figure.">i</i>Tax refunds provided to tourists under the Tax Refunds for Tourists Scheme</td>
                 <td><div class="readonly-cell" id="b2Amount">0.00</div></td>
                 <td><div class="readonly-cell" id="b2Vat">0.00</div></td>
                 <td><button class="btn btn-ghost btn-sm view-details-link" id="btnViewB2">👁 View Details</button></td>
@@ -171,7 +171,7 @@
             <thead><tr><th style="width:46%">Description</th><th>Amount (AED)</th><th>VAT Amount (AED)</th><th></th></tr></thead>
             <tbody>
               <tr>
-                <td class="desc"><i class="info-dot" title="Sales where the recipient self-accounts for VAT under reverse charge">i</i>Supplies subject to reverse charge provisions</td>
+                <td class="desc"><i class="info-dot" title="Purchases (mostly imported services) where YOU, as the recipient, must self-account for the VAT under the reverse charge. Goods cleared through Customs appear in Box 6 instead.">i</i>Supplies subject to reverse charge provisions</td>
                 <td><input class="amt-input" inputmode="decimal" id="b3Amount" placeholder="0.00" /></td>
                 <td><input class="amt-input" inputmode="decimal" id="b3Vat" placeholder="0.00" /></td>
                 <td><button class="btn btn-ghost btn-sm view-details-link" id="btnEditB3">✎ Edit Details</button></td>
@@ -201,13 +201,13 @@
             <thead><tr><th style="width:46%">Description</th><th>Amount (AED)</th><th>VAT Amount (AED)</th><th></th></tr></thead>
             <tbody>
               <tr>
-                <td class="desc"><i class="info-dot" title="Auto-populated from UAE Customs declarations">i</i>6 Goods imported into the UAE</td>
+                <td class="desc"><i class="info-dot" title="Locked — filled from UAE Customs declarations linked to your TRN. Shows 0.00 unless imports were declared against it.">i</i>6 Goods imported into the UAE</td>
                 <td><div class="readonly-cell" id="b6Amount">0.00</div></td>
                 <td><div class="readonly-cell" id="b6Vat">0.00</div></td>
                 <td><button class="btn btn-ghost btn-sm view-details-link" id="btnViewB6">👁 View Details</button></td>
               </tr>
               <tr>
-                <td class="desc"><i class="info-dot" title="Use this box if Customs import data is incomplete or incorrect">i</i>7 Adjustments to goods imported into the UAE</td>
+                <td class="desc"><i class="info-dot" title="Use this box ONLY to correct Box 6 where Customs data is wrong or incomplete (e.g. a zero-rated import that defaulted to 5%). Negative figures allowed. Not a general adjustments box.">i</i>7 Adjustments to goods imported into the UAE</td>
                 <td><input class="amt-input" inputmode="decimal" id="b7Amount" placeholder="0.00" /></td>
                 <td><input class="amt-input" inputmode="decimal" id="b7Vat" placeholder="0.00" /></td>
                 <td></td>
@@ -231,17 +231,18 @@
             <thead><tr><th style="width:46%">Description</th><th>Amount (AED)</th><th>VAT Amount (AED)</th><th>Adjustment (AED)</th></tr></thead>
             <tbody>
               <tr>
-                <td class="desc"><i class="info-dot">i</i>9 Standard rated expenses</td>
+                <td class="desc"><i class="info-dot" title="Recoverable input tax only: excludes blocked items (Article 53 — entertainment, vehicles available for private use), exempt purchases, reverse-charge purchases (Box 10), salaries, private use. Net of credit notes.">i</i>9 Standard rated expenses</td>
                 <td><input class="amt-input" inputmode="decimal" id="b9Amount" placeholder="0.00" /></td>
                 <td><input class="amt-input" inputmode="decimal" id="b9Vat" placeholder="0.00" /></td>
                 <td><input class="amt-input" inputmode="decimal" id="b9Adj" placeholder="0.00" title="Bad debt relief, annual input-tax apportionment, or Capital Assets Scheme adjustment. Can be positive or negative." /></td>
               </tr>
               <tr>
-                <td class="desc"><i class="info-dot">i</i>10 Supplies subject to the reverse charge provisions</td>
+                <td class="desc"><i class="info-dot" title="Recovery side of Boxes 3, 6 and 7: the input tax you are entitled to recover on the reverse-charge VAT you declared as output.">i</i>10 Supplies subject to the reverse charge provisions</td>
                 <td><input class="amt-input" inputmode="decimal" id="b10Amount" placeholder="0.00" /></td>
                 <td><input class="amt-input" inputmode="decimal" id="b10Vat" placeholder="0.00" /></td>
                 <td></td>
               </tr>
+              <tr><td colspan="4" id="b10Hint" style="font-size:11.5px;color:var(--text-faint);padding:2px 10px 10px"></td></tr>
               <tr class="totals-row">
                 <td class="desc">11 Totals</td>
                 <td><div class="readonly-cell" id="b11Amount">0.00</div></td>
@@ -283,6 +284,11 @@
         </div>
       </div>
 
+      <div class="panel panel-pad" id="warningSummary" style="display:none;border:1px solid var(--warn);margin-bottom:18px">
+        <div class="box-section-label" style="padding-top:0;color:var(--warn)">⚠ The portal flags the following (you can still continue)</div>
+        <ul id="warningList" style="margin:0;padding-left:18px;font-size:12.5px;color:var(--warn);line-height:1.9"></ul>
+      </div>
+
       <div class="panel panel-pad" id="validationSummary" style="display:none;border:1px solid var(--danger);margin-bottom:60px">
         <div class="box-section-label" style="padding-top:0;color:var(--danger)">⚠ Please fix the following before continuing</div>
         <ul id="validationList" style="margin:0;padding-left:18px;font-size:12.5px;color:var(--danger);line-height:1.9"></ul>
@@ -311,6 +317,7 @@
 <!-- Vendored locally (was cdnjs.cloudflare.com) — Excel export no longer
      depends on reaching an external CDN. Same exact version (xlsx 0.18.5),
      fetched from the official npm package, not rewritten. -->
+<script src="../shared/nav-back.js"></script>
 <script src="../../shared/vendor/xlsx.full.min.js"></script>
 <script src="../js/storage.js"></script>
 <script src="../js/return.js"></script>

@@ -83,3 +83,19 @@
     boot();
   }
 })();
+
+/* After an update, the OLD service worker still serves the OLD page on the first load. When the new worker takes
+   over right after the page opened (and the student has not started working yet), reload once so the new version
+   is what they see. Never reloads once the student has touched the page. */
+(function () {
+  if (!("serviceWorker" in navigator)) return;
+  var hadController = !!navigator.serviceWorker.controller, t0 = Date.now(), touched = false, reloaded = false;
+  ["pointerdown", "keydown", "touchstart"].forEach(function (ev) {
+    window.addEventListener(ev, function () { touched = true; }, { capture: true, passive: true });
+  });
+  navigator.serviceWorker.addEventListener("controllerchange", function () {
+    if (!hadController || reloaded || touched || Date.now() - t0 > 20000) return;
+    reloaded = true;
+    location.reload();
+  });
+})();

@@ -218,7 +218,70 @@
     return true;
   }
 
+  /* -----------------------------------------------------------------------
+     Full snapshot of a Shipment Lot for the TCOS side. ONE builder used by
+     every Logistics entry point (per-document popup + the dashboard's
+     "Continue in TCOS" button) so they can never drift apart again.
+     Every key that earlier versions sent keeps exactly the same name and
+     value (skTcosPrefillFilingFromJobData / beginConsigniaFromBridge read
+     them); the extra keys below are purely additive, so an older TCOS
+     build simply ignores them. `direction` is derived from the Shipment
+     Mode so TCOS never has to guess export vs import.
+  ----------------------------------------------------------------------- */
+  function buildJobSnapshot(job) {
+    const f = (job && job.fields) || {};
+    const s = (v) => (v == null ? "" : v);
+    const mode = f.mode || "";
+    const direction = /import/i.test(mode) ? "import" : /export/i.test(mode) ? "export" : "";
+    const items = Array.isArray(f.items)
+      ? f.items
+          .filter((it) => it && (it.description || it.product))
+          .map((it) => ({
+            description: it.description || it.product || "",
+            hsCode: it.hsCode || "",
+            quantity: it.quantity || "",
+            unit: it.unit || "",
+            unitPrice: it.unitPrice || "",
+            countryOfManufacture: it.countryOfManufacture || "",
+            weight: it.weight || "",
+            netWeight: it.netWeight || "",
+            packageType: it.packageType || "",
+            // ---- additive ----
+            product: s(it.product),
+            productCode: s(it.productCode),
+            discount: s(it.discount),
+            brandModel: s(it.brandModel),
+            manufacturerDetails: s(it.manufacturerDetails),
+            batchNo: s(it.batchNo),
+            mfgDate: s(it.mfgDate),
+            expDate: s(it.expDate),
+            isDangerousGoods: s(it.isDangerousGoods),
+            unNumber: s(it.unNumber),
+            hazardClass: s(it.hazardClass),
+            packingGroup: s(it.packingGroup),
+            flashpoint: s(it.flashpoint),
+          }))
+      : [];
+    return {
+      mode: f.mode || "", sellerName: f.sellerName || "", sellerAddress: f.sellerAddress || "", sellerCountry: f.sellerCountry || "",
+      sellerGSTIN: f.sellerGSTIN || "", sellerIEC: f.sellerIEC || "", sellerPhone: f.sellerPhone || "",
+      buyerName: f.buyerName || "", buyerAddress: f.buyerAddress || "", buyerGSTIN: f.buyerGSTIN || "", buyerPhone: f.buyerPhone || "",
+      destination: f.destination || "", portOfLoading: f.portOfLoading || "", portOfDischarge: f.portOfDischarge || "",
+      portOfDischargeCountry: f.portOfDischargeCountry || "", vesselName: f.vesselName || "", voyageNo: f.voyageNo || "",
+      incoterm: f.incoterm || "", currency: f.currency || "", paymentTerms: f.paymentTerms || "",
+      quantity: f.quantity || "", grossWeight: f.grossWeight || "",
+      items: items,
+      // ---- additive ----
+      direction: direction,
+      jobId: s(job && job.jobId),
+      origin: s(f.origin), sellerEmail: s(f.sellerEmail), authorizedSignatory: s(f.authorizedSignatory), buyerEmail: s(f.buyerEmail),
+      poNumber: s(f.poNumber), invoiceValue: s(f.invoiceValue), expectedShipmentDate: s(f.expectedShipmentDate),
+      containerNo: s(f.containerNo), carrierName: s(f.carrierName), sealNo: s(f.sealNo), freightAmount: s(f.freightAmount),
+    };
+  }
+
   global.DotBridge = {
+    buildJobSnapshot: buildJobSnapshot,
     getBridge: getBridge,
     clearBridge: clearBridge,
     startHandoff: startHandoff,

@@ -5,7 +5,7 @@
    the new version instead of a stale cached copy.
    ========================================================================= */
 
-const CACHE_VERSION = "skelora-v54";
+const CACHE_VERSION = "skelora-v66";
 const APP_SHELL = [
   "./index.html",
   "./intro.html",
@@ -18,6 +18,12 @@ const APP_SHELL = [
   "./workflow-rules.js",
   "./dot-ecosystem.js",
   "./styles.css",
+  "./ship-loader.css",
+  "./fonts/dancing-script-latin-600-normal.woff2",
+  "./assistant.js",
+  "./lyra-lock.js",
+  "./lyra-knowledge.js",
+  "./lyra-web.js",
   "./auth.js",
   "./manifest.json",
   "./icon-192.png",
@@ -32,7 +38,9 @@ const APP_SHELL = [
   "../shared/vendor/html2canvas.min.js",
   "../shared/vendor/jspdf.umd.min.js",
   "../shared/vendor/jszip.min.js",
-  "../shared/vendor/chart.umd.min.js"
+  "../shared/vendor/chart.umd.min.js",
+  "../shared/tcos-bridge.js",
+  "../shared/access-id.js"
 ];
 
 self.addEventListener("install", (event) => {
@@ -45,7 +53,7 @@ self.addEventListener("install", (event) => {
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE_VERSION).map((k) => caches.delete(k)))
+      Promise.all(keys.filter((k) => /^skelora-v\d+$/.test(k) && k !== CACHE_VERSION).map((k) => caches.delete(k)))
     )
   );
   self.clients.claim();
@@ -63,6 +71,9 @@ self.addEventListener("fetch", (event) => {
   // and that throw was surfacing as a hard page-load failure.
   if (req.method !== "GET") return;
   if (!req.url.startsWith("http://") && !req.url.startsWith("https://")) return;
+  // Cross-origin requests (Lyra's optional web lookup, Google Fonts) go straight to the network.
+  // Handling them here made an offline lookup "succeed" with the cached login page instead of failing cleanly.
+  try { if (new URL(req.url).origin !== self.location.origin) return; } catch (e) { return; }
 
   event.respondWith(
     caches.match(req).then((cached) => {

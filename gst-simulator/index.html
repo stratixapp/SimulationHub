@@ -31,7 +31,7 @@
   <div id="studentGate" class="student-gate">
     <div class="student-gate-card">
       <div class="student-gate-title">GST Simulator</div>
-      <div class="student-gate-sub">Type your name or roll number. If you've used this computer before, search for your name below to resume — otherwise press Start to begin a new, separate session.</div>
+      <div class="student-gate-sub">Type your name or roll number each time you open the simulator. Type the <b>same name</b> you used before and press Start to continue your saved work (registration draft, returns, refunds) exactly where you left off — a new name begins a new, separate session.</div>
       <input id="studentGateInput" class="student-gate-input" placeholder="Search your name, or type a new one..." autocomplete="off" maxlength="40">
       <button class="student-gate-btn" onclick="window.gstStartStudentSession()">START / RESUME →</button>
       <div id="studentGateKnown" class="student-gate-known"></div>
@@ -311,6 +311,7 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   <script src="script.js"></script>
+  <script src="nav-back.js"></script>
   <script src="pwa.js"></script>
 </body>
 

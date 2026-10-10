@@ -41,6 +41,7 @@ function openTransportDocWorkstation(jobId) {
   let doc = currentDocOfType(jobId, type);
   if (!doc) {
     doc = { id: newId('XDOC-TRN'), exportJobId: jobId, type, version: 1, status: 'DRAFT', createdAt: Date.now(), updatedAt: Date.now(), fields: blankTransportDocFields() };
+    xdSeedDoc(doc, job);
     STATE.exportDocs.push(doc);
     saveState();
   }

@@ -1608,3 +1608,8 @@ input[type="checkbox"],input[type="radio"]{
   font-size:10.5px !important;padding:7px 12px !important;
 }
 .reset-student-btn:hover{background:#e5ecf7 !important}
+
+/* Part-B draft status line + "continue where you left off" dismiss button */
+.gst-draft-stamp{text-align:right;font-size:11px;color:#2e7d4f;padding:6px 30px 0;background:#f7f9fc}
+.resume-draft-banner .resume-dismiss{background:transparent;color:#5a6b85;border:1px solid #b9c9db;padding:8px 11px;font-weight:400}
+.resume-draft-banner .resume-dismiss:hover{background:#e3edf7}

@@ -85,6 +85,7 @@ function openCommodityCertWorkstation(type, jobId) {
   let doc = currentDocOfType(jobId, type);
   if (!doc) {
     doc = { id: newId('XDOC-CC'), exportJobId: jobId, type, version: 1, status: 'DRAFT', createdAt: Date.now(), updatedAt: Date.now(), fields: blankCommodityCertFields(type) };
+    xdSeedDoc(doc, getExportJob(jobId));
     STATE.exportDocs.push(doc);
     saveState();
   }

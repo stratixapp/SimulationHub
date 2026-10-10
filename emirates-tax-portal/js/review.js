@@ -32,8 +32,26 @@
   const b = filing.boxes;
   const t = VATSIM.computeTotals(b);
 
+  /* QA fix: review.html?id=… can be opened directly (bookmark/back button) and used to submit a
+     return that never passed the Return-screen checks. Re-run the same rules here and send the
+     student back to fix them instead of submitting an invalid return. */
+  {
+    // Like the real portal: only hard errors stop submission; "VAT is not 5%" style flags do not.
+    const checked = VATSIM.validateBoxes(b);
+    const pending = checked.errors.slice();
+    if (!b.profitMargin) pending.push("Profit Margin Scheme question not answered");
+    if (!pending.length && checked.warnings.length) {
+      VATSIM.toast(checked.warnings.length + " item(s) on this return are flagged (e.g. " + checked.warnings[0].split(":")[0] + "). You may still submit, but a clean return has none.", "info");
+    }
+    if (pending.length) {
+      VATSIM.toast("This return has issues: " + pending[0] + (pending.length > 1 ? " (+" + (pending.length - 1) + " more)" : "") + ". Please fix them first.", "error");
+      setTimeout(() => (window.location.href = "return.html?id=" + encodeURIComponent(filing.id)), 1200);
+      return;
+    }
+  }
+
   document.getElementById("fPeriod").textContent = VATSIM.fmtDate(filing.period.from) + " - " + VATSIM.fmtDate(filing.period.to);
-  document.getElementById("fStagger").textContent = filing.period.stagger || "—";
+  document.getElementById("fStagger").textContent = VATSIM.staggerLabel(filing.period.stagger);
   document.getElementById("fDue").textContent = VATSIM.fmtDate(filing.period.dueDate);
   document.getElementById("fYearEnd").textContent = VATSIM.fmtDate(filing.period.taxYearEnd);
 
@@ -92,7 +110,11 @@
       item("Box 13 — Total recoverable tax", "AED " + VATSIM.fmtAED(t.box13)) +
       item("Box 14 — " + (t.isRefund ? "Refundable tax" : "Payable tax"), "AED " + VATSIM.fmtAED(Math.abs(t.box14))) +
       (t.isRefund && Math.abs(t.box14) > 0
-        ? item("Box 15 — Request a refund?", b.requestRefund === "Yes" ? "Yes (Form VAT311 required after submission)" : "No (carried forward to future periods)")
+        ? item("Box 15 — Request a refund?", b.requestRefund === "Yes" ? "Yes (Form VAT311 required after submission)" : "No (kept as credit and set off against your next payable return)")
+        : "") +
+      (!t.isRefund && t.box14 > 0 && VATSIM.netPayable(filing).credit > 0
+        ? item("Credit brought forward (Box 15 = No earlier)", "AED " + VATSIM.fmtAED(VATSIM.netPayable(filing).credit)) +
+          item("Net amount payable after credit", "AED " + VATSIM.fmtAED(VATSIM.netPayable(filing).net))
         : "")
   );
 
@@ -140,8 +162,11 @@
     window.location.href = "return.html?id=" + encodeURIComponent(filing.id);
   });
 
+  let submitting = false; // QA fix: a double-click/Enter must not create two submissions (two refs, two messages)
   submitBtn.addEventListener("click", () => {
-    if (!declareCheck.checked) return;
+    if (!declareCheck.checked || submitting) return;
+    submitting = true;
+    submitBtn.disabled = true;
     VATSIM.showLoading(isEditingSubmitted ? "Resubmitting VAT Return…" : "Submitting VAT Return…", 1100).then(() => {
       const today = new Date();
       const wasEditing = isEditingSubmitted;

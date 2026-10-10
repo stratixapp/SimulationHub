@@ -1,6 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script src="./shared/access-id.js"></script>
+<script>
+/* First run: the hub opens only after the one-time install wizard (install.html) has been completed in this browser.
+   ?skipinstall=1 bypasses it; if storage is unavailable we never redirect (so nobody can get stuck in a loop). */
+(function(){ try{ if(/[?&]skipinstall=1/.test(location.search)) return; if(!localStorage.getItem('dot_hub_installed_v1')) location.replace('./install.html'); }catch(e){} })();
+</script>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Dot Ecosystem — Institute Training Suite</title>
@@ -17,167 +23,158 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-  :root{
-    --white:#FFFFFF; --ink:#0B1F3D; --navy:#123B70; --navy-hi:#1C4E8C;
-    --line:#E3E8F0; --text:#1E2A3C; --text-dim:#64738A; --chip:#EAF1FB;
-  }
-  *{box-sizing:border-box;}
-  html,body{margin:0;padding:0;}
-  body{background:var(--white);color:var(--text);font-family:'IBM Plex Sans',sans-serif;-webkit-font-smoothing:antialiased;}
-  a,button{color:inherit;font-family:inherit;}
-  .top-accent{height:5px;width:100%;background:var(--navy);}
+.license-overlay{position:fixed;inset:0;z-index:50;display:none;overflow-y:auto;background:rgba(3,4,8,.82);backdrop-filter:blur(18px);padding:5vh 16px}
+.license-overlay.open{display:block}
+.license-inner{position:relative;max-width:720px;margin:0 auto;padding:34px clamp(20px,4vw,40px);border-radius:28px;border:1px solid var(--line);background:linear-gradient(160deg,rgba(26,28,44,.95),rgba(10,11,18,.95));box-shadow:0 60px 140px rgba(0,0,0,.8),0 0 80px rgba(232,199,122,.12)}
+.license-close{position:absolute;top:14px;right:16px;width:36px;height:36px;border-radius:50%;border:1px solid var(--line);background:var(--glass);font-size:20px;cursor:pointer}
+.license-title{margin:0 40px 6px 0;font:700 clamp(17px,3vw,22px) 'Space Grotesk';letter-spacing:.04em;color:var(--gold)}
+.license-sim{margin:0 0 16px;font:12px 'IBM Plex Mono';letter-spacing:.1em;color:var(--dim)}
+.license-body{max-height:44vh;overflow-y:auto;padding-right:10px;font-size:13px;line-height:1.7;color:#BFC4D4}
+.license-body h4{margin:16px 0 4px;color:var(--tx);font:600 13px 'Space Grotesk';letter-spacing:.06em;text-transform:uppercase}.license-body p,.license-body ul{margin:0 0 6px}
+.license-meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}.license-meta span{font:10px 'IBM Plex Mono';letter-spacing:.1em;padding:5px 10px;border-radius:99px;border:1px solid var(--line);color:var(--gold)}
+.license-access{margin:18px 0 0}.license-access label{display:block;font:11px 'IBM Plex Mono';letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin-bottom:8px}
+.license-access input{width:100%;padding:13px 16px;border-radius:14px;border:1px solid var(--line);background:rgba(255,255,255,.05);color:var(--tx);font:16px 'IBM Plex Mono';outline:0}
+.license-access input:focus{border-color:var(--gold)}.license-access-error{color:#FF7A7A;font-size:12.5px;margin:8px 0 0}
+.license-continue{width:100%;margin-top:18px;padding:15px;border:0;border-radius:16px;cursor:pointer;font:700 13px 'Space Grotesk';letter-spacing:.2em;text-transform:uppercase;color:#1a1204;background:linear-gradient(135deg,#F9E7B0,var(--gold),var(--gold2));box-shadow:0 14px 34px -8px rgba(232,199,122,.55)}
+.license-copyright{margin:14px 0 0;text-align:center;font:10.5px 'IBM Plex Mono';color:var(--dim)}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition-duration:.01ms!important}}
 
-  .topbar{display:flex;align-items:center;justify-content:space-between;padding:22px clamp(20px,4vw,56px);border-bottom:1px solid var(--line);flex-wrap:wrap;gap:14px;}
-  .brand{display:flex;align-items:center;gap:12px;}
-  .brand-mark{width:36px;height:36px;border-radius:7px;background:var(--navy);display:flex;align-items:center;justify-content:center;font-family:'Space Grotesk',sans-serif;font-weight:700;color:#fff;font-size:13px;flex-shrink:0;}
-  .brand-text{display:flex;flex-direction:column;line-height:1.3;}
-  .brand-text strong{font-family:'Space Grotesk',sans-serif;font-size:15px;color:var(--ink);letter-spacing:.02em;}
-  .brand-text span{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--navy);letter-spacing:.04em;}
-  .system-count{font-family:'IBM Plex Mono',monospace;font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--navy);border:1px solid var(--line);border-radius:6px;padding:7px 12px;}
-  .topbar-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
-  #installBtn{display:none;align-items:center;gap:7px;font-family:'IBM Plex Mono',monospace;font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:#fff;background:var(--navy);border:1px solid var(--navy);border-radius:6px;padding:8px 14px;cursor:pointer;transition:background .15s ease,transform .1s ease;}
-  #installBtn:hover{background:var(--navy-hi);}
-  #installBtn:active{transform:scale(.97);}
-  #installBtn svg{width:14px;height:14px;flex-shrink:0;}
-  #installBtn.installed{background:var(--white);color:var(--navy);cursor:default;}
-  #installBtn.installed:hover{background:var(--white);}
+:root{--gold:#E8C77A;--gold2:#B8893A;--line:rgba(232,199,122,.25);--glass:rgba(255,255,255,.06);--tx:#EEF0F6;--dim:#9096A8;--blue:#0A84FF}
+*{box-sizing:border-box}html,body{margin:0;height:100%;overflow:hidden}
+body{color:#E9E9EE;font:13px -apple-system,BlinkMacSystemFont,'SF Pro Text','IBM Plex Sans',sans-serif;-webkit-font-smoothing:antialiased;user-select:none}
+button,input{font:inherit;color:inherit}
+.wall{position:fixed;inset:0;z-index:0;background:radial-gradient(900px 620px at 12% 18%,#5B33A8,transparent 62%),radial-gradient(800px 600px at 88% 28%,#D4702F,transparent 58%),radial-gradient(1000px 700px at 50% 115%,#1B5BA8,transparent 62%),#0b0a18;animation:hue 28s ease-in-out infinite alternate}
+@keyframes hue{to{filter:hue-rotate(40deg) saturate(1.25)}}
+.mb{position:fixed;z-index:5000;top:0;left:0;right:0;height:28px;display:flex;align-items:center;justify-content:space-between;padding:0 14px;background:rgba(18,18,26,.42);backdrop-filter:blur(30px) saturate(1.8);box-shadow:0 1px 0 rgba(255,255,255,.08)}
+.mb>div{display:flex;align-items:center;gap:18px}.mb b{font-weight:700}
+.logo{width:18px;height:18px;border-radius:5px;display:grid;place-items:center;font:700 9px 'Space Grotesk';color:#1a1204;background:linear-gradient(135deg,#F7E2A6,var(--gold2))}
+.mb svg{width:15px;height:15px;fill:none;stroke:#fff;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}.mb button{background:none;border:0;padding:0;cursor:pointer;display:flex}
+#installBtn{display:none;align-items:center;gap:5px;font-weight:500;font-size:12px;color:var(--gold)}#installBtn svg{width:13px;height:13px;stroke:var(--gold)}
+.wdg{position:fixed;z-index:1;right:28px;top:52px;width:196px;padding:18px;border-radius:24px;background:rgba(255,255,255,.1);backdrop-filter:blur(30px) saturate(1.6);border:1px solid rgba(255,255,255,.14);box-shadow:0 20px 50px -12px rgba(0,0,0,.6)}
+.wdg .t{font:300 52px/1 'Space Grotesk',sans-serif;letter-spacing:-.03em}.wdg .d{margin:6px 0 14px;color:var(--gold);font-weight:600;font-size:12px}
+.wdg p{margin:0;font-size:11.5px;line-height:1.5;color:#C9CCD8}.wdg small{display:block;margin-top:12px;font:10px 'IBM Plex Mono';letter-spacing:.08em;color:var(--dim)}
+.win{position:fixed;z-index:10;display:flex;flex-direction:column;border-radius:14px;overflow:hidden;background:rgba(32,32,38,.74);backdrop-filter:blur(44px) saturate(1.7);border:1px solid rgba(255,255,255,.14);box-shadow:0 40px 100px -20px rgba(0,0,0,.8),0 0 0 .5px #000;
+ opacity:0;pointer-events:none;transform:scale(.4) translateY(40vh);transform-origin:50% 100%;transition:transform .42s cubic-bezier(.2,.9,.3,1),opacity .3s}
+.win.on{opacity:1;pointer-events:auto;transform:none}
+.win.max{left:12px!important;top:38px!important;right:12px;bottom:92px;width:auto!important;height:auto!important}
+.win.launching{animation:warp .5s ease-in forwards}@keyframes warp{to{transform:scale(1.35);opacity:0;filter:blur(8px)}}
+.tb{display:flex;align-items:center;gap:14px;height:52px;padding:0 16px;border-bottom:1px solid rgba(255,255,255,.08);cursor:default;flex:none}
+.tl{display:flex;gap:8px}.tl i{width:12px;height:12px;border-radius:50%;cursor:pointer;box-shadow:0 0 0 .5px rgba(0,0,0,.4) inset}.tl .r{background:#FF5F57}.tl .y{background:#FEBC2E}.tl .g{background:#28C840}
+.tt{font-weight:600;font-size:13px;flex:1}.tsearch{width:170px;padding:6px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.07);outline:0;user-select:text}
+.tsearch:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(10,132,255,.35)}
+#wFinder{width:min(840px,calc(100vw - 32px));height:min(540px,calc(100vh - 190px))}.wb{display:flex;flex:1;min-height:0}
+.side{width:176px;padding:14px 10px;background:rgba(255,255,255,.035);border-right:1px solid rgba(255,255,255,.07)}
+.side h6{margin:12px 8px 6px;font-size:11px;font-weight:600;color:var(--dim)}.side h6:first-child{margin-top:0}
+.side a{display:block;padding:6px 10px;border-radius:7px;font-size:13px;cursor:pointer}.side a:hover{background:rgba(255,255,255,.07)}.side a.on{background:rgba(255,255,255,.14)}
+.icons{flex:1;overflow-y:auto;padding:22px;display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));grid-auto-rows:max-content;gap:16px 8px}
+.fi{display:flex;flex-direction:column;align-items:center;gap:8px;padding:8px 4px;border-radius:10px;cursor:default;outline:0}.fi[hidden]{display:none}
+.ico{position:relative;display:grid;place-items:center;width:78px;height:78px;border-radius:20px;overflow:hidden;background:linear-gradient(160deg,#fff,#DCE2EE);box-shadow:0 10px 22px -8px rgba(0,0,0,.7),0 0 0 .5px rgba(0,0,0,.3)}
+.ico:after{content:"";position:absolute;inset:0;background:linear-gradient(160deg,rgba(255,255,255,.55),transparent 45%)}.ico img{position:relative;z-index:1;width:78%;height:78%;object-fit:contain}
+.ico.hub{font:700 20px 'Space Grotesk';color:#1a1204;background:linear-gradient(135deg,#F9E7B0,var(--gold),var(--gold2))}
+.lbl{max-width:104px;padding:2px 7px;border-radius:5px;font-size:12px;line-height:1.3;text-align:center;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.fi.sel{background:rgba(255,255,255,.1)}.fi.sel .lbl{background:#0A5BD3;color:#fff}
+.stat{flex:none;padding:7px 16px;text-align:center;font-size:11.5px;color:var(--dim);border-top:1px solid rgba(255,255,255,.07)}
+#wInfo{width:min(460px,calc(100vw - 32px))}#wInfo .tt{text-align:center;padding-right:60px}.info{padding:26px 26px 22px}
+.irow{display:flex;gap:18px;align-items:center}.irow .ico{width:96px;height:96px;border-radius:24px;flex:none}.irow h2{margin:0 0 4px;font-size:22px;font-weight:700}.irow p{margin:0 0 8px;font-size:12px;color:var(--gold);line-height:1.45}
+.chip{display:inline-block;padding:3px 10px;border-radius:99px;font:10px 'IBM Plex Mono';letter-spacing:.1em;border:1px solid var(--line);color:var(--gold)}
+.idesc{margin:20px 0;max-height:34vh;overflow-y:auto;line-height:1.7;font-size:13px;color:#C4C8D4;user-select:text}
+.btns{display:flex;justify-content:flex-end;gap:10px}.bt{padding:7px 20px;border-radius:7px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.1);cursor:pointer}
+.bt.pr{background:linear-gradient(#2E95FF,#0A6FEA);border-color:#0A6FEA;font-weight:600;color:#fff;box-shadow:0 4px 14px rgba(10,132,255,.45)}.bt:active{filter:brightness(.85)}
+.dockw{position:fixed;z-index:4000;left:0;right:0;bottom:8px;display:flex;justify-content:center;pointer-events:none}
+.dock{pointer-events:auto;display:flex;align-items:flex-end;height:70px;padding:8px 10px 9px;gap:7px;border-radius:24px;background:rgba(255,255,255,.14);backdrop-filter:blur(34px) saturate(1.8);border:1px solid rgba(255,255,255,.22);box-shadow:0 20px 50px -10px rgba(0,0,0,.6)}
+.dk{position:relative;flex:none;width:var(--s,54px);height:var(--s,54px);transition:width .25s,height .25s;cursor:pointer}.dock.mv .dk{transition:none}
+.dk .ico{width:100%;height:100%;border-radius:23%;font-size:calc(var(--s,54px)*.38)}.sep{width:1px;height:48px;align-self:center;background:rgba(255,255,255,.28)}
+.dk.run:after{content:"";position:absolute;left:50%;bottom:-6px;width:4px;height:4px;margin-left:-2px;border-radius:50%;background:#ffffffcc}
+.dk.bounce .ico{animation:bnc .9s}@keyframes bnc{30%{transform:translateY(-26px)}55%{transform:none}75%{transform:translateY(-12px)}100%{transform:none}}
+@media(hover:hover){.dk:hover:before{content:attr(data-n);position:absolute;bottom:calc(100% + 12px);left:50%;transform:translateX(-50%);white-space:nowrap;padding:5px 12px;border-radius:8px;font-size:12.5px;background:rgba(40,40,48,.92);border:1px solid rgba(255,255,255,.15)}}
+.spot{position:fixed;inset:0;z-index:6000;display:none;justify-content:center;padding-top:16vh;background:rgba(0,0,0,.25);backdrop-filter:blur(3px)}.spot.on{display:flex}
+.spbox{width:min(620px,calc(100vw - 24px));align-self:flex-start;border-radius:18px;overflow:hidden;background:rgba(36,36,44,.86);backdrop-filter:blur(40px) saturate(1.8);border:1px solid rgba(255,255,255,.16);box-shadow:0 40px 100px rgba(0,0,0,.7)}
+.spin{display:flex;align-items:center;gap:12px;padding:14px 18px}.spin svg{width:22px;height:22px;fill:none;stroke:var(--dim);stroke-width:2;stroke-linecap:round}.spin input{flex:1;background:none;border:0;outline:0;font-size:22px;font-weight:300;user-select:text}
+.spr{display:flex;align-items:center;gap:12px;padding:8px 18px;cursor:pointer}.spr .ico{width:34px;height:34px;border-radius:9px}.spr small{display:block;color:var(--dim);font-size:11px}.spr.sel{background:#0A5BD3}.spr.sel small{color:#dbe8ff}
+.license-overlay{z-index:9000}
+@media(max-width:700px){.win:not(.max){left:8px!important;right:8px;top:38px!important;width:auto!important}#wFinder:not(.max){height:auto!important;bottom:84px}#wInfo:not(.max){top:64px!important}.side,.wdg,.menus,.tsearch+*{display:none}.tsearch{width:130px}
+.icons{grid-template-columns:repeat(3,1fr);padding:14px}.dock{max-width:calc(100vw - 12px);overflow-x:auto;justify-content:flex-start;scrollbar-width:none}.dk{width:44px!important;height:44px!important}.dk .ico{font-size:16px}}
+@media(max-width:1180px){.wdg{display:none}}
 
-  main{padding:0 clamp(20px,4vw,56px);}
-  .hero{max-width:740px;margin:52px auto 8px;text-align:center;}
-  .eyebrow{font-family:'IBM Plex Mono',monospace;font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--navy);display:block;margin-bottom:14px;}
-  .hero h1{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:clamp(28px,4vw,40px);margin:0 0 12px;letter-spacing:-.01em;color:var(--ink);}
-  .hero .sub{font-size:15px;color:var(--text-dim);margin:0 0 26px;line-height:1.6;}
-  .search-wrap{max-width:420px;margin:0 auto 40px;}
-  #searchInput{width:100%;background:var(--white);border:1.5px solid var(--line);border-radius:7px;padding:12px 14px;color:var(--text);font-family:'IBM Plex Sans',sans-serif;font-size:13.5px;text-align:center;transition:border-color .2s ease,box-shadow .2s ease;}
-  #searchInput::placeholder{color:var(--text-dim);}
-  #searchInput:focus{outline:none;border-color:var(--navy);box-shadow:0 0 0 3px rgba(18,59,112,.1);}
-
-  .carousel-section{padding:0 clamp(20px,4vw,56px) 60px;}
-  .carousel-row{display:flex;align-items:center;gap:14px;max-width:920px;margin:0 auto;}
-  .nav-btn{width:40px;height:40px;border-radius:50%;background:var(--white);border:1.5px solid var(--line);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:border-color .2s ease,background .2s ease;}
-  .nav-btn:hover{border-color:var(--navy);background:var(--chip);}
-  .nav-btn.disabled{opacity:.3;pointer-events:none;}
-  .nav-btn svg{width:18px;height:18px;}
-  .carousel-viewport{flex:1;overflow:hidden;position:relative;height:430px;touch-action:pan-y;perspective:1400px;}
-  .carousel-track{display:flex;height:100%;align-items:center;transform-style:preserve-3d;transition:transform .9s cubic-bezier(.22,.61,.36,1);}
-  .c-item{flex:0 0 320px;display:flex;justify-content:center;padding:0 10px;}
-  .c-card{width:100%;max-width:300px;height:384px;background:var(--white);border:1px solid var(--line);border-radius:14px;padding:30px 26px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:9px;transition:transform .9s cubic-bezier(.22,.61,.36,1),opacity .9s ease,box-shadow .3s ease;box-shadow:0 16px 40px -20px rgba(11,31,61,.18);cursor:pointer;transform-style:preserve-3d;}
-  .c-item.inactive .c-card{box-shadow:none;cursor:default;pointer-events:none;}
-  .c-logo-wrap{width:96px;height:96px;flex-shrink:0;border-radius:14px;background:var(--chip);display:flex;align-items:center;justify-content:center;overflow:hidden;margin-bottom:6px;transition:transform .5s cubic-bezier(.2,.8,.2,1),opacity .35s ease .15s;}
-  .c-logo{width:100%;height:100%;object-fit:contain;padding:8px;}
-  .c-name{flex-shrink:0;font-family:'Space Grotesk',sans-serif;font-size:19px;font-weight:600;color:var(--ink);margin:0;}
-  .c-full{flex-shrink:0;font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--navy);margin:0;}
-  .c-desc{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;font-size:12.8px;line-height:1.6;color:var(--text-dim);margin:4px 0 6px;transition:opacity .2s ease;scrollbar-width:thin;scrollbar-color:var(--line) transparent;}
-  .c-desc::-webkit-scrollbar{width:5px;}
-  .c-desc::-webkit-scrollbar-thumb{background:var(--line);border-radius:3px;}
-  .c-desc::-webkit-scrollbar-track{background:transparent;}
-  .c-launch{flex-shrink:0;font-family:'IBM Plex Mono',monospace;font-size:12.5px;font-weight:500;color:#fff;background:var(--navy);border:none;border-radius:7px;padding:10px 18px;cursor:pointer;transition:background .2s ease,opacity .2s ease;}
-  .c-launch:hover{background:var(--navy-hi);}
-  .c-card.launching .c-logo-wrap{transform:scale(6);opacity:0;}
-  .c-card.launching .c-name,.c-card.launching .c-full,.c-card.launching .c-desc,.c-card.launching .c-launch{opacity:0;transition:opacity .2s ease;}
-
-  .carousel-meta{display:flex;flex-direction:column;align-items:center;gap:8px;margin-top:20px;}
-  .dots{display:flex;gap:7px;flex-wrap:wrap;justify-content:center;max-width:400px;}
-  .dot{width:7px;height:7px;border-radius:50%;background:var(--line);cursor:pointer;transition:background .2s ease,transform .2s ease;border:none;padding:0;}
-  .dot.active{background:var(--navy);transform:scale(1.35);}
-  .counter{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text-dim);}
-
-  .ticker{background:#C0272D;overflow:hidden;white-space:nowrap;height:32px;display:flex;align-items:center;}
-  .ticker-track{display:flex;animation:tickerScroll 32s linear infinite;}
-  .ticker-content{display:inline-block;color:#fff;font-family:'IBM Plex Mono',monospace;font-size:11.5px;letter-spacing:.03em;padding-right:12px;white-space:nowrap;}
-  @keyframes tickerScroll{ 0%{transform:translateX(0);} 100%{transform:translateX(-50%);} }
-
-  .license-overlay{position:fixed;inset:0;background:var(--white);z-index:200;display:none;overflow-y:auto;}
-  .license-overlay.open{display:block;}
-  .license-inner{max-width:640px;margin:0 auto;padding:50px 24px 70px;}
-  .license-close{position:sticky;top:16px;float:right;width:32px;height:32px;border-radius:50%;border:1px solid var(--line);background:var(--white);cursor:pointer;font-size:16px;color:var(--text-dim);}
-  .license-title{font-family:'Space Grotesk',sans-serif;font-size:19px;font-weight:700;color:var(--ink);margin:0 0 4px;clear:both;line-height:1.35;}
-  .license-sim{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--navy);text-transform:uppercase;letter-spacing:.05em;margin:0 0 26px;}
-  .license-body h4{font-family:'Space Grotesk',sans-serif;font-size:13.5px;font-weight:600;color:var(--ink);margin:18px 0 6px;}
-  .license-body p{font-size:13px;line-height:1.65;color:var(--text);margin:0 0 12px;}
-  .license-body ul{margin:0 0 12px;padding-left:20px;}
-  .license-body li{font-size:13px;line-height:1.65;color:var(--text);margin-bottom:5px;}
-  .license-meta{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text-dim);margin-top:20px;padding-top:16px;border-top:1px dashed var(--line);display:flex;flex-direction:column;gap:3px;}
-  .license-access{margin-top:24px;padding:18px;background:var(--chip);border-radius:10px;}
-  .license-access label{display:block;font-size:12.5px;font-weight:500;color:var(--ink);margin-bottom:8px;}
-  #accessIdInput{width:100%;border:1.5px solid var(--line);border-radius:7px;padding:11px 12px;font-size:13.5px;font-family:'IBM Plex Mono',monospace;background:var(--white);}
-  #accessIdInput:focus{outline:none;border-color:var(--navy);}
-  .license-access-error{color:#B3261E;font-size:12px;margin:8px 0 0;}
-  .license-continue{width:100%;margin-top:28px;padding:14px;border-radius:8px;border:none;background:var(--navy);color:#fff;font-size:14px;font-weight:600;cursor:pointer;transition:background .2s ease;}
-  .license-continue:hover{background:var(--navy-hi);}
-  .license-copyright{font-size:10.5px;color:var(--text-dim);text-align:center;margin:20px 0 0;}
-
-  footer{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;padding:22px clamp(20px,4vw,56px) 36px;border-top:1px solid var(--line);font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text-dim);}
-
-  button:focus-visible,input:focus-visible,.dot:focus-visible{outline:2px solid var(--navy);outline-offset:3px;}
-  @media (max-width:600px){
-    .hero{margin:36px auto 8px;}
-    .carousel-viewport{height:400px;}
-    .c-item{flex:0 0 260px;}
-    .c-card{height:354px;padding:24px 20px;}
-    .nav-btn{width:34px;height:34px;}
-  }
+#wAbout{width:min(780px,calc(100vw - 32px));height:min(580px,calc(100vh - 190px))}#wAbout .tt{text-align:center;padding-right:60px}
+.abh{display:flex;align-items:center;gap:18px;padding:20px 28px 12px;flex:none}.abh .ico{width:70px;height:70px;font-size:22px;border-radius:18px}
+.abh h2{margin:0 0 3px;font-size:24px;font-weight:700}.abh p{margin:0;font-size:12px;color:var(--gold)}
+.seg{display:inline-flex;align-self:flex-start;margin:0 28px 6px;padding:2px;border-radius:9px;background:rgba(255,255,255,.08)}
+.seg button{border:0;background:none;padding:5px 15px;border-radius:7px;cursor:pointer;font-size:12.5px;color:#C9CCD8}.seg button.on{background:rgba(255,255,255,.2);color:#fff;box-shadow:0 1px 4px rgba(0,0,0,.4)}
+.abb{flex:1;overflow-y:auto;padding:8px 28px 26px;user-select:text}.lead{margin:6px 0 18px;font-size:14.5px;line-height:1.75;color:#E6E8F0}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.stats div{padding:14px;border-radius:14px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.08)}
+.stats b{display:block;font:700 26px 'Space Grotesk';background:linear-gradient(#F9E7B0,var(--gold2));-webkit-background-clip:text;background-clip:text;color:transparent}.stats span{font-size:11px;color:var(--dim)}
+.abb h4{margin:24px 0 10px;font:500 10.5px 'IBM Plex Mono';letter-spacing:.2em;text-transform:uppercase;color:var(--gold)}
+.g2{display:grid;grid-template-columns:repeat(auto-fill,minmax(235px,1fr));gap:12px}
+.cd,.ly{animation:up .5s calc(var(--k)*55ms) backwards}@keyframes up{from{opacity:0;transform:translateY(12px)}}
+.cd{padding:14px 16px;border-radius:14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.09)}.cd h5{margin:0 0 3px;font-size:14.5px}
+.cd em{font:normal 10.5px 'IBM Plex Mono';color:var(--gold)}.cd p{margin:8px 0 0;font-size:12.5px;line-height:1.6;color:#C4C8D4}
+.ly{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;padding:12px 14px;margin-bottom:9px;border-radius:12px;background:rgba(255,255,255,.06);border-left:3px solid hsl(var(--h) 75% 62%)}
+.ln{width:118px;font-weight:600;font-size:12.5px}.cp{padding:4px 12px;border-radius:99px;font-size:12px;background:hsl(var(--h) 60% 50%/.24);border:1px solid hsl(var(--h) 70% 60%/.4)}
+.nt{margin:16px 0 0;font-size:12px;color:var(--dim);line-height:1.6}
+.dv{text-align:center;padding:8px 0 16px}.dv h3{margin:16px 0 4px;font:700 30px 'Space Grotesk'}.dv p{margin:0 0 12px;color:var(--gold)}
+.av{display:grid;place-items:center;width:38px;height:38px;border-radius:50%;font:700 13px 'Space Grotesk';color:#1a1204;background:linear-gradient(135deg,#F9E7B0,var(--gold2));box-shadow:0 0 0 2px rgba(255,255,255,.2),0 0 18px rgba(232,199,122,.55)}
+.av.big{width:104px;height:104px;margin:0 auto;font-size:34px;box-shadow:0 0 0 4px rgba(255,255,255,.12),0 0 50px rgba(232,199,122,.6)}
+.shim{background:linear-gradient(100deg,#fff 30%,var(--gold) 50%,#fff 70%);background-size:220% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:shim 5s linear infinite}@keyframes shim{to{background-position:-220% 0}}
+.credit{position:fixed;z-index:3500;left:22px;bottom:18px;display:none;align-items:center;gap:11px;padding:7px 20px 7px 8px;border-radius:99px;cursor:pointer;background:rgba(255,255,255,.1);backdrop-filter:blur(24px) saturate(1.6);border:1px solid rgba(255,255,255,.18);box-shadow:0 14px 34px -10px rgba(0,0,0,.6);transition:.3s}
+.credit:hover{transform:translateY(-3px);border-color:var(--gold)}.credit small{display:block;font:9px 'IBM Plex Mono';letter-spacing:.2em;color:var(--dim)}.credit b{font-size:14px}
+.mbc{display:none;font-size:12px;color:#D6D9E4;cursor:pointer}.sc{display:none}.ico.ab{background:linear-gradient(160deg,#3b3e55,#13141f);color:var(--gold);font:700 italic 1.3em Georgia,serif}
+@media(min-width:1360px){.credit{display:flex}}@media(min-width:701px) and (max-width:1359px){.mbc{display:block}}
+@media(max-width:700px){.sc{display:inline;color:var(--gold)}#wAbout:not(.max){height:auto!important;bottom:84px}.stats{grid-template-columns:repeat(2,1fr)}.ln{width:100%}.seg{margin:0 14px 6px}.abb,.abh{padding-left:16px;padding-right:16px}}
+@media(max-width:700px){.seg{max-width:calc(100% - 28px);overflow-x:auto;scrollbar-width:none}.seg button{padding:5px 11px;white-space:nowrap}}
+/* ---- layout / usability fixes ---- */
+.menus{display:flex;gap:18px}
+input{-webkit-user-select:text;user-select:text}
+.win{visibility:hidden;transition:transform .42s cubic-bezier(.2,.9,.3,1),opacity .3s,visibility 0s .42s}
+.win.on{visibility:visible;transition:transform .42s cubic-bezier(.2,.9,.3,1),opacity .3s,visibility 0s}
+.dock::-webkit-scrollbar{display:none}
+@media(max-width:900px){.menus{display:none}}
+@media(max-width:820px){.dock{max-width:calc(100vw - 12px);overflow-x:auto;justify-content:flex-start;scrollbar-width:none}.dk{width:44px!important;height:44px!important}.dk .ico{font-size:16px}}
+@media(max-width:700px){.mb>div{gap:12px}.mb .deco{display:none}}
+/* short screens (phones in landscape): keep every window - and the Launch button - above the dock */
+@media(max-height:520px){
+#wFinder:not(.max),#wAbout:not(.max){top:36px!important;height:calc(100vh - 124px)!important}
+#wInfo:not(.max){top:36px!important}
+#wInfo .info{padding:14px 20px}
+.irow .ico{width:64px;height:64px;border-radius:16px}.irow h2{font-size:18px}
+.idesc{margin:10px 0;min-height:48px;max-height:calc(100vh - 330px)}
+.abh{padding-top:10px;padding-bottom:6px}
+}
 </style>
 </head>
 <body>
-
-<div class="ticker" aria-hidden="true">
-  <div class="ticker-track">
-    <span class="ticker-content" id="tickerContent1"></span>
-    <span class="ticker-content" id="tickerContent2"></span>
-  </div>
-</div>
-
-<header class="topbar">
-  <div class="brand">
-    <div class="brand-mark">DE</div>
-    <div class="brand-text">
-      <strong>DOT ECOSYSTEM</strong>
-      <span>INSTITUTE TRAINING SUITE</span>
-    </div>
-  </div>
-  <div class="topbar-right">
-    <button id="installBtn" type="button" aria-label="Install Dot Ecosystem as an app">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>
-      <span id="installBtnLabel">Install App</span>
-    </button>
-    <div class="system-count" id="systemCount">10 SYSTEMS</div>
+<div class="wall"></div>
+<header class="mb">
+  <div><span class="logo">DE</span><b>Simulator Hub</b><span class="menus"><span>File</span><span>View</span><span>Window</span><span>Help</span></span></div>
+  <span class="mbc" id="mbc">Developed by <b class="shim">Ananthu Shaji</b></span>
+  <div>
+    <button id="installBtn" type="button" aria-label="Install Dot Ecosystem as an app"><svg viewBox="0 0 24 24"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg><span id="installBtnLabel">Install App</span></button>
+    <button id="spBtn" aria-label="Spotlight search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg></button>
+    <svg class="deco" viewBox="0 0 24 24"><path d="M2 9a15 15 0 0120 0M5 13a10 10 0 0114 0M8.5 16.5a5 5 0 017 0"/><circle cx="12" cy="20" r=".5"/></svg>
+    <svg class="deco" viewBox="0 0 24 24" style="width:22px"><rect x="2" y="7" width="18" height="10" rx="3"/><path d="M22 11v2"/><rect x="4.5" y="9.5" width="11" height="5" rx="1" fill="#fff"/></svg>
+    <span id="mbClock"></span>
   </div>
 </header>
+<aside class="wdg"><div class="t" id="wTime"></div><div class="d" id="wDate"></div><p>Launch. Learn. Master.<br>Press <b>&#8984;K</b> to search.</p><small>DEVELOPED BY ANANTHU SHAJI</small></aside>
 
-<main>
-  <section class="hero">
-    <span class="eyebrow">Simulator Portal</span>
-    <h1>Choose a simulator to launch</h1>
-    <p class="sub">One simulator at a time — swipe, use the arrows, or search, then tap to launch.</p>
-    <div class="search-wrap">
-      <input type="text" id="searchInput" placeholder="Search simulators…" aria-label="Search simulators" />
-    </div>
-  </section>
+<section class="win" id="wFinder">
+  <div class="tb"><div class="tl"><i class="r"></i><i class="y"></i><i class="g"></i></div><div class="tt">Simulators</div><input class="tsearch" id="searchInput" type="text" placeholder="Search" aria-label="Search simulators"></div>
+  <div class="wb"><aside class="side"><h6>Favorites</h6><a class="on" data-f="all">All Simulators</a><a data-f="open">Open Access</a><a data-f="id">Access ID Required</a><h6>Dot Ecosystem</h6><a data-about="overview">About Dot Ecosystem</a><a data-about="apps">Apps</a><a data-about="infra">Infrastructure</a><a data-about="fit">How It Fits</a><a data-about="dev">Developer</a></aside><div class="icons" id="icons"></div></div>
+  <div class="stat"><span id="statN"></span><span class="sc"> &middot; Developed by Ananthu Shaji</span></div>
+</section>
 
-  <section class="carousel-section">
-    <div class="carousel-row">
-      <button class="nav-btn" id="prevBtn" aria-label="Previous simulator">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#123B70" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-      </button>
-      <div class="carousel-viewport" id="viewport">
-        <div class="carousel-track" id="track"></div>
-      </div>
-      <button class="nav-btn" id="nextBtn" aria-label="Next simulator">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#123B70" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-      </button>
-    </div>
-    <div class="carousel-meta">
-      <div class="dots" id="dots"></div>
-      <div class="counter" id="counter"></div>
-    </div>
-  </section>
-</main>
+<section class="win" id="wInfo">
+  <div class="tb"><div class="tl"><i class="r"></i><i class="y"></i><i class="g"></i></div><div class="tt" id="iTitle"></div></div>
+  <div class="info"><div class="irow"><span class="ico"><img id="sImg" alt=""></span><div><h2 id="sName"></h2><p id="sFull"></p><span class="chip" id="sChip"></span></div></div>
+  <p class="idesc" id="sDesc"></p><div class="btns"><button class="bt" id="sClose">Close</button><button class="bt pr" id="sLaunch">Launch</button></div></div>
+</section>
 
-<footer>
-  <span>Dot Ecosystem — Institute Training Systems</span>
-  <span id="footerCount"></span>
-</footer>
+<section class="win" id="wAbout"><div class="tb"><div class="tl"><i class="r"></i><i class="y"></i><i class="g"></i></div><div class="tt">About Dot Ecosystem</div></div>
+<div class="abh"><span class="ico hub">DE</span><div><h2>Dot Ecosystem</h2><p>23 Apps &middot; One Backend &middot; One Vision &middot; Developed by Ananthu Shaji</p></div></div>
+<nav class="seg"><button data-t="overview">Overview</button><button data-t="apps">Apps</button><button data-t="infra">Infrastructure</button><button data-t="fit">How It Fits</button><button data-t="dev">Developer</button></nav><div class="abb" id="abBody"></div></section>
+<div class="credit" id="credit" role="button" tabindex="0"><span class="av">AS</span><span><small>DEVELOPED BY</small><b class="shim">Ananthu Shaji</b></span></div>
+<div class="dockw"><div class="dock" id="dock"></div></div>
+<div class="spot" id="spot"><div class="spbox"><div class="spin"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><input id="spotInput" placeholder="Spotlight Search" autocomplete="off"></div><div id="spres"></div></div></div>
 
 <div class="license-overlay" id="licenseOverlay" role="dialog" aria-modal="true" aria-labelledby="licenseTitle">
   <div class="license-inner">
@@ -248,75 +245,6 @@ const SIMULATORS = [
 ];
 /* ===================================================================== */
 
-let current = 0;
-const track = document.getElementById('track');
-const viewport = document.getElementById('viewport');
-const dotsEl = document.getElementById('dots');
-const counterEl = document.getElementById('counter');
-const prevBtn = document.getElementById('prevBtn');
-const nextBtn = document.getElementById('nextBtn');
-const searchInput = document.getElementById('searchInput');
-
-track.innerHTML = SIMULATORS.map(function(sim, i){
-  return '<div class="c-item" data-i="' + i + '">' +
-    '<div class="c-card" data-path="' + sim.path + '">' +
-      '<div class="c-logo-wrap" role="button" tabindex="0" aria-label="Launch ' + sim.name + '"><img class="c-logo" src="' + LOGOS[sim.key] + '" alt="' + sim.name + ' logo"></div>' +
-      '<h2 class="c-name">' + sim.name + '</h2>' +
-      '<p class="c-full">' + sim.full + '</p>' +
-      '<p class="c-desc">' + sim.desc + '</p>' +
-      '<button class="c-launch">Launch</button>' +
-    '</div>' +
-  '</div>';
-}).join('');
-
-dotsEl.innerHTML = SIMULATORS.map(function(_, i){
-  return '<button class="dot" data-i="' + i + '" aria-label="Go to simulator ' + (i+1) + '"></button>';
-}).join('');
-
-function itemWidth(){
-  return window.innerWidth <= 600 ? 260 : 320;
-}
-
-function renderPosition(){
-  const w = itemWidth();
-  const center = viewport.clientWidth / 2;
-  const shift = (center - w / 2) - (current * w);
-  track.style.transform = 'translateX(' + shift + 'px)';
-  document.querySelectorAll('.c-item').forEach(function(el){
-    const i = parseInt(el.dataset.i, 10);
-    const offset = i - current;
-    const active = offset === 0;
-    const card = el.querySelector('.c-card');
-    el.classList.toggle('inactive', !active);
-    if (active){
-      card.style.transform = 'rotateY(0deg) scale(1)';
-      card.style.opacity = '1';
-    } else {
-      const clamped = Math.max(-3, Math.min(3, offset));
-      const rotate = clamped * -22;
-      card.style.transform = 'rotateY(' + rotate + 'deg) scale(.72)';
-      card.style.opacity = String(Math.max(.15, .34 - Math.abs(clamped) * .05));
-    }
-  });
-  document.querySelectorAll('.dot').forEach(function(el){
-    el.classList.toggle('active', parseInt(el.dataset.i, 10) === current);
-  });
-  prevBtn.classList.toggle('disabled', current === 0);
-  nextBtn.classList.toggle('disabled', current === SIMULATORS.length - 1);
-  counterEl.textContent = (current + 1) + ' / ' + SIMULATORS.length;
-  footerCount();
-}
-
-function footerCount(){
-  document.getElementById('footerCount').textContent = SIMULATORS.length + ' systems configured';
-}
-
-function goTo(i){
-  if (i < 0 || i >= SIMULATORS.length) return;
-  current = i;
-  renderPosition();
-}
-
 function launch(cardEl){
   const path = cardEl.dataset.path;
   cardEl.classList.add('launching');
@@ -341,16 +269,18 @@ function openLicense(cardEl, sim){
   licenseOverlay.classList.add('open');
   licenseOverlay.scrollTop = 0;
   document.body.style.overflow = 'hidden';
+  if (pendingRestricted) setTimeout(function(){ accessIdInput.focus(); }, 60);
 }
 function closeLicense(){
   licenseOverlay.classList.remove('open');
   document.body.style.overflow = '';
 }
 document.getElementById('licenseClose').addEventListener('click', function(){ closeLicense(); pendingCard = null; });
+accessIdInput.addEventListener('keydown', function(e){ if (e.key === 'Enter') document.getElementById('licenseContinue').click(); });
 document.getElementById('licenseContinue').addEventListener('click', function(){
   if (pendingRestricted){
     const val = accessIdInput.value.trim();
-    if (val !== '111400112'){
+    if (!(window.DotAccess && window.DotAccess.check(val))){
       accessIdError.style.display = 'block';
       return;
     }
@@ -360,103 +290,137 @@ document.getElementById('licenseContinue').addEventListener('click', function(){
   if (cardToLaunch) launch(cardToLaunch);
 });
 
-track.addEventListener('click', function(e){
-  const wrap = e.target.closest('.c-logo-wrap');
-  const btn = e.target.closest('.c-launch');
-  const target = wrap || btn;
-  if (!target) return;
-  const item = target.closest('.c-item');
-  const idx = parseInt(item.dataset.i, 10);
-  if (idx !== current) return;
-  openLicense(item.querySelector('.c-card'), SIMULATORS[idx]);
-});
-track.addEventListener('keydown', function(e){
-  if (e.key === 'Enter' || e.key === ' '){
-    const wrap = e.target.closest('.c-logo-wrap');
-    if (wrap){
-      e.preventDefault();
-      const item = wrap.closest('.c-item');
-      const idx = parseInt(item.dataset.i, 10);
-      if (idx === current) openLicense(item.querySelector('.c-card'), SIMULATORS[idx]);
-    }
-  }
-});
 
-prevBtn.addEventListener('click', function(){ goTo(current - 1); });
-nextBtn.addEventListener('click', function(){ goTo(current + 1); });
-dotsEl.addEventListener('click', function(e){
-  const d = e.target.closest('.dot');
-  if (d) goTo(parseInt(d.dataset.i, 10));
-});
+const $=id=>document.getElementById(id);
+const imgOf=s=>LOGOS[s.key]||LOGOS.tcos;
+const wA=$('wAbout'), wF=$('wFinder'), wI=$('wInfo'), icons=$('icons'), dock=$('dock'), searchInput=$('searchInput'), spot=$('spot'), spotInput=$('spotInput');
+const coarse=matchMedia('(pointer:coarse)').matches, small=()=>matchMedia('(max-width:700px)').matches;
+let zc=10, flt='all', selEl=null, openIdx=-1;
+icons.innerHTML=SIMULATORS.map((s,i)=>'<div class="fi" data-i="'+i+'" tabindex="0"><span class="ico"><img src="'+imgOf(s)+'" alt=""></span><span class="lbl">'+s.name+'</span></div>').join('');
+dock.innerHTML='<div class="dk run" id="dkF" data-n="Simulator Hub"><span class="ico hub">DE</span></div><i class="sep"></i>'+SIMULATORS.map((s,i)=>'<div class="dk" data-i="'+i+'" data-n="'+s.name+'" tabindex="0"><span class="ico"><img src="'+imgOf(s)+'" alt=""></span></div>').join('')+'<i class="sep"></i><div class="dk" id="dkA" data-n="About Dot Ecosystem" tabindex="0"><span class="ico ab">i</span></div>';
 
-document.addEventListener('keydown', function(e){
-  if (document.activeElement === searchInput) return;
-  if (e.key === 'ArrowLeft') goTo(current - 1);
-  if (e.key === 'ArrowRight') goTo(current + 1);
-});
+function tick(){const d=new Date(), t=d.toLocaleTimeString([],{hour:'numeric',minute:'2-digit'}), ds=d.toLocaleDateString([],{weekday:'short',day:'numeric',month:'short'});
+  $('mbClock').textContent=(small()?t:ds+'  '+t); $('wTime').textContent=t.replace(/ ?[AP]M/i,''); $('wDate').textContent=d.toLocaleDateString([],{weekday:'long',day:'numeric',month:'long'})}
+tick(); setInterval(tick,15000);
 
-searchInput.addEventListener('input', function(){
-  const q = searchInput.value.trim().toLowerCase();
-  if (!q) return;
-  const idx = SIMULATORS.findIndex(function(s){
-    return s.name.toLowerCase().includes(q) || s.full.toLowerCase().includes(q) || s.desc.toLowerCase().includes(q);
-  });
-  if (idx !== -1) goTo(idx);
-});
+function front(w){w.style.zIndex=++zc}
+function place(w,x,y){if(!w.dataset.p){x=Math.max(12,Math.min(x,innerWidth-w.offsetWidth-12));w.style.left=x+'px';w.style.top=y+'px';w.dataset.p=1}}
+function showWin(w){w.classList.add('on');front(w)}
+function applyFilter(){const q=searchInput.value.trim().toLowerCase();let n=0;
+  icons.querySelectorAll('.fi').forEach(el=>{const s=SIMULATORS[+el.dataset.i];
+    const ok=(flt==='all'||(flt==='id')===!!s.restricted)&&(!q||(s.name+' '+s.full+' '+s.desc).toLowerCase().includes(q));el.hidden=!ok;if(ok)n++});
+  $('statN').textContent=n+(n===1?' item':' items')+(selEl?', 1 selected':'')}
+function select(el){if(selEl)selEl.classList.remove('sel');selEl=el;if(el)el.classList.add('sel');applyFilter()}
 
-let dragStartX = null;
-let dragBaseShift = 0;
-let isDragging = false;
-const DRAG_THRESHOLD = 8;
+function openInfo(i){
+  const s=SIMULATORS[i]; openIdx=i;
+  $('sImg').src=imgOf(s); $('sName').textContent=s.name; $('iTitle').textContent=s.name+' Info'; $('sFull').textContent=s.full; $('sDesc').textContent=s.desc;
+  $('sChip').textContent=s.restricted?'ACCESS ID REQUIRED':'LICENSED TRAINING SIMULATOR';
+  wI.dataset.path=s.path; wI.classList.remove('launching');
+  place(wI,Math.max(12,innerWidth/2-230+60),120); showWin(wI);
+  dock.querySelectorAll('.dk[data-i]').forEach(d=>d.classList.remove('run'));
+  const d=dock.querySelector('.dk[data-i="'+i+'"]'); d.classList.add('run'); d.classList.remove('bounce'); void d.offsetWidth; d.classList.add('bounce');
+}
+function closeInfo(){wI.classList.remove('on');openIdx=-1;dock.querySelectorAll('.dk[data-i]').forEach(d=>d.classList.remove('run'))}
 
-viewport.addEventListener('pointerdown', function(e){
-  dragStartX = e.clientX;
-  isDragging = false;
-  const w = itemWidth();
-  const center = viewport.clientWidth / 2;
-  dragBaseShift = (center - w / 2) - (current * w);
-});
-viewport.addEventListener('pointermove', function(e){
-  if (dragStartX === null) return;
-  const delta = e.clientX - dragStartX;
-  if (!isDragging){
-    if (Math.abs(delta) < DRAG_THRESHOLD) return;
-    isDragging = true;
-    track.style.transition = 'none';
-    viewport.setPointerCapture(e.pointerId);
-  }
-  track.style.transform = 'translateX(' + (dragBaseShift + delta) + 'px)';
-});
-viewport.addEventListener('pointerup', function(e){
-  if (dragStartX === null) return;
-  const delta = e.clientX - dragStartX;
-  dragStartX = null;
-  if (!isDragging) return;
-  isDragging = false;
-  requestAnimationFrame(function(){
-    track.style.transition = '';
-    if (delta > 60) goTo(current - 1);
-    else if (delta < -60) goTo(current + 1);
-    else renderPosition();
-  });
-});
-viewport.addEventListener('pointercancel', function(){
-  dragStartX = null;
-  if (isDragging){
-    isDragging = false;
-    track.style.transition = '';
-    renderPosition();
-  }
-});
+icons.addEventListener('click',e=>{const f=e.target.closest('.fi');select(f||null);if(f&&coarse)openInfo(+f.dataset.i)});
+icons.addEventListener('dblclick',e=>{const f=e.target.closest('.fi');if(f)openInfo(+f.dataset.i)});
+dock.addEventListener('click',e=>{const d=e.target.closest('.dk');if(!d)return;
+  if(d.id==='dkF'){if(wF.classList.contains('on')){wF.classList.remove('on');d.classList.remove('run')}else{showWin(wF);d.classList.add('run')}}else if(d.id==='dkA')openAbout('overview');else openInfo(+d.dataset.i)});
+dock.addEventListener('animationend',e=>e.target.closest('.dk')&&e.target.closest('.dk').classList.remove('bounce'));
+document.querySelector('.side').addEventListener('click',e=>{const a=e.target.closest('a[data-f]');if(!a)return;
+  document.querySelectorAll('.side a').forEach(x=>x.classList.remove('on'));a.classList.add('on');flt=a.dataset.f;applyFilter()});
+document.addEventListener('click',e=>{const t=e.target.closest('.tl i');if(!t)return;const w=t.closest('.win');
+  if(t.className==='g'){w.classList.toggle('max');return}
+  if(w===wI)closeInfo();else if(w===wF){w.classList.remove('on');$('dkF').classList.remove('run')}else w.classList.remove('on')});
+document.querySelectorAll('.side a').forEach(a=>{a.tabIndex=0;a.setAttribute('role','button')});$('dkF').tabIndex=0;
+document.addEventListener('keydown',e=>{if(e.key!=='Enter'&&e.key!==' ')return;const t=e.target;if(!t.matches||!t.matches('.side a,.dk,.fi'))return;e.preventDefault();if(t.classList.contains('fi')){select(t);openInfo(+t.dataset.i)}else t.click()});
+[wF,wI,wA].forEach(w=>{w.addEventListener('pointerdown',()=>front(w));const tb=w.querySelector('.tb');let on=false,sx,sy,ox,oy;
+  tb.addEventListener('pointerdown',e=>{if(e.target.closest('.tl,input')||small()||w.classList.contains('max'))return;on=true;sx=e.clientX;sy=e.clientY;ox=w.offsetLeft;oy=w.offsetTop;tb.setPointerCapture(e.pointerId)});
+  tb.addEventListener('pointermove',e=>{if(!on)return;w.style.left=(ox+e.clientX-sx)+'px';w.style.top=Math.max(30,oy+e.clientY-sy)+'px'});
+  tb.addEventListener('pointerup',()=>{on=false});tb.addEventListener('pointercancel',()=>{on=false})});
+$('sLaunch').addEventListener('click',()=>{if(openIdx>=0)openLicense(wI,SIMULATORS[openIdx])});
+$('sClose').addEventListener('click',closeInfo);
+window.addEventListener('pageshow',()=>wI.classList.remove('launching'));
+addEventListener('resize',()=>{[wF,wI,wA].forEach(w=>{if(!w.dataset.p||w.classList.contains('max'))return;w.style.left=Math.max(12,Math.min(w.offsetLeft,innerWidth-w.offsetWidth-12))+'px';w.style.top=Math.max(30,Math.min(w.offsetTop,innerHeight-120))+'px'});tick()});
+searchInput.addEventListener('input',applyFilter);
+searchInput.addEventListener('keydown',e=>{if(e.key==='Enter'){const f=icons.querySelector('.fi:not([hidden])');if(f)openInfo(+f.dataset.i)}});
 
-window.addEventListener('resize', renderPosition);
+let res=[],ss=0;
+function spRender(){const q=spotInput.value.trim().toLowerCase();
+  res=SIMULATORS.map((s,i)=>i).filter(i=>!q||(SIMULATORS[i].name+' '+SIMULATORS[i].full).toLowerCase().includes(q));ss=0;
+  $('spres').innerHTML=res.map((i,k)=>'<div class="spr'+(k?'':' sel')+'" data-k="'+k+'"><span class="ico"><img src="'+imgOf(SIMULATORS[i])+'" alt=""></span><div>'+SIMULATORS[i].name+'<small>'+SIMULATORS[i].full+'</small></div></div>').join('')}
+function spOpen(){spot.classList.add('on');spotInput.value='';spRender();spotInput.focus()}
+function spClose(){spot.classList.remove('on')}
+function spGo(k){const i=res[k];if(i===undefined)return;spClose();openInfo(i)}
+$('spBtn').addEventListener('click',spOpen);
+spot.addEventListener('click',e=>{const r=e.target.closest('.spr');if(r)spGo(+r.dataset.k);else if(e.target===spot)spClose()});
+spotInput.addEventListener('input',spRender);
+spotInput.addEventListener('keydown',e=>{
+  if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();const rows=$('spres').children;if(!rows.length)return;rows[ss].classList.remove('sel');ss=(ss+(e.key==='ArrowDown'?1:rows.length-1))%rows.length;rows[ss].classList.add('sel')}
+  if(e.key==='Enter')spGo(ss)});
+document.addEventListener('keydown',e=>{
+  if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'){e.preventDefault();spOpen();return}
+  if(e.key==='Escape'){if(licenseOverlay.classList.contains('open')){closeLicense();pendingCard=null;return}if(spot.classList.contains('on'))spClose();else if(wA.classList.contains('on'))wA.classList.remove('on');else if(openIdx>=0)closeInfo();return}
+  if(e.key==='Enter'&&selEl&&document.activeElement.tagName!=='INPUT'&&openIdx<0&&!document.querySelector('.license-overlay.open'))openInfo(+selEl.dataset.i)});
 
-const tickerText = 'DOT ECOSYSTEM SIMULATOR HUB   •   Developed by Ananthu Shaji   •   ' + SIMULATORS.map(function(s){ return s.name; }).join('   •   ') + '   •   ';
-document.getElementById('tickerContent1').textContent = tickerText;
-document.getElementById('tickerContent2').textContent = tickerText;
 
-renderPosition();
-
+const PR=[
+['DotBase','Firebase / Supabase','Open-source backend-as-a-service: auth, database with realtime, S3-compatible storage, functions, push and payments. Describe a backend in English and AI generates the schema, endpoints and SDK.'],
+['Dotploy','Netlify / Vercel','Upload a ZIP and get a live URL. Isolated Docker builds, custom domains with SSL, preview URLs, rollbacks and live build logs.'],
+['Dotink Apache','HashiCorp Vault / Doppler','Secrets management with AES-256-GCM encryption, versioning, runtime injection, secret scanning and signed audit logs.'],
+['DotX1 Apache','Cloudflare + S3 + Algolia + Datadog','Self-hosted developer infrastructure: DNS, CDN, object storage, full-text search, serverless functions and uptime monitoring.'],
+['DotPulse','Kong / LLM gateways','Universal gateway for AI and third-party APIs with caching, semantic cache, PII redaction, credential rotation and automatic failover.'],
+['DotX Runway','Backstage / Port / Cortex','Internal developer platform: software catalog, deployment orchestration with approvals and rollback, and a sandboxed WebAssembly runtime.'],
+['Ghost Backend','Moving-target-defense proxy','Reverse proxy that rotates public URLs as cryptographic tokens and adds decoys and layered defences, so discovered addresses quickly stop working.'],
+['DotMesh','Cloud drift / self-healing','Declare infrastructure intent in plain English; it watches AWS, GCP and Cloudflare for drift and recommends or applies fixes.'],
+['DotAIL','Meta-cloud control plane','A control-plane layer bringing scheduling, gateway, secrets, multi-tenant data and telemetry together across clouds.'],
+['DotIntent OS / DotSQL','Immutable security ledger','Intent-based security layer built around an append-only, cryptographically signed ledger and decoy infrastructure.']];
+const LY=[['Application',['DotBase']],['Delivery',['Dotploy','DotX Runway']],['Secrets',['Dotink Apache']],['Gateway',['DotPulse']],['Infrastructure',['DotX1 Apache']],['Defense',['Ghost Backend','DotIntent OS / DotSQL']],['Operations',['DotMesh','DotAIL']]];
+const TH=[['India-first','INR pricing, Razorpay / UPI, Mumbai (ap-south-1) region, data sovereignty and DPDP Act alignment.'],['Self-hosting is free','Run it yourself at no cost; paid plans apply only to the managed cloud.'],['Secure by default','AES-256-GCM encryption, JWT auth, RBAC and audit logs repeated across the products.'],['One shared stack','Node.js / Fastify, PostgreSQL, Redis, Docker, Kubernetes and Prometheus / Grafana, with Go for performance-critical services.'],['Built to work together','23 interconnected apps on one shared backend mean shared customers, common infrastructure and lower development costs over time.']];
+const APPS={
+'Dot Pro':'Full-scale ERP and business OS: GST billing, accounting, inventory, payroll, CRM, logistics, manufacturing and analytics.',
+'Dot Lite':'Simplified SaaS dashboard for small and mid-size businesses, with core operational controls at an accessible price.',
+'Dot One':'Ultra-simple business tracker for micro businesses and shop owners, with a free tier.',
+'BuildBoss':'Construction ERP: labour, materials, expenses and project profitability for contractors and builders.',
+'Colour Lab':'Drag-and-drop PDF Builder Pro for invoices, certificates, resumes and reports.',
+'LAM':'Logistics & Asset Management: trips, freight billing, vehicle maintenance, fuel tracking and asset lifecycle.',
+'Connect':"India's Trader Trust Network: trade credibility, disputes and creditworthiness through trust scores.",
+'Connect Flow':'Billing for traders, freelancers and MSMEs. Workflow: Invoice, Payment, Ledger.',
+'Nexora':'Hyperlocal e-commerce marketplace connecting buyers and sellers.',
+'Fund Circle':'Digital chit fund platform: collections, auctions, payouts and member accounting.',
+'Filio':'Complete CA practice management: GST, ITR, TDS, ROC, client portals and staff workflows.',
+'GST Lens':'AI-powered GST invoice scanner and compliance analysis using OCR and tax intelligence.',
+'Paisa+':'Personal finance: income, expenses, budgets and savings goals.',
+'Paisa Pro+':'Digital udhaar and khata system for shop owners, with customer credit management and payment reminders.',
+'The Prism':'Multi-agent AI platform: specialised AI experts analyse your files and consolidate their findings into one verdict.',
+'Aspire':'Recruitment platform connecting job seekers and employers across India.',
+'JobDone':'Social hiring and professional networking with premium profiles.',
+'KlapIt':'Short-video and creator platform for viral content and social engagement.',
+'StorySoul':'Literary social network where writers and poets publish and monetise their work.',
+'Grimoire':'Digital spiritual toolkit: affirmations, rituals, visualisations and personal transformation.',
+'MyRight':'Legal assistant for notices, agreements and legal documents.',
+'Vivahpatra':'Matrimonial and event design studio: 269+ biodata designs, marriage invitations and baby naming cards.',
+'DotBase':'Open-source Backend-as-a-Service (database, auth, storage, hosting, real-time APIs) and the backbone of the whole ecosystem.'};
+const AP=[['Business & ERP',['Dot Pro','Dot Lite','Dot One','BuildBoss','Colour Lab']],['Logistics & Trade',['LAM','Connect','Connect Flow','Nexora']],['Finance & Compliance',['Fund Circle','Filio','GST Lens','Paisa+','Paisa Pro+']],['AI',['The Prism']],['Careers',['Aspire','JobDone']],['Creators & Community',['KlapIt','StorySoul','Grimoire']],['Legal & Lifestyle',['MyRight','Vivahpatra']],['Infrastructure',['DotBase']]];
+const card=(a,k)=>'<div class="cd" style="--k:'+k+'"><h5>'+a[0]+'</h5>'+(a.length>2?'<em>Replaces '+a[1]+'</em><p>'+a[2]+'</p>':'<p>'+a[1]+'</p>')+'</div>';
+const AB={
+ overview:()=>'<p class="lead">The Dot Ecosystem is a portfolio of 23 apps across 24 industry sectors &mdash; ERP, logistics, finance, compliance, legal, AI, creators and more &mdash; backed by a family of India-first infrastructure products, all connected through one unified backend: DotBase.</p><div class="stats">'+[['23','Apps'],['10','Infra products'],['24','Industry sectors'],['1','Unified backend']].map(x=>'<div><b>'+x[0]+'</b><span>'+x[1]+'</span></div>').join('')+'</div><h4>What ties them together</h4><div class="g2">'+TH.map(card).join('')+'</div>',
+ apps:()=>'<p class="lead">23 apps built for real problems in Indian markets &mdash; each one designed to run on DotBase.</p>'+AP.map(c=>'<h4>'+c[0]+'</h4><div class="g2">'+c[1].map((n,k)=>card([n,APPS[n]],k)).join('')+'</div>').join(''),
+ infra:()=>'<p class="lead">India-first, mostly self-hostable and MIT-licensed infrastructure products that aim to replace a large part of the paid foreign developer stack.</p><div class="g2">'+PR.map(card).join('')+'</div>',
+ fit:()=>'<p class="lead">Seven layers, one coherent stack &mdash; each product does one job and the others build on it.</p>'+LY.map((l,k)=>'<div class="ly" style="--h:'+(45+k*28)+';--k:'+k+'"><span class="ln">'+l[0]+'</span>'+l[1].map(c=>'<span class="cp">'+c+'</span>').join('')+'</div>').join('')+'<p class="nt">DotIntent OS / DotSQL explicitly builds on DotX1 Apache, DotPulse, DotX Runway and Ghost Backend. The apps are designed to run on DotBase, and over time every Dot app moves onto it &mdash; that is when the ecosystem becomes fully self-sufficient.</p>',
+ dev:()=>'<div class="dv"><span class="av big">AS</span><h3 class="shim">Ananthu Shaji</h3><p>Founder &amp; Developer, Dot Ecosystem</p><span class="chip">KERALA, INDIA &middot; MADE IN INDIA</span></div><p class="lead" style="text-align:center">Ananthu Shaji founded and built the Dot Ecosystem &mdash; 23 apps across 24 industry sectors and an India-first infrastructure stack, all on one vision &mdash; and this Institute Training Simulator Hub.</p><p class="nt" style="text-align:center">&copy; 2026&ndash;2030 Dot Ecosystem. All Rights Reserved.</p>'};
+function setTab(t){$('abBody').innerHTML=AB[t]();$('abBody').scrollTop=0;document.querySelectorAll('.seg button').forEach(b=>b.classList.toggle('on',b.dataset.t===t))}
+function openAbout(t){place(wA,Math.max(16,(innerWidth-wA.offsetWidth)/2+30),90);showWin(wA);setTab(t||'overview')}
+document.querySelector('.seg').addEventListener('click',e=>{const b=e.target.closest('button');if(b)setTab(b.dataset.t)});
+document.querySelector('.side').addEventListener('click',e=>{const a=e.target.closest('a[data-about]');if(a)openAbout(a.dataset.about)});
+['credit','mbc'].forEach(id=>$(id).addEventListener('click',()=>openAbout('dev')));
+$('credit').addEventListener('keydown',e=>{if(e.key==='Enter')openAbout('dev')});
+if(matchMedia('(hover:hover)').matches){const dks=[...dock.querySelectorAll('.dk')];let cs=[];
+  dock.addEventListener('pointerenter',()=>{dock.classList.remove('mv');dks.forEach(d=>d.style.removeProperty('--s'));cs=dks.map(d=>{const r=d.getBoundingClientRect();return r.left+r.width/2})});
+  dock.addEventListener('pointermove',e=>{if(small()||!cs.length)return;dock.classList.add('mv');dks.forEach((d,k)=>{const x=e.clientX-cs[k];d.style.setProperty('--s',(54+42*Math.exp(-x*x/5200))+'px')})});
+  dock.addEventListener('pointerleave',()=>{dock.classList.remove('mv');dks.forEach(d=>d.style.removeProperty('--s'))})}
+place(wF,Math.max(16,(innerWidth-wF.offsetWidth)/2-(innerWidth>1180?90:0)),70); showWin(wF); applyFilter();
 /* ---------------------------------------------------------------------
    PWA install — register the hub's own service worker and wire up the
    install button. beforeinstallprompt only fires on Chromium-based
@@ -519,6 +483,5 @@ if (isStandalone()) {
   window.addEventListener('appinstalled', markInstalled);
 }
 </script>
-
 </body>
 </html>

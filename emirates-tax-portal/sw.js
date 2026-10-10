@@ -3,7 +3,7 @@
    UAE VAT Simulator — Created By Ananthu Shaji
    ========================================================================== */
 
-const CACHE_VERSION = "vatsim-cache-v9";
+const CACHE_VERSION = "vatsim-cache-v17";
 
 const APP_SHELL = [
   "./",
@@ -18,6 +18,7 @@ const APP_SHELL = [
   "./favicon.ico",
   "./css/style.css",
   "./js/storage.js",
+  "./shared/nav-back.js",
   "./js/login.js",
   "./js/register.js",
   "./js/switch-student.js",
@@ -87,6 +88,10 @@ const APP_SHELL = [
   "./icons/icon-192.png",
   "./icons/icon-512.png",
   "./icons/icon-512-maskable.png",
+  "./general-login.html",
+  "./js/general-login.js",
+  "./js/auto-return-login.js",
+  "./shared/identity.js",
   /* Corporate Tax module (ct/) — precached so it works offline from the
      first visit and picks up updates when CACHE_VERSION is bumped. */
   "./ct/assets/css/emaratax.css",
@@ -130,7 +135,7 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches
       .keys()
-      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE_VERSION).map((k) => caches.delete(k))))
+      .then((keys) => Promise.all(keys.filter((k) => /^vatsim-cache-/.test(k) && k !== CACHE_VERSION).map((k) => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });
@@ -144,6 +149,28 @@ self.addEventListener("fetch", (event) => {
   // jsPDF/xlsx are vendored locally too, so this service worker never needs
   // to intercept cross-origin traffic at all.
   if (url.origin !== self.location.origin) return;
+
+  /* Pages, scripts and styles: network first (a new version shows on the very first load after an update),
+     cached copy when offline or when the network takes longer than 3 seconds. */
+  if (req.mode === "navigate" || /\.(?:html|js|css)$/.test(url.pathname)) {
+    event.respondWith(new Promise((resolve) => {
+      let done = false;
+      const finish = (r) => { if (!done && r) { done = true; resolve(r); } };
+      const timer = setTimeout(() => { caches.match(req).then(finish); }, 3000);
+      fetch(req).then((res) => {
+        clearTimeout(timer);
+        if (res && res.status === 200) {
+          const copy = res.clone();
+          caches.open(CACHE_VERSION).then((cache) => cache.put(req, copy));
+        }
+        finish(res);
+      }).catch(() => {
+        clearTimeout(timer);
+        caches.match(req).then((c) => finish(c || caches.match("./index.html")));
+      });
+    }));
+    return;
+  }
 
   event.respondWith(
     caches.match(req).then((cached) => {

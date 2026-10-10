@@ -41,3 +41,11 @@ pages/settings.html       Settings, credits, Reset Simulator
   exactly like the real portal, as simulated integration feeds — visible via
   "View Details", never silently placed in your editable boxes.
 - Use "Reset Simulator" in Settings to erase everything and start over.
+
+## Back button (VAT and Corporate Tax pages)
+
+Every page loads `shared/nav-back.js`, which adds a small round **Back** arrow (←) in the top-left corner (top-right on Arabic/RTL pages; it slides down the edge by itself when something is underneath) that opens the page the student was on just before, not a fixed page. It keeps a per-tab trail, stays in step with the browser's own Back/Forward, and skips pages that only redirect onward (e.g. a signed-out dashboard that bounces to the login page). With no earlier page it falls back to the section's dashboard / sign-in, and on the portal home it returns to where the student came from (the Simulator Hub). **New pages must include this script as the FIRST script tag**, so it runs before the page's own scripts can redirect.
+
+## Tests
+`node tests/vat-engine.test.js` (calculation engine, penalties, Voluntary Disclosure, Box 15 credit, date handling; no dependencies)
+and `npm i --no-save jsdom@24 && node tests/ui-smoke.js` (opens the real pages against a seeded account). See `tests/QA_REPORT.md`.

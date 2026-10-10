@@ -31,18 +31,26 @@
   document.getElementById("sRef").textContent = filing.referenceNumber;
   document.getElementById("sSubDate").textContent = VATSIM.fmtDate(filing.submittedAt);
   document.getElementById("sPeriod").textContent = VATSIM.fmtDate(filing.period.from) + " – " + VATSIM.fmtDate(filing.period.to);
-  document.getElementById("sStagger").textContent = filing.period.stagger;
+  document.getElementById("sStagger").textContent = VATSIM.staggerLabel(filing.period.stagger);
   document.getElementById("sDue").textContent = VATSIM.fmtDate(filing.period.dueDate);
   document.getElementById("sYearEnd").textContent = VATSIM.fmtDate(filing.period.taxYearEnd);
   document.getElementById("sReturnAmt").textContent = "AED " + VATSIM.fmtAED(Math.abs(t.box14)) + (t.isRefund ? " (Refundable)" : "");
-  document.getElementById("sDueAmt").textContent = t.isRefund ? "AED 0.00" : "AED " + VATSIM.fmtAED(t.box14);
+  const np = VATSIM.netPayable(filing);
+  document.getElementById("sDueAmt").textContent = t.isRefund ? "AED 0.00" : "AED " + VATSIM.fmtAED(np.net);
 
   const cta = document.getElementById("paymentCta");
   if (t.isRefund && Math.abs(t.box14) > 0 && filing.boxes.requestRefund === "Yes") {
     cta.innerHTML =
       '<div class="info-banner" style="text-align:left;max-width:420px;margin:0 auto">You requested a refund on Box 15 — you\'ll need to separately complete and submit Form <strong>VAT311</strong> (VAT Refund Request) to claim it.</div>';
   }
-  if (!t.isRefund && t.box14 > 0) {
+  if (t.isRefund && Math.abs(t.box14) > 0 && filing.boxes.requestRefund === "No") {
+    cta.innerHTML =
+      '<div class="info-banner" style="text-align:left;max-width:420px;margin:0 auto">You answered <strong>No</strong> on Box 15 — AED ' + VATSIM.fmtAED(Math.abs(t.box14)) + ' stays as a credit and is set off against your next payable VAT return.</div>';
+  }
+  if (!t.isRefund && t.box14 > 0 && np.credit > 0) {
+    cta.innerHTML += '<div class="info-banner" style="text-align:left;max-width:420px;margin:0 auto 10px">Credit brought forward from earlier returns: <strong>AED ' + VATSIM.fmtAED(np.credit) + '</strong> (Box 14 AED ' + VATSIM.fmtAED(t.box14) + ' less credit).</div>';
+  }
+  if (!t.isRefund && np.net > 0) {
     if (filing.payment && VATSIM.getEffectivePaymentStatus(filing.payment) === "Paid") {
       cta.innerHTML = '<span class="status-pill" style="font-size:13px"><span class="status-dot submitted"></span> Payment received on ' + VATSIM.fmtDate(filing.payment.date) + '</span>';
     } else if (filing.payment && filing.payment.status === "Processing") {
@@ -87,10 +95,14 @@
         currentKey === "approved"
           ? "✅ Approved — review complete."
           : label + "… (" + Math.min(elapsed, 60) + "s of ~60s)";
-      if (currentKey === "approved") clearInterval(timer);
+      // (Fix: `timer` used to be a const declared AFTER the first renderStage() call, so opening the
+      // page for any return older than ~60 s threw "Cannot access 'timer' before initialization" and
+      // stopped the rest of the script — the penalty panel, Edit button and PDF buttons never wired up.)
+      if (currentKey === "approved" && timer) clearInterval(timer);
+      return currentKey;
     }
-    renderStage();
-    const timer = setInterval(renderStage, 1000);
+    let timer = null;
+    if (renderStage() !== "approved") timer = setInterval(renderStage, 1000);
   }
 
   if (VATSIM.canEditFiling(filing)) {
@@ -163,7 +175,7 @@
       ["Submission Date", VATSIM.fmtDate(filing.submittedAt)],
       ["Last Modified", filing.modifiedAt ? VATSIM.fmtDate(filing.modifiedAt) : "—"],
       ["VAT Return Period", VATSIM.fmtDate(filing.period.from) + "  –  " + VATSIM.fmtDate(filing.period.to)],
-      ["VAT Stagger", filing.period.stagger],
+      ["VAT Filing Frequency", VATSIM.staggerLabel(filing.period.stagger)],
       ["Due Date", VATSIM.fmtDate(filing.period.dueDate)],
       ["Tax Year End", VATSIM.fmtDate(filing.period.taxYearEnd)],
     ];

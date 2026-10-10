@@ -210,6 +210,7 @@ function enterApp() {
         openBookingOrWizard(bridge.bookingId); // resume the booking already started for this bridge
       } else {
         const booking = startNewBooking();
+        if (bridge.jobData && typeof skTcosPrefillBookingFromJobData === 'function') skTcosPrefillBookingFromJobData(booking, bridge.jobData);
         DotBridge.setBookingId(booking.id);
         openFreightWizard(booking);
       }
@@ -309,7 +310,7 @@ var regState = { gstValid: false, iecValid: false, panValid: false, crossChecked
 const REG_STEP_COUNT = 12;
 
 /* ---- Registered-user credential store (persisted, separate from the fixed DEMO_CREDENTIALS list) ---- */
-const REGISTERED_USERS_KEY = 'icegate_training_registered_users_supplychain_v1'; // namespaced — same reasoning as SESSION_KEY/STORAGE_PREFIX in state.js: keeps this suite's registered logins separate from the hub's main TCOS
+const REGISTERED_USERS_KEY = 'icegate_training_registered_users_supplychain_v1'; // namespaced — keeps this suite's registered logins separate from the main TCOS
 function loadRegisteredUsers() {
   try { return JSON.parse(localStorage.getItem(REGISTERED_USERS_KEY) || '[]'); }
   catch (e) { return []; }

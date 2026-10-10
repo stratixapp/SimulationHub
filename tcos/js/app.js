@@ -210,6 +210,7 @@ function enterApp() {
         openBookingOrWizard(bridge.bookingId); // resume the booking already started for this bridge
       } else {
         const booking = startNewBooking();
+        if (bridge.jobData && typeof skTcosPrefillBookingFromJobData === 'function') skTcosPrefillBookingFromJobData(booking, bridge.jobData);
         DotBridge.setBookingId(booking.id);
         openFreightWizard(booking);
       }

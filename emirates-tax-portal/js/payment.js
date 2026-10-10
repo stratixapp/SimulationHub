@@ -41,10 +41,13 @@
       document.getElementById("payAmount").textContent = "AED " + VATSIM.fmtAED(payAmount);
     } else {
       const t = VATSIM.computeTotals(filing.boxes);
-      if (t.isRefund || t.box14 <= 0) {
-        VATSIM.toast("No payable amount for this return.", "info");
+      const np = VATSIM.netPayable(filing, VATSIM.getFilings());
+      if (t.isRefund || np.net <= 0) {
+        VATSIM.toast(np.credit > 0 ? "Fully covered by your carried-forward VAT credit — nothing to pay." : "No payable amount for this return.", "info");
+        setTimeout(() => (window.location.href = "liabilities.html"), 1200);
+        return;
       }
-      payAmount = Math.abs(t.box14);
+      payAmount = np.net;
       document.getElementById("payAmount").textContent = "AED " + VATSIM.fmtAED(payAmount);
       document.getElementById("payRef").textContent = filing.referenceNumber;
     }

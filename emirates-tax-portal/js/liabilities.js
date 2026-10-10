@@ -25,8 +25,8 @@
   function outstandingLiabilities() {
     return VATSIM.getFilings()
       .filter((f) => f.status === "Submitted")
-      .map((f) => ({ filing: f, totals: VATSIM.computeTotals(f.boxes) }))
-      .filter(({ totals, filing }) => !totals.isRefund && totals.box14 > 0 && !VATSIM.isPaymentSettled(filing.payment))
+      .map((f) => ({ filing: f, totals: VATSIM.computeTotals(f.boxes), np: VATSIM.netPayable(f) }))
+      .filter(({ totals, filing, np }) => !totals.isRefund && np.net > 0 && !VATSIM.isPaymentSettled(filing.payment))
       .sort((a, b) => new Date(a.filing.period.dueDate) - new Date(b.filing.period.dueDate));
   }
 
@@ -52,8 +52,8 @@
     const total = items.length + penalties.length;
     document.getElementById("pageSummary").textContent = "showing " + total + " of " + total + " records";
 
-    items.forEach(({ filing, totals }) => {
-      const overdue = new Date(filing.period.dueDate) < new Date();
+    items.forEach(({ filing, totals, np }) => {
+      const overdue = VATSIM.isPastDue(filing.period.dueDate);
       const reviewBadge = VATSIM.filingStatusBadge(filing);
       const processing = filing.payment && VATSIM.getEffectivePaymentStatus(filing.payment) === "Processing";
       const tr = document.createElement("tr");
@@ -62,7 +62,7 @@
         "<td>" + (filing.referenceNumber || "—") + "</td>" +
         "<td>" + VATSIM.fmtDate(filing.period.from) + " – " + VATSIM.fmtDate(filing.period.to) + "</td>" +
         "<td>" + VATSIM.fmtDate(filing.period.dueDate) + "</td>" +
-        "<td>AED " + VATSIM.fmtAED(totals.box14) + "</td>" +
+        "<td>AED " + VATSIM.fmtAED(np.net) + (np.credit > 0 ? '<div style="font-size:10.5px;color:var(--text-faint)">Box 14 ' + VATSIM.fmtAED(np.box14) + " less credit " + VATSIM.fmtAED(np.credit) + "</div>" : "") + "</td>" +
         '<td><span class="status-pill"><span class="status-dot ' + (processing ? "processed" : reviewBadge.dotClass) + '"></span> ' +
         (processing ? "GIBAN Processing" : reviewBadge.label) +
         (overdue && !processing ? ' <span style="color:var(--danger);font-weight:700">· Overdue</span>' : "") + "</span></td>" +

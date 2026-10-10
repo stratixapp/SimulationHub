@@ -299,7 +299,7 @@ function renderStep(idx){
 
   if(step.custom==="review"){
     html += renderMismatchBanner();
-    html += wrapAsLetterhead(step.renderReview(formData));
+    html += `<div class="review-scroll">${wrapAsLetterhead(step.renderReview(skEscapeDeep(formData)))}</div>`;
     html += `<div class="pdf-download-row">
       <button class="btn-secondary" id="downloadOriginalBtn">${ic("printer")} Download Original (PDF)</button>
       <button class="btn-secondary" id="downloadCopyBtn">${ic("printer")} Download Copy (PDF)</button>
@@ -354,6 +354,8 @@ function renderStep(idx){
   }
   renderTracker();
   bindStepButtons(step);
+  // Lyra (assistant.js): refresh her badge / listeners for this step. Optional and fail-safe.
+  if(typeof skAssistantAfterRender === "function"){ try{ skAssistantAfterRender(); }catch(e){} }
 }
 
 /* ---------------------------------------------------------------------
@@ -463,7 +465,7 @@ function renderBarcodeSVG(text){
   const totalWidth = modules.length * moduleW;
   return `<div class="doc-barcode-block">
     <svg viewBox="0 0 ${totalWidth} ${height}" width="${totalWidth}" height="${height}" style="display:block;max-width:100%;" preserveAspectRatio="xMinYMin meet">${rects}</svg>
-    <div class="doc-barcode-text">${safe}</div>
+    <div class="doc-barcode-text">${skEscHtml(safe)}</div>
   </div>`;
 }
 
@@ -525,7 +527,7 @@ function renderMismatchBanner(){
   if(mismatches.length === 0) return "";
   const rows = mismatches.map(m => `
     <li style="margin-bottom:8px;">
-      <b>${m.label}</b>: this document says <code>${m.thisValue}</code>, but <b>${m.canonicalSource}</b> already says <code>${m.canonicalValue}</code>.
+      <b>${skEscHtml(m.label)}</b>: this document says <code>${skEscHtml(m.thisValue)}</code>, but <b>${skEscHtml(m.canonicalSource)}</b> already says <code>${skEscHtml(m.canonicalValue)}</code>.
     </li>`).join("");
   return `<div id="mismatchBanner" style="margin-bottom:18px;padding:16px 20px;border-radius:10px;background:#FBF1DE;border:1.5px solid #E8C77A;color:#5B4400;">
     <div style="font-weight:700;font-size:13.5px;margin-bottom:8px;">⚠️ Cross-Document Mismatch — ${mismatches.length} field${mismatches.length>1?'s':''} disagree with an earlier document</div>
@@ -570,7 +572,42 @@ function renderShipWatermark(){
   </div>`;
 }
 
+/* Auto-signature for the "Document Prepared By" box: the logged-in student's name
+   rendered in a handwriting face (bundled Dancing Script, so it looks the same
+   offline and inside the html2canvas/PDF capture) with today's date. Guests (no
+   real name) get an empty box, exactly as before. */
+function skAutoSignatureHtml(name){
+  const nm = String(name == null ? "" : name).replace(/\s+/g, " ").trim();
+  if(!nm || nm === "—" || /^guest$/i.test(nm)) return "";
+  const esc = x => String(x).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+  const MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const n = new Date();
+  const dt = String(n.getDate()).padStart(2,"0") + "-" + MON[n.getMonth()] + "-" + n.getFullYear();
+  const len = nm.length;
+  // Dancing Script averages ~0.45em per character; the box fits ~178px of ink.
+  const size = Math.max(10, Math.min(30, Math.floor(178 / (len * 0.45))));
+  return `<div class="sig-script" style="font-size:${size}px" aria-label="Signature of ${esc(nm)}">${esc(nm)}</div><div class="sig-date">${dt}</div>`;
+}
+
+/* HTML-escaping for text the student typed. Every document's review renderer
+   (documents-data.js) interpolates form values straight into HTML, so a value like
+   <img onerror=...> executed on the review page and in the PDF capture. The
+   review now receives an escaped deep copy of the form data (plain text is
+   byte-for-byte unchanged; only & < > " are encoded, which render identically). */
+function skEscHtml(x){ return String(x == null ? "" : x).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+function skEscapeDeep(v){
+  if(typeof v === "string") return skEscHtml(v);
+  if(Array.isArray(v)) return v.map(skEscapeDeep);
+  if(v && typeof v === "object"){ const o = {}; for(const k of Object.keys(v)) o[k] = skEscapeDeep(v[k]); return o; }
+  return v;
+}
+
 function wrapAsLetterhead(innerHtml){
+  // Shipping Bill only: dedicated specimen print layout (falls back to the
+  // generic letterhead below if anything in it ever throws).
+  if(CURRENT_SLUG === "shipping-bill" && typeof renderShippingBillSpecimen === "function"){
+    try{ return renderShippingBillSpecimen(); }catch(e){ console.error("Shipping Bill layout failed, using default:", e); }
+  }
   const issuer = firstNonEmpty(ISSUER_NAME_FIELDS, formData) || "Skelora Institute Logistics Simulator";
   const docNumber = firstNonEmpty(DOC_NUMBER_FIELDS, formData) || CONFIG.docCodeExample;
   const meta = getLetterheadMeta();
@@ -597,14 +634,14 @@ function wrapAsLetterhead(innerHtml){
     ${govtBand}
     <div class="doc-lh-head">
       <div>
-        <div class="doc-lh-name">${issuer}</div>
+        <div class="doc-lh-name">${skEscHtml(issuer)}</div>
         <div class="doc-lh-sub">${CONFIG.subtitle}</div>
         ${govtFiledVia}
         ${regulatoryNoteHtml}
       </div>
       <div class="doc-lh-type">
         <div class="t">${CONFIG.title}</div>
-        <div class="n">No. ${docNumber}</div>
+        <div class="n">No. ${skEscHtml(docNumber)}</div>
       </div>
     </div>
     <div class="doc-lh-rule"></div>
@@ -612,7 +649,7 @@ function wrapAsLetterhead(innerHtml){
     <div class="doc-stamp-row">
       <div style="display:flex;align-items:flex-end;gap:16px;">
         <div>
-          <div style="font-size:11.5px;color:var(--text-2);margin-bottom:10px;">Issued: <b>${issueDate}</b> — Place of Issue: <b>${placeOfIssue}</b></div>
+          <div style="font-size:11.5px;color:var(--text-2);margin-bottom:10px;">Issued: <b>${skEscHtml(issueDate)}</b> — Place of Issue: <b>${skEscHtml(placeOfIssue)}</b></div>
           <div class="doc-stamp-circle">Official<br>Stamp Area</div>
         </div>
         ${renderHologramSeal(CONFIG.title + docNumber, sealInitials)}
@@ -620,17 +657,17 @@ function wrapAsLetterhead(innerHtml){
       <div style="display:flex;gap:14px;flex-wrap:wrap;">
         <div class="doc-sig-blank">
           <div class="box"></div>
-          <div class="cap">Authorized Signatory — ${issuer}</div>
+          <div class="cap">Authorized Signatory — ${skEscHtml(issuer)}</div>
         </div>
         <div class="doc-sig-blank">
-          <div class="box"></div>
+          <div class="box${(typeof CURRENT_USER !== "undefined" && CURRENT_USER && skAutoSignatureHtml(CURRENT_USER.name)) ? " signed" : ""}">${(typeof CURRENT_USER !== "undefined" && CURRENT_USER) ? skAutoSignatureHtml(CURRENT_USER.name) : ""}</div>
           <!-- BUGFIX (requested): every document only ever showed who
                ISSUED it (Authorized Signatory / issuer company), never
                who actually filled it out in the simulator. Added here,
                in the one shared letterhead wrapper every document
                renders through, instead of in each of the ~75 individual
                document field lists — same effect, one place to maintain. -->
-          <div class="cap">Document Prepared By — ${(typeof CURRENT_USER !== "undefined" && CURRENT_USER && CURRENT_USER.name) || "—"}</div>
+          <div class="cap">Document Prepared By — ${String((typeof CURRENT_USER !== "undefined" && CURRENT_USER && CURRENT_USER.name) || "—").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;")}</div>
         </div>
       </div>
     </div>
@@ -653,6 +690,276 @@ function wrapAsLetterhead(innerHtml){
       </ol>
     </div>
   </div>`;
+}
+
+/* ===================== SHIPPING BILL — SPECIMEN PRINT LAYOUT =====================
+   The Shipping Bill (and only the Shipping Bill) reviews / downloads in its own
+   print-style layout instead of the generic letterhead: Government of India
+   header, numbered navy section bars, label/value grids, item + container
+   tables and a signature block, laid out on two fixed A4 pages (.sb-page).
+   It still renders inside a .doc-letterhead element, so every existing
+   caller (review step, Download Original/Copy, bulk ZIP export) keeps working;
+   the PDF code detects .sb-page and captures one A4 page per .sb-page
+   (see skBuildSbPdf). Every value comes from the student's own formData. */
+function renderShippingBillSpecimen(){
+  const d = formData || {};
+  const esc = s => String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+  const v  = x => { const t = (x==null?"":String(x)).trim(); return t ? esc(t) : "—"; };
+  const vm = x => v(x).replace(/\n/g,"<br>");
+  const MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const dt = x => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(x||"").trim()); return m ? `${m[3]}-${MON[+m[2]-1]}-${m[1]}` : v(x); };
+  const nf = (x,dp) => { const n = parseFloat(x); return isFinite(n) ? n.toLocaleString("en-US",{minimumFractionDigits:dp,maximumFractionDigits:dp}) : v(x); };
+  const now = new Date();
+  const today = `${String(now.getDate()).padStart(2,"0")}-${MON[now.getMonth()]}-${now.getFullYear()}`;
+  const nowTime = `${today} ${String(now.getHours()).padStart(2,"0")}:${String(now.getMinutes()).padStart(2,"0")}`;
+
+  const kv = (rows, cols) => {
+    cols = cols || 2;
+    const pairW = 100 / cols, lab = pairW * 0.27, val = pairW - lab;
+    let colgroup = "<colgroup>"; for(let c=0;c<cols;c++) colgroup += `<col style="width:${lab}%"><col style="width:${val}%">`; colgroup += "</colgroup>";
+    let body = "";
+    for(let i=0;i<rows.length;i+=cols){
+      body += "<tr>";
+      for(let c=0;c<cols;c++){ const r = rows[i+c]; body += r ? `<td class="l">${r[0]}</td><td class="v">${r[1]}</td>` : `<td class="l"></td><td class="v"></td>`; }
+      body += "</tr>";
+    }
+    return `<table class="sb-kv">${colgroup}${body}</table>`;
+  };
+  const kv1 = (label, html) => `<table class="sb-kv"><colgroup><col style="width:15%"><col style="width:85%"></colgroup><tr><td class="l">${label}</td><td class="v">${html}</td></tr></table>`;
+  const bar = t => `<div class="sb-bar">${t}</div>`;
+  const grid = (head, rows, widths) => `<table class="sb-grid"><colgroup>${widths.map(w=>`<col style="width:${w}">`).join("")}</colgroup><tr>${head.map(h=>`<th>${h}</th>`).join("")}</tr>${rows.map(r=>`<tr>${r.map(c=>`<td>${c}</td>`).join("")}</tr>`).join("")}</table>`;
+
+  const items = Array.isArray(d.itemDetails) ? d.itemDetails : [];
+  const cur = (d.invoiceCurrency || "").trim() || "—";
+  const fobOf = r => (parseFloat(r.quantity)||0) * (parseFloat(r.unitPrice)||0);
+  const totalFob = items.reduce((s,r)=>s+fobOf(r),0);
+  const conts = (Array.isArray(d.containerDetails) ? d.containerDetails : []).filter(r=>r && r.containerNo);
+  const submitted = !!d.submitToIcegate;
+  // sbNumberGenerated is a display-only computed field (never stored in formData),
+  // so recompute it from the field's own rule once the filing is submitted.
+  let genSbNo = d.sbNumberGenerated;
+  if(!genSbNo && submitted && typeof findFieldByName === "function"){
+    try{ const gf = findFieldByName("sbNumberGenerated"); if(gf && typeof gf.compute === "function") genSbNo = gf.compute(d); }catch(e){}
+  }
+  const sbNo = (genSbNo && submitted) ? esc(genSbNo) : "Pending Submission";
+  const PORTS = {INCOK1:"Cochin Sea", INNSA1:"Nhava Sheva Sea", INMUN1:"Mundra Sea", INMAA1:"Chennai Sea", INTUT1:"Tuticorin Sea"};
+  const chc = String(d.customsHouseCode||"").trim();
+  const portOfExport = chc ? (PORTS[chc.toUpperCase()] ? `${PORTS[chc.toUpperCase()]} (Customs House Code <b>${esc(chc)}</b>)` : `Customs House Code <b>${esc(chc)}</b>`) : "—";
+  const isAir = !!((d.mawbNumber||"").trim() && !/^(n\/?a|nil|none|-|—)$/i.test((d.mawbNumber||"").trim()));
+  const mode = isAir ? "Air Cargo" : (conts.length ? "Sea - Containerized" : "Sea / Surface");
+
+  const header = `
+    <div class="sb-h1">GOVERNMENT OF INDIA</div>
+    <div class="sb-c">Ministry of Finance - Department of Revenue</div>
+    <div class="sb-c">Central Board of Indirect Taxes &amp; Customs (CBIC)</div>
+    <div class="sb-title">SHIPPING BILL FOR EXPORT</div>
+    <div class="sb-sub">Filed electronically through ICEGATE - Indian Customs EDI Gateway</div>
+    ${kv([["Shipping Bill No.",`<b>${sbNo}</b>`],["Shipping Bill Date",submitted ? today : "—"],["Port of Export",portOfExport],["Mode",mode]],2)}`;
+
+  const s1 = bar("1. CUSTOMS &amp; EXPORTER REFERENCE") + kv([
+    ["Customs House Code",v(d.customsHouseCode)],["Job Number",v(d.jobNumber)],["Job Date",dt(d.jobDate)],["CHA License No.",v(d.chaLicenseNo)],
+    ["IEC",v(d.iecNumber)],["Branch Serial No.",v(d.branchSerialNo)],["Exporter Type",v(d.exporterType)],["Exporter Class",v(d.exporterClass)],
+    ["GSTIN",v(d.gstin)],["Exporter Name",v(d.exporterName)]],2) + kv1("Exporter Address",vm(d.exporterAddress));
+
+  const s2 = bar("2. CARGO &amp; SHIPMENT PARTICULARS") + kv([
+    ["Country of Destination",v(d.countryDestination)],["Port of Discharge",v(d.portDischarge)],
+    ["Nature of Cargo",v(d.natureOfCargo)],["Unit of Measurement",v(d.uom)],
+    ["Gross Weight (KG)",nf(d.grossWeight,3)],["Net Weight (KG)",nf(d.netWeight,3)],
+    ["Number of Packages",v(d.noOfPackages)],["Number of Containers",v(d.noOfContainers)],
+    ["Marks &amp; Numbers",v(d.marksNumbers)],["Seal Type",v(d.sealType)],
+    ["MAWB No. (Air)",v(d.mawbNumber)],["HAWB No. (Air)",v(d.hawbNumber)]],2);
+
+  const s3 = bar("3. INVOICE DETAILS") + kv([
+    ["Commercial Invoice No.",v(d.commInvoiceNo)],["Invoice Date",dt(d.invoiceDate)],["Invoice Currency",v(d.invoiceCurrency)],["Nature of Contract",v(d.natureOfContract)],
+    ["Freight Currency / Amount",`${v(d.freightCurrency)} / ${nf(d.freightAmount,2)}`],["Insurance Amount",nf(d.insuranceAmount,2)]],2)
+    + kv1("Buyer Name",v(d.buyerName)) + kv1("Buyer Address",vm(d.buyerAddress));
+
+  const itemRows = items.map((r,i)=>[String(i+1), v(r.hsCode), vm(r.description), nf(r.quantity,3), v(r.unit), nf(r.unitPrice,2), nf(fobOf(r),2)]);
+  if(items.length > 1) itemRows.push(["","","<b>Total FOB ("+esc(cur)+")</b>","","","",`<b>${nf(totalFob,2)}</b>`]);
+  const itemDetailArr = items.map((r,i)=>{
+    const rows = [["Country of Manufacture",v(r.countryMfg)],["Source State",v(r.sourceState)],["End Use",v(r.endUse)],["Present Market Value (INR)",nf(r.presentMarketValue,2)],["IGST Details",vm(r.igstDetails)]];
+    [["Drawback Details",r.drawbackDetails],["Cess Details",r.cessDetails],["Third Party Details",r.thirdPartyDetails],["Raw Material Details",r.rawMaterialDetails],["Accessories Details",r.accessoriesDetails]]
+      .forEach(([l,x])=>{ if(String(x||"").trim()) rows.push([l,vm(x)]); });
+    rows.push(["Supporting Documents",vm(r.supportingDocuments)],["Manufacturer Details",vm(r.manufacturerDetails)]);
+    return (items.length>1 ? `<div class="sb-mini">Item ${i+1} particulars</div>` : "") + kv(rows,2);
+  });
+  const itemDetailBlocks = itemDetailArr.join("");
+  const s4 = bar("4. ITEM-WISE DECLARATION") + (items.length
+    ? grid(["Item","ITC HS Code","Description of Goods","Qty","Unit",`Unit Price (${esc(cur)})`,`FOB Value (${esc(cur)})`], itemRows, ["5.5%","11%","auto","10%","6%","14.5%","15%"]) + itemDetailBlocks
+    : kv1("Items","No items declared"));
+
+  const rate = parseFloat(d.exchangeRate);
+  const inr = (isFinite(rate) && items.length) ? nf(totalFob*rate,2) : v(d.inrConversion);
+  const s5 = bar("5. EXCHANGE RATE DETAILS") + ((d.invoiceCurrency||"").trim()==="INR"
+    ? kv1("Exchange rate","Not applicable - the invoice currency is INR.")
+    : kv([["Currency Code",v(d.currencyCode)],["Exchange Rate (INR per "+esc(cur)+")",v(d.exchangeRate)],["Total FOB ("+esc(cur)+")",nf(totalFob,2)],["Total FOB (INR) - computed",`<b>${inr}</b>`],["Effective Date",dt(d.effectiveDate)]],2));
+
+  const noScheme = !d.schemeType || /^none$/i.test(String(d.schemeType).trim());
+  const s6 = bar("6. LICENCE / DFIA / JOB WORK DETAILS") + (noScheme
+    ? kv1("Scheme","No - not exporting under any scheme")
+    : kv([["Exporting under a scheme?",v(d.schemeType)],["Advance Authorization No.",v(d.advanceAuthNo)],["DFIA No.",v(d.dfiaNo)],["SION Number",v(d.sionNumber)],["Licence Number",v(d.licenceNumber)],["Quantity Used",v(d.quantityUsed)],["Bill of Entry No.",v(d.boeNumber)],["Port Code",v(d.portCode)]],2)
+      + (String(d.jobWorkDetails||"").trim() ? kv1("Job Work Details",vm(d.jobWorkDetails)) : ""));
+
+  const s7 = bar("7. PACKAGING / ROTATION / CONTAINER DETAILS") + (conts.length
+    ? grid(["Container Number","Size","Seal Number","Seal Type","RFID Seal"], conts.map(r=>[v(r.containerNo),v(r.containerSize),v(r.sealNumber),v(r.sealTypeDetail),v(r.rfidSeal)]), ["22%","10%","22%","22%","24%"])
+    : kv1("Containers","Non-containerized (LCL) cargo - no container details declared"))
+    + kv([["Rotation Number",v(d.rotationNumber)],["Rotation Date",dt(d.rotationDate)],["Packaging Number",v(d.packagingNumber)],["Movement Document No.",v(d.movementDocNo)],["Excise Seal No.",v(d.exciseSealNo)]],2);
+
+  const preparedBy = (typeof CURRENT_USER !== "undefined" && CURRENT_USER && CURRENT_USER.name) ? esc(CURRENT_USER.name) : "—";
+  const s8 = bar("8. DIGITAL SIGNATURE &amp; SUBMISSION") + `<table class="sb-sign"><tr>
+    <td style="width:55%">${d.validateInfo?"&#9745;":"&#9744;"} I validate that all information entered above is accurate and complete.<br>${d.submitToIcegate?"&#9745;":"&#9744;"} I authorize submission of this Shipping Bill to ICEGATE.<br><br>
+      <b>Signatory:</b> ${v(d.signatoryName)}<br><b>Designation:</b> ${v(d.signatoryDesignation)}</td>
+    <td><b>Digital signature:</b> ${d.digitalSignatureApplied ? "Class 3 DSC applied (simulated - no real signature)" : "Not applied"}<br><br>
+      <b>Submitted:</b> ${submitted ? nowTime : "—"}<br><b>Status:</b> ${submitted ? "Filed - awaiting Let Export Order" : "Draft - not submitted"}<br><b>Prepared by:</b> ${preparedBy} (training exercise)${(typeof skAutoSignatureHtml === "function" && typeof CURRENT_USER !== "undefined" && CURRENT_USER && skAutoSignatureHtml(CURRENT_USER.name)) ? `<div class="sb-autosig">${skAutoSignatureHtml(CURRENT_USER.name)}</div>` : ""}</td></tr></table>`;
+
+  const FOOT = "SPECIMEN FOR TRAINING USE ONLY - simulated document with no legal or commercial validity (Skelora Institute Logistics Simulator). Not a valid Government of India document.";
+  const ref = `SB ${sbNo}`;
+  const page = (inner, n, total) => `<div class="sb-page"><div class="sb-wm"><div class="a">SPECIMEN</div><div class="b">TRAINING COPY - NOT A VALID DOCUMENT</div></div><div class="sb-body">${inner}</div><div class="sb-pref">${ref} &nbsp;|&nbsp; Page ${n}</div><div class="sb-foot">${FOOT}</div></div>`;
+
+  /* ---- Measured pagination -------------------------------------------------
+     The old layout hard-coded "sections 1-4 on page 1, 5-8 on page 2", so a Lot
+     with several items overflowed page 2 and the PDF scaled it down to unreadable
+     text. Now every block is measured in a hidden host (same width / CSS as a real
+     page) and packed onto as many A4 pages as needed; the item table splits by row
+     (header + "continued" bar repeated) and nothing is ever cut mid-block. If a
+     single block is taller than a page it still gets its own page (PDF code scales
+     that one down as before). Any failure falls back to the original 2-page split. */
+  const itemHead = ["Item","ITC HS Code","Description of Goods","Qty","Unit",`Unit Price (${esc(cur)})`,`FOB Value (${esc(cur)})`];
+  const itemW = ["5.5%","11%","auto","10%","6%","14.5%","15%"];
+  const compact = items.length <= 1;
+  const fallback = () => `<div class="sb-scroll"><div class="doc-letterhead sb-letterhead">${page(header + s1 + s2 + s3 + (compact ? s4 : ""),1,2)}${page((compact ? "" : s4) + s5 + s6 + s7 + s8,2,2)}</div></div>`;
+  try{
+    if(typeof document === "undefined" || !document.body) return fallback();
+    const CAP = 1123 - 45 - 78;                       // A4 @96dpi minus .sb-page padding
+    const host = document.createElement("div");
+    host.className = "sb-letterhead-measure";
+    host.style.cssText = "position:absolute;left:-10000px;top:0;width:688px;visibility:hidden;pointer-events:none;font-family:Helvetica,Arial,sans-serif;";
+    document.body.appendChild(host);
+    // +9: every block starts with a bar whose 8px top margin collapses out of the measured box
+    const hOf = html => { host.innerHTML = `<div class="sb-body" style="width:688px">${html}</div>`; return host.firstChild.offsetHeight + 9; };
+    // table row heights measured from one real render of the full item grid
+    let rowH = [], headH = 0, barH = 0;
+    if(items.length){
+      host.innerHTML = `<div class="sb-body" style="width:688px">${bar("4. ITEM-WISE DECLARATION")}${grid(itemHead, itemRows, itemW)}</div>`;
+      const trs = host.querySelectorAll("table.sb-grid tr"); headH = trs[0].offsetHeight; rowH = Array.from(trs).slice(1).map(t=>t.offsetHeight);
+      barH = host.querySelector(".sb-bar").offsetHeight + 8;
+    }
+    const blocks = [{h:hOf(header), html:header}, {h:hOf(s1), html:s1}, {h:hOf(s2), html:s2}, {h:hOf(s3), html:s3}];
+    const pages = [{html:"", used:0}];
+    const place = b => { let pg = pages[pages.length-1]; if(pg.used && pg.used + b.h > CAP){ pg = {html:"", used:0}; pages.push(pg); } pg.html += b.html; pg.used += b.h; };
+    blocks.forEach(place);
+    // --- item table, split by rows
+    if(items.length){
+      let i = 0, first = true;
+      while(i < itemRows.length){
+        let pg = pages[pages.length-1];
+        let room = CAP - pg.used - (first ? barH : barH) - headH - 6;
+        if(room < (rowH[i] || 30) && pg.used){ pages.push({html:"", used:0}); pg = pages[pages.length-1]; room = CAP - barH - headH - 6; }
+        const chunk = []; let used = 0;
+        while(i < itemRows.length && (chunk.length === 0 || used + rowH[i] <= room)){ chunk.push(itemRows[i]); used += rowH[i]; i++; }
+        const title = first ? "4. ITEM-WISE DECLARATION" : "4. ITEM-WISE DECLARATION (continued)";
+        const html = bar(title) + grid(itemHead, chunk, itemW);
+        pg.html += html; pg.used += barH + headH + used + 6; first = false;
+      }
+      itemDetailArr.forEach(html => place({h:hOf(html)+6, html}));
+    } else { place({h:hOf(s4), html:s4}); }
+    [s5,s6,s7,s8].forEach(h => place({h:hOf(h), html:h}));
+    host.remove();
+    const total = pages.length;
+    return `<div class="sb-scroll"><div class="doc-letterhead sb-letterhead">${pages.map((pg,idx)=>page(pg.html, idx+1, total)).join("")}</div></div>`;
+  }catch(e){
+    try{ document.querySelectorAll(".sb-letterhead-measure").forEach(n=>n.remove()); }catch(e2){}
+    console.warn("Shipping Bill pagination fell back to the 2-page split:", e);
+    return fallback();
+  }
+}
+
+/* Page-break-aware PDF paging for the generic letterhead.
+   The old code placed one tall image and let each A4 page show the next slice,
+   so a page boundary could land in the middle of a line of text or through a
+   bordered box (the BL's "Remarks" line was sliced in half). This measures the
+   rendered DOM, treats every text leaf / table cell / image / stamp as
+   indivisible, and ends each page at the lowest gap that is not inside one
+   (searching back at most half a page). If no clean gap exists (an element
+   taller than half a page) it falls back to the old hard cut for that page.
+   Any error -> caller falls back to the original slicing. */
+function skAddCanvasToPdfPaged(pdf, canvas, letterheadEl){
+  const pageWidth = pdf.internal.pageSize.getWidth(), pageHeight = pdf.internal.pageSize.getHeight();
+  const mmPerPx = pageWidth / canvas.width;
+  const totalPx = canvas.height, pagePx = Math.floor(pageHeight / mmPerPx);
+  if(totalPx <= pagePx + 2){
+    pdf.addImage(canvas.toDataURL("image/jpeg", 0.92), "JPEG", 0, 0, pageWidth, totalPx * mmPerPx);
+    return;
+  }
+  const lh = letterheadEl.getBoundingClientRect();
+  const sc = canvas.width / lh.width;
+  const halfPageCss = (pagePx / sc) * 0.5;
+  const ATOMIC_TAGS = {IMG:1, SVG:1, CANVAS:1, TD:1, TH:1, BUTTON:1, INPUT:1, SELECT:1, TEXTAREA:1};
+  const zones = [];
+  letterheadEl.querySelectorAll("*").forEach(el=>{
+    if(el.closest(".pdf-variant-watermark")) return;
+    const tag = el.tagName.toUpperCase();
+    if(el.closest("svg") && tag !== "SVG") return;
+    const r = el.getBoundingClientRect();
+    if(r.height < 1 || r.width < 1) return;
+    if(r.height > halfPageCss) return;                       // too tall to be indivisible
+    const cs = getComputedStyle(el);
+    if(cs.position === "absolute" && r.height > 120) return; // big decorative layers
+    let atomic = !!ATOMIC_TAGS[tag];
+    if(!atomic && el.children.length === 0 && (el.textContent || "").trim() !== "") atomic = true;
+    if(!atomic && /(^|[\s_-])(box|cell|stamp|seal|barcode|sig)/i.test(String(el.className && el.className.baseVal !== undefined ? el.className.baseVal : el.className))) atomic = true;
+    if(!atomic) return;
+    zones.push({t:(r.top - lh.top) * sc, b:(r.bottom - lh.top) * sc});
+  });
+  let start = 0, first = true;
+  while(start < totalPx - 1){
+    let end = Math.min(start + pagePx, totalPx);
+    if(end < totalPx){
+      const minEnd = start + Math.floor(pagePx * 0.5);
+      const cands = zones.map(z=>z.b).filter(y=>y <= end && y >= minEnd).sort((a,b)=>b-a);
+      for(let i=0;i<cands.length;i++){
+        const y = cands[i];
+        if(!zones.some(z=> y > z.t + 2 && y < z.b - 2)){ end = Math.ceil(y); break; }
+      }
+    }
+    const h = end - start;
+    const seg = document.createElement("canvas"); seg.width = canvas.width; seg.height = h;
+    const ctx = seg.getContext("2d"); ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, seg.width, h);
+    ctx.drawImage(canvas, 0, start, canvas.width, h, 0, 0, canvas.width, h);
+    if(!first) pdf.addPage();
+    first = false;
+    pdf.addImage(seg.toDataURL("image/jpeg", 0.92), "JPEG", 0, 0, pageWidth, h * mmPerPx);
+    start = end;
+  }
+}
+
+/* PDF capture for the Shipping Bill layout: one A4 PDF page per .sb-page (the
+   generic code below slices one tall image instead). If a page's content ever
+   outgrows A4 it is scaled down to fit rather than cut. variantLabel ("ORIGINAL"/
+   "COPY") is stamped on each page for just this capture. */
+async function skBuildSbPdf(letterheadEl, variantLabel){
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF({orientation:"portrait", unit:"mm", format:"a4"});
+  const pageWidth = pdf.internal.pageSize.getWidth(), pageHeight = pdf.internal.pageSize.getHeight();
+  const pages = letterheadEl.querySelectorAll(".sb-page");
+  const wrap = letterheadEl.closest(".sb-scroll");
+  const prevOverflow = wrap ? wrap.style.overflow : "";
+  if(wrap) wrap.style.overflow = "visible"; // narrow screens: don't let the scroll box crop the capture
+  try{
+    for(let i=0;i<pages.length;i++){
+      const pg = pages[i];
+      let wm = null;
+      if(variantLabel){ wm = document.createElement("div"); wm.className = "pdf-variant-watermark"; wm.textContent = variantLabel; pg.appendChild(wm); }
+      let canvas;
+      try{ canvas = await html2canvas(pg, {scale:2, useCORS:true, backgroundColor:"#ffffff", windowWidth:Math.max(window.innerWidth, 1000)}); }
+      finally{ if(wm) wm.remove(); }
+      let w = pageWidth, h = (canvas.height * w) / canvas.width;
+      if(h > pageHeight){ const k = pageHeight / h; w *= k; h = pageHeight; }
+      if(i > 0) pdf.addPage();
+      pdf.addImage(canvas.toDataURL("image/jpeg", 0.92), "JPEG", (pageWidth - w) / 2, 0, w, h);
+    }
+  } finally { if(wrap) wrap.style.overflow = prevOverflow; }
+  return pdf;
 }
 
 function renderComplete(){
@@ -704,11 +1011,21 @@ function renderComplete(){
    file download - not the browser's print dialog. Captures the actual letterhead exactly as
    rendered (barcode, hologram seal, tables, all included), adds a real "ORIGINAL" or "COPY"
    watermark for this specific download, and supports multi-page output for long documents. */
+/* The review document sits in a horizontally scrollable box (.review-scroll). html2canvas must
+   see it unclipped or a narrow screen would crop the right-hand side out of the PDF. */
+async function skWithUnclippedReview(letterheadEl, fn){
+  const w = letterheadEl && letterheadEl.closest ? letterheadEl.closest(".review-scroll") : null;
+  const prev = w ? w.style.overflow : "";
+  if(w) w.style.overflow = "visible";
+  try{ return await fn(); } finally { if(w) w.style.overflow = prev; }
+}
+
 async function generateDocumentPDF(variant){
   const statusEl = document.getElementById("pdfGenStatus");
   const shipWrap = document.getElementById("pdfGenShipWrap");
   const letterheadEl = document.querySelector(".doc-letterhead");
   if(!letterheadEl){ showToast("Could not find the document to export."); return; }
+  const isSbLayout = !!letterheadEl.querySelector(".sb-page");
   if(typeof html2canvas === "undefined" || typeof window.jspdf === "undefined"){
     showToast("PDF tools didn't load — check your internet connection and try again.");
     return;
@@ -728,19 +1045,27 @@ async function generateDocumentPDF(variant){
   const watermark = document.createElement("div");
   watermark.className = "pdf-variant-watermark";
   watermark.textContent = variant;
-  letterheadEl.appendChild(watermark);
+  if(!isSbLayout) letterheadEl.appendChild(watermark);
 
   try {
-    const canvas = await html2canvas(letterheadEl, {scale:2, useCORS:true, backgroundColor:"#ffffff"});
+    let pdf;
+    if(isSbLayout){
+      pdf = await skBuildSbPdf(letterheadEl, variant);
+    } else {
+    const canvas = await skWithUnclippedReview(letterheadEl, () => html2canvas(letterheadEl, {scale:2, useCORS:true, backgroundColor:"#ffffff"}));
     watermark.remove();
 
     const { jsPDF } = window.jspdf;
-    const pdf = new jsPDF({orientation:"portrait", unit:"mm", format:"a4"});
+    pdf = new jsPDF({orientation:"portrait", unit:"mm", format:"a4"});
     const pageWidth = pdf.internal.pageSize.getWidth();
     const pageHeight = pdf.internal.pageSize.getHeight();
     const imgWidth = pageWidth;
     const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
+    let pagedOk = false;
+    try{ skAddCanvasToPdfPaged(pdf, canvas, letterheadEl); pagedOk = true; }
+    catch(pe){ console.warn("Smart paging failed, using plain slicing:", pe); try{ while(pdf.getNumberOfPages() > 1) pdf.deletePage(pdf.getNumberOfPages()); }catch(e2){} }
+    if(!pagedOk){
     const imgData = canvas.toDataURL("image/jpeg", 0.92);
     let heightLeft = imgHeight;
     let position = 0;
@@ -751,6 +1076,8 @@ async function generateDocumentPDF(variant){
       pdf.addPage();
       pdf.addImage(imgData, "JPEG", 0, position, imgWidth, imgHeight);
       heightLeft -= pageHeight;
+    }
+    }
     }
 
     const meta = getLetterheadMeta();
@@ -1060,7 +1387,14 @@ function validateStep(idx){
 let skStepTransitionInProgress = false;
 function goNext(){
   if(skStepTransitionInProgress) return; // guard against double-click firing two transitions
-  if(!validateStep(currentStep)){ renderStep(currentStep); showToast("Please complete the required fields before continuing."); return; }
+  if(!validateStep(currentStep)){
+    renderStep(currentStep); showToast("Please complete the required fields before continuing.");
+    // Lyra (assistant.js) explains what each red box means and how to fix it. Optional and fail-safe.
+    if(typeof skAssistantOnInvalid === "function"){ try{ skAssistantOnInvalid(); }catch(e){} }
+    return;
+  }
+  // Lyra (assistant.js): if she spotted a mismatch she asks first; "Continue anyway" calls goNext() again.
+  if(typeof skAssistantGate === "function"){ let held = false; try{ held = (skAssistantGate() === false); }catch(e){} if(held) return; }
   skStepTransitionInProgress = true;
   const nextBtnEl = document.getElementById("nextBtn");
   if(nextBtnEl) nextBtnEl.disabled = true;
@@ -1233,7 +1567,7 @@ function showTcosBridgeChoice(slug, filingType, onContinueHere, consignaDocType)
   // Cadence, or the Cadence-suite TCOS copy — restricted-access simulators
   // require it there, so the bridge holds to the same rule rather than
   // quietly slipping past a check TCOS's other entry points enforce.
-  const TCOS_ACCESS_ID = "111400112";
+  // The access ID itself lives (hashed) in shared/access-id.js -> DotAccess.check(); no plain-text copy here.
   // Section: Logistics ⇄ TCOS bridge — pass the active Shipment Lot's
   // already-typed details along so TCOS's New Filing wizard can start
   // pre-filled instead of asking the student to re-type the same
@@ -1250,6 +1584,9 @@ function showTcosBridgeChoice(slug, filingType, onContinueHere, consignaDocType)
     if(typeof skGetActiveJob !== "function") return null;
     const job = skGetActiveJob(CURRENT_USER.id);
     if(!job || !job.fields) return null;
+    // One shared builder (shared/tcos-bridge.js) so this and the dashboard's
+    // "Continue in TCOS" button always send the same, complete snapshot.
+    if(typeof DotBridge !== "undefined" && typeof DotBridge.buildJobSnapshot === "function") return DotBridge.buildJobSnapshot(job);
     const f = job.fields;
     return {
       mode: f.mode||"", sellerName: f.sellerName||"", sellerAddress: f.sellerAddress||"", sellerCountry: f.sellerCountry||"",
@@ -1276,7 +1613,7 @@ function showTcosBridgeChoice(slug, filingType, onContinueHere, consignaDocType)
       return;
     }
     if(!accessId){ errEl.textContent = "Enter the TCOS access ID to continue."; return; }
-    if(accessId !== TCOS_ACCESS_ID){
+    if(!(window.DotAccess && window.DotAccess.check(accessId))){
       errEl.textContent = "Incorrect access ID. Try again.";
       return;
     }
@@ -1286,7 +1623,7 @@ function showTcosBridgeChoice(slug, filingType, onContinueHere, consignaDocType)
       password: pw,
       name: CURRENT_USER.name,
       returnSlug: slug,
-      jobData: (filingType === "export" || filingType === "import" || filingType === "consignia") ? skBuildBridgeJobData() : null,
+      jobData: (filingType === "export" || filingType === "import" || filingType === "consignia" || filingType === "freight") ? skBuildBridgeJobData() : null,
       consignaDocType: filingType === "consignia" ? consignaDocType : null
     });
   }
@@ -1403,6 +1740,23 @@ function boot(){
   /* Normalize: every entry above resolves to a plain filingType string for
      everything that already worked (export/import/freight/brc), plus an
      optional consignaDocType for the new Consignia Desk entries. */
+  /* Export vs Import separation: TCOS's Consignia Desk / Shipping Bill / BRC are
+     export-side only and the Bill of Entry is import-side only (freight docs work
+     both ways). A Lot whose Shipment Mode says Import must never be offered the
+     Export Desk for its Commercial Invoice etc. (and vice versa for the Bill of
+     Entry) — those just run as the normal exercise here. Jobs with no
+     Import/Export mode (Road / Warehouse) are not gated, exactly as before. */
+  const TCOS_EXPORT_SIDE_ONLY = new Set(["shipping-bill","bank-realization-certificate","commercial-invoice","packing-list","certificate-of-origin","insurance-certificate","letter-of-credit","bill-of-exchange","export-license","phytosanitary-certificate","health-certificate","fumigation-certificate","catch-certificate","haccp-certificate","dangerous-goods-declaration"]);
+  const TCOS_IMPORT_SIDE_ONLY = new Set(["bill-of-entry"]);
+  function bridgeAllowedForJobDirection(){
+    try{
+      const j = (typeof skGetActiveJob === "function" && CURRENT_USER && CURRENT_USER.id) ? skGetActiveJob(CURRENT_USER.id) : null;
+      const m = (j && j.fields && j.fields.mode) || "";
+      if(/import/i.test(m) && TCOS_EXPORT_SIDE_ONLY.has(slug)) return false;
+      if(/export/i.test(m) && TCOS_IMPORT_SIDE_ONLY.has(slug)) return false;
+    }catch(e){}
+    return true;
+  }
   const bridgeSpecRaw = TCOS_BRIDGE_SLUGS[slug];
   const bridgeFilingType = bridgeSpecRaw && typeof bridgeSpecRaw === "object" ? bridgeSpecRaw.ft : bridgeSpecRaw;
   const bridgeConsignaDocType = bridgeSpecRaw && typeof bridgeSpecRaw === "object" ? bridgeSpecRaw.doc : null;
@@ -1417,7 +1771,7 @@ function boot(){
     const already = skGetDocProgress(CURRENT_USER.id, slug);
     const alreadyDone = already && already.status === "completed";
     const dismissedKey = "skelora_bridge_dismissed_" + slug;
-    if(!alreadyDone && !sessionStorage.getItem(dismissedKey)){
+    if(!alreadyDone && !sessionStorage.getItem(dismissedKey) && bridgeAllowedForJobDirection()){
       showTcosBridgeChoice(slug, bridgeFilingType, continueBoot, bridgeConsignaDocType);
       return;
     }
@@ -1525,16 +1879,26 @@ function boot(){
         if(typeof html2canvas === "undefined" || typeof window.jspdf === "undefined") throw new Error("PDF libs unavailable");
         const letterheadEl = document.querySelector(".doc-letterhead");
         if(!letterheadEl) throw new Error("letterhead not found");
-        const canvas = await html2canvas(letterheadEl, {scale:2, useCORS:true, backgroundColor:"#ffffff"});
+        let pdf;
+        if(letterheadEl.querySelector(".sb-page")){
+          pdf = await skBuildSbPdf(letterheadEl, null);
+        } else {
+        const canvas = await skWithUnclippedReview(letterheadEl, () => html2canvas(letterheadEl, {scale:2, useCORS:true, backgroundColor:"#ffffff"}));
         const { jsPDF } = window.jspdf;
-        const pdf = new jsPDF({orientation:"portrait", unit:"mm", format:"a4"});
+        pdf = new jsPDF({orientation:"portrait", unit:"mm", format:"a4"});
         const pageWidth = pdf.internal.pageSize.getWidth(), pageHeight = pdf.internal.pageSize.getHeight();
         const imgWidth = pageWidth, imgHeight = (canvas.height*imgWidth)/canvas.width;
+        let pagedOk = false;
+        try{ skAddCanvasToPdfPaged(pdf, canvas, letterheadEl); pagedOk = true; }
+        catch(pe){ console.warn("Smart paging failed, using plain slicing:", pe); try{ while(pdf.getNumberOfPages() > 1) pdf.deletePage(pdf.getNumberOfPages()); }catch(e2){} }
+        if(!pagedOk){
         const imgData = canvas.toDataURL("image/jpeg", 0.92);
         let heightLeft = imgHeight, position = 0;
         pdf.addImage(imgData, "JPEG", 0, position, imgWidth, imgHeight);
         heightLeft -= pageHeight;
         while(heightLeft > 0){ position = heightLeft - imgHeight; pdf.addPage(); pdf.addImage(imgData,"JPEG",0,position,imgWidth,imgHeight); heightLeft -= pageHeight; }
+        }
+        }
         const docNumber = (firstNonEmpty(DOC_NUMBER_FIELDS, formData) || CONFIG.docCodeExample).toString().replace(/[^a-zA-Z0-9_-]+/g,"-");
         const filename = `${CONFIG.title.replace(/[^a-zA-Z0-9_-]+/g,"-")}-${docNumber}.pdf`;
         const base64 = pdf.output("datauristring");

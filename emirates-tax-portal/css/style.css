@@ -433,6 +433,7 @@ table.data-table tr:hover td{background:#fafbfc}
   font-size:10px;align-items:center;justify-content:center;margin-right:6px;cursor:help;font-style:normal;
 }
 .box-table td .amt-input{width:100%;text-align:right;padding:8px 10px;font-variant-numeric:tabular-nums}
+.amt-input.warn{border-color:var(--warn)!important;background:var(--warn-bg)!important}
 .amt-input.invalid,#b3Amount.invalid,#b3Vat.invalid,#b7Amount.invalid,#b7Vat.invalid,#b9Amount.invalid,#b9Vat.invalid,#b10Amount.invalid,#b10Vat.invalid,#b4Amount.invalid,#b5Amount.invalid{border-color:var(--danger)!important;background:var(--danger-bg)!important}
 #validationList li{margin-bottom:2px}
 .box-table td.readonly-cell{

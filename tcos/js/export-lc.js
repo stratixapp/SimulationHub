@@ -35,6 +35,7 @@ function openLcWorkstation(jobId) {
     doc.fields.incoterm = job.brief.incoterm || '';
     doc.fields.portOfLoading = ''; doc.fields.portOfDischarge = '';
     doc.fields.insuranceRequired = job.brief.incoterm === 'CIF' || job.brief.incoterm === 'CIP';
+    xdSeedDoc(doc, job);
     STATE.exportDocs.push(doc);
     saveState();
   }

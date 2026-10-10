@@ -1,5 +1,22 @@
 /* ===== Student Gate — session start/resume/switch ===== */
 (function(){
+  /* WHO is using the simulator is remembered PER TAB / BROWSER SESSION (sessionStorage), so:
+       - every time the simulator is opened fresh (new day, new window, browser restarted) it asks for the
+         name again; typing the SAME name resumes that student's saved work (registration draft, returns...)
+       - a page refresh does not ask again
+       - two tabs can never write into each other's student data (the old single shared "active student"
+         key made that possible)
+     The real Storage objects are captured here, before the per-student wrapper further down replaces them. */
+  let realLS=null, realSS=null;
+  try{ realLS=window.localStorage; realSS=window.sessionStorage; }catch(e){}
+  const TAB_KEY='gstTabStudentId';
+  let ssOK=true;
+  try{ realSS.setItem('__gst_probe','1'); realSS.removeItem('__gst_probe'); }catch(e){ ssOK=false; }
+  // If sessionStorage is unavailable we fall back to the old behaviour (remembered in localStorage).
+  function tabId(){ try{ return ssOK ? (realSS.getItem(TAB_KEY)||'') : (realLS.getItem('gstActiveStudentId')||''); }catch(e){ return ''; } }
+  function setTabId(id){ try{ if(ssOK) realSS.setItem(TAB_KEY,id); }catch(e){} }
+  function clearTabId(){ try{ if(ssOK) realSS.removeItem(TAB_KEY); }catch(e){} }
+  window.__gstActiveStudentId=tabId;
   function knownStudents(){
     try{ return JSON.parse(window.localStorage.getItem('gstKnownStudents')||'[]'); }catch(e){ return []; }
   }
@@ -17,11 +34,13 @@
     if(!name){ el?.focus(); if(el){el.style.borderColor='#c33';} return; }
     const id=sanitizeId(name);
     window.localStorage.setItem('gstActiveStudentId',id);
+    setTabId(id);
     saveKnownStudent(id,name);
     location.reload();
   };
   window.gstResumeStudent=function(id,label){
     window.localStorage.setItem('gstActiveStudentId',id);
+    setTabId(id);
     saveKnownStudent(id,label);
     location.reload();
   };
@@ -42,6 +61,7 @@
   window.gstSwitchStudent=function(){
     if(!confirm('Switch to a different student? Your own progress is saved and will be here when you type your name again.')) return;
     window.localStorage.removeItem('gstActiveStudentId');
+    clearTabId();
     location.reload();
   };
   function escHtml(s){ return String(s).replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c])); }
@@ -77,7 +97,7 @@
   }
   function renderGate(){
     const gate=document.getElementById('studentGate');
-    const activeId=window.localStorage.getItem('gstActiveStudentId');
+    const activeId=tabId();
     if(activeId){ if(gate) gate.style.display='none'; return; }
     if(gate) gate.style.display='flex';
     renderKnownList();
@@ -105,9 +125,9 @@
    =================================================================== */
 (function(){
   const RESERVED=new Set(['gstActiveStudentId','gstKnownStudents']);
-  function wrap(real){
+  function wrap(real,isLocal){
     function prefix(){
-      const id=real.getItem('gstActiveStudentId')||'';
+      const id=(isLocal&&typeof window.__gstActiveStudentId==='function')?window.__gstActiveStudentId():(real.getItem('gstActiveStudentId')||'');
       return id?('stu__'+id+'__'):'';
     }
     function pk(key){ return RESERVED.has(key)?key:(prefix()+key); }
@@ -137,8 +157,8 @@
   }
   try{
     const realLS=window.localStorage, realSS=window.sessionStorage;
-    Object.defineProperty(window,'localStorage',{value:wrap(realLS),configurable:true});
-    Object.defineProperty(window,'sessionStorage',{value:wrap(realSS),configurable:true});
+    Object.defineProperty(window,'localStorage',{value:wrap(realLS,true),configurable:true});
+    Object.defineProperty(window,'sessionStorage',{value:wrap(realSS,false),configurable:true});
   }catch(e){ console.warn('Per-student storage namespacing unavailable in this browser; falling back to shared storage.',e); }
 })();
 
@@ -605,7 +625,7 @@ function openTRNPartB(){
 
       <div class="reg-mand-note"><span class="reg-mand-dot">&#9679;</span> indicates mandatory fields</div>
       <div id="partBPanel" class="partb-panel"></div><div class="partb-footer"><button class="reg-back-btn" onclick="partBBack()">BACK</button><div id="partBFooterActions"><button class="partb-save" onclick="savePartB()">SAVE DRAFT</button><button class="reg-proceed partb-next" onclick="partBNext()">SAVE &amp; CONTINUE</button></div></div><div id="partBGlobalMessage" class="reg-message"></div><div class="demo-note trn-demo-note">Simulator note: this reproduces the GST REG-01 Part-B workflow and validations locally. GSTN/PAN/Aadhaar/bank services are not called from this offline HTML.</div></div></div>`;
-  ensureSimulator100Zoom(); window.scrollTo(0,0); window.gstPartBTab='business'; window.gstPartBData=JSON.parse(localStorage.getItem('gstPartBData')||'{}'); bindPANInputs(); partBTab('business');
+  ensureSimulator100Zoom(); window.scrollTo(0,0); window.gstPartBTab='business'; window.gstPartBData=JSON.parse(localStorage.getItem('gstPartBData')||'{}'); bindPANInputs(); partBTab(gstPartBResumeTab());
 }
 
 function esc(v){return String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));}
@@ -814,7 +834,7 @@ function personFieldSet(prefix){
     (prefix==='promo'?`<h4 class="pb-subhead full">Other Information</h4>`+toggle(prefix+'AlsoSignatory','Also Authorized Signatory'):'');
 }
 function partBTab(tab){
-  partBData(); const partA=JSON.parse(localStorage.getItem('gstPartA')||'{}'); window.gstPartBTab=tab;
+  partBData(); const partA=JSON.parse(localStorage.getItem('gstPartA')||'{}'); window.gstPartBTab=tab; gstPartBRememberTab(tab);
   document.querySelectorAll('.partb-tabs button').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));
   const d=window.gstPartBData||{}; let html='';
   if(tab==='business'){
@@ -997,7 +1017,49 @@ function markRequiredFieldErrors(){
     el.classList.toggle('field-error',!v);
   });
 }
-function savePartB(){partBData();notify('Part-B draft saved locally.');}
+function savePartB(){partBData();gstPartBStamp();notify('Part-B draft saved locally.');}
+/* ---- Part-B draft: remember the last tab, autosave while typing, and say so ---- */
+const GST_PARTB_TABS=['business','promoters','signatory','representative','principal','additional','goods','state','aadhaar','verification'];
+const GST_PARTB_TAB_LABELS={business:'Business Details',promoters:'Promoter Partners',signatory:'Authorized Signatory',representative:'Authorized Representative',principal:'Principal Place of Business',additional:'Additional Places of Business',goods:'Goods And Services',state:'State Specific Information',aadhaar:'Aadhaar Authentication',verification:'Verification'};
+function gstPartBRememberTab(tab){
+  // stored together with the TRN so a brand-new application never inherits an old application's position
+  try{ if(GST_PARTB_TABS.includes(tab)) localStorage.setItem('gstPartBLastTab',JSON.stringify({trn:localStorage.getItem('gstTRN')||'',tab})); }catch(e){}
+}
+function gstPartBResumeTab(){
+  try{
+    const r=JSON.parse(localStorage.getItem('gstPartBLastTab')||'null');
+    if(r&&GST_PARTB_TABS.includes(r.tab)&&r.trn===(localStorage.getItem('gstTRN')||'')) return r.tab;
+  }catch(e){}
+  return 'business';
+}
+function gstPartBStamp(){
+  try{
+    const foot=document.querySelector('.partb-footer'); if(!foot||!foot.parentNode) return;
+    let el=document.getElementById('gstDraftStamp');
+    if(!el){ el=document.createElement('div'); el.id='gstDraftStamp'; el.className='gst-draft-stamp'; foot.parentNode.insertBefore(el,foot); }
+    el.textContent='\u2713 Draft saved automatically at '+new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+  }catch(e){}
+}
+(function(){
+  let timer=null;
+  function flush(){
+    clearTimeout(timer); timer=null;
+    try{
+      // only while the Part-B form is on screen AND its saved data was loaded (never overwrite with a half-empty object)
+      if(!document.getElementById('partBPanel')||!window.gstPartBData||typeof partBData!=='function') return;
+      partBData(); gstPartBStamp();
+    }catch(e){}
+  }
+  function schedule(e){
+    try{ if(!(e.target&&e.target.closest&&e.target.closest('#partBPanel'))) return; }catch(err){ return; }
+    clearTimeout(timer); timer=setTimeout(flush,600);
+  }
+  document.addEventListener('input',schedule,true);
+  document.addEventListener('change',schedule,true);
+  window.addEventListener('pagehide',flush);
+  window.addEventListener('beforeunload',flush);
+  document.addEventListener('visibilitychange',function(){ if(document.visibilityState==='hidden') flush(); });
+})();
 function partBNext(){
   const d=partBData();
   // Real portal marks a tab's icon with a checkmark once you SAVE & CONTINUE past it.
@@ -1168,7 +1230,7 @@ window.gstHideLoader=function(){
 // believable "government portal" loading feel instead of snapping
 // instantly between screens. Login specifically uses a fixed 4s instead
 // of this (see submitGSTFullLogin).
-window.gstRandomDelay=function(){ return 2000+Math.random()*2000; };
+window.gstRandomDelay=function(){ if(window.__gstNavFast) return 60; /* Back button re-opening a screen: no fake wait */ return 2000+Math.random()*2000; };
 // Runs `after` behind a brief spinner, matching the real portal's page-
 // transition loading state instead of an instant snap between screens.
 window.gstWithLoader=function(msg,after,delay){
@@ -1182,13 +1244,15 @@ function showResumeDraftBanner(){
   const trn=localStorage.getItem('gstTRN')||'';
   const app=JSON.parse(localStorage.getItem('gstRegistrationApplication')||'{}');
   if(!trn||!app.trn||app.trn!==trn) return;
-  if(localStorage.getItem('gstLoggedIn')==='true') return; // already a full taxpayer, not mid-registration
+  if(localStorage.getItem('gstLoggedIn')==='true'||localStorage.getItem('gstLoggedIn')==='1') return; // already a full taxpayer, not mid-registration
+  try{ if((JSON.parse(localStorage.getItem('gstRegistration')||'{}')).arn||localStorage.getItem('gstARN')) return; }catch(e){} // application already submitted (ARN generated) — no longer a draft
   const contentEl=document.querySelector('.main > .content'); if(!contentEl) return;
   if(document.getElementById('resumeDraftBanner')) return;
   const banner=document.createElement('div');
   banner.id='resumeDraftBanner';
   banner.className='resume-draft-banner';
-  banner.innerHTML=`<div>Draft registration in progress — <b>TRN: ${trn}</b></div><button onclick="openTRNPartB()">CONTINUE APPLICATION →</button>`;
+  const stepLabel=(typeof gstPartBResumeTab==='function'&&localStorage.getItem('gstPartBLastTab'))?GST_PARTB_TAB_LABELS[gstPartBResumeTab()]:'';
+  banner.innerHTML=`<div>Draft registration in progress — <b>TRN: ${trn}</b>${stepLabel?`<br><small>You left off at: <b>${stepLabel}</b></small>`:''}</div><button onclick="openTRNPartB()">CONTINUE APPLICATION →</button>`;
   contentEl.parentNode.insertBefore(banner,contentEl);
 }
 
@@ -4962,4 +5026,86 @@ gstOpenIMSFilter=function(filter){imsFidelityRender(filter,1)};
       setTimeout(()=>{ _origOpenTRNPartB(); window.gstHideLoader(); }, window.gstRandomDelay());
     };
   }
+})();
+
+/* ===================================================================
+   CONTINUE WHERE YOU LEFT OFF — returns, refund, IFF
+   Every module's own SAVE / SAVE DRAFT already stores its data per student. This only remembers WHICH module
+   the student last saved in, and puts a one-click "Continue" button on the Home page next time (after the
+   student types their name again), so nobody has to hunt for the screen from the beginning.
+   The save handlers are wrapped, never replaced: the original runs first and its result is returned untouched;
+   any problem in this block is swallowed so it can never break a save.
+   =================================================================== */
+(function(){
+  'use strict';
+  const KEY='gstLastDraft';
+  const R=(name,label)=>({label:label,fn:'gstOpenReturn',args:[name]});
+  const GROUPS=[
+    [R('GSTR-3B','GSTR-3B'),['gst3bSaveITC','gst3bSave5','gst3bSave32','gst3bAutoSave','gst3bSaveSection']],
+    [R('GSTR-1','GSTR-1'),['gstGstr1PlaceholderSave','gstGstr1AmendSave']],
+    [{label:'GSTR-1A',fn:'gstOpenGstr1A',args:[]},['gstGstr1AAmendSave','gstGstr1AAddSave']],
+    [R('GSTR-9','GSTR-9 (Annual Return)'),['g9SaveTableN','g9SaveTable9','g9SaveTable14','g9SaveTable15','g9SaveTable16','g9SaveTable19','g9SaveSimpleITC','g9SaveSimple']],
+    [R('GSTR-4','GSTR-4 (Annual Return)'),['g4SaveDraft']],
+    [R('GSTR-5','GSTR-5'),['g5SaveDraft']],
+    [R('GSTR-5A','GSTR-5A'),['g5aSaveDraft']],
+    [R('GSTR-6','GSTR-6'),['g6SaveDraft']],
+    [R('GSTR-7','GSTR-7'),['g7SaveDraft']],
+    [R('GSTR-8','GSTR-8'),['g8SaveDraft']],
+    [R('GSTR-10','GSTR-10'),['g10SaveDraft']],
+    [R('GSTR-11','GSTR-11'),['g11SaveDraft']],
+    [{label:'Refund Application (RFD-01)',fn:'refundApply',args:[]},['refundSaveDraft']],
+    [{label:'IFF (Invoice Furnishing Facility)',fn:'gstOpenIFF',args:[]},['gstIFFSaveSimple']]
+  ];
+  function record(spec){
+    try{ localStorage.setItem(KEY,JSON.stringify({label:spec.label,fn:spec.fn,args:spec.args,at:new Date().toISOString()})); }catch(e){}
+  }
+  GROUPS.forEach(function(g){
+    const spec=g[0];
+    g[1].forEach(function(name){
+      const orig=window[name];
+      if(typeof orig!=='function'||orig.__gstResumeWrapped) return;
+      const wrapped=function(){
+        const result=orig.apply(this,arguments);
+        record(spec);
+        return result;
+      };
+      wrapped.__gstResumeWrapped=true;
+      window[name]=wrapped;
+    });
+  });
+  function esc2(v){ return String(v==null?'':v).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+  function readJSON(k){ try{ return JSON.parse(localStorage.getItem(k)||'null'); }catch(e){ return null; } }
+  /* newest of: (1) a module that has its own opener, (2) a snapshot of any other screen saved in (nav-back.js) */
+  function latest(){
+    var a=readJSON(KEY), b=readJSON('gstLastScreen');
+    if(a&&(!a.label||typeof window[a.fn]!=='function')) a=null;
+    if(b&&(!b.body||typeof window.feature!=='function')) b=null;
+    if(a&&b) return (Date.parse(b.at)>Date.parse(a.at))?{k:'screen',v:b}:{k:'draft',v:a};
+    return a?{k:'draft',v:a}:(b?{k:'screen',v:b}:null);
+  }
+  window.gstContinueLastDraft=function(){
+    const l=latest(); if(!l) return;
+    const bn=document.getElementById('lastDraftBanner'); if(bn) bn.remove();
+    if(l.k==='draft') window[l.v.fn].apply(null,l.v.args||[]);
+    else window.feature(l.v.title,l.v.sub,l.v.body);
+  };
+  window.gstDismissLastDraft=function(){
+    try{ localStorage.removeItem(KEY); localStorage.removeItem('gstLastScreen'); }catch(e){}
+    const bn=document.getElementById('lastDraftBanner'); if(bn) bn.remove();
+  };
+  function showBanner(){
+    try{
+      if(typeof window.__gstActiveStudentId==='function'&&!window.__gstActiveStudentId()) return; // name not entered yet
+      const l=latest(); if(!l) return;
+      if(localStorage.getItem('gstLoggedIn')!=='1') return; // these modules need the taxpayer login
+      const contentEl=document.querySelector('.main > .content'); if(!contentEl||document.getElementById('lastDraftBanner')) return;
+      const label=l.k==='draft'?l.v.label:String(l.v.sub||l.v.title||'your last screen').replace(/^Services\s*>\s*/,'');
+      const when=l.v.at?new Date(l.v.at).toLocaleString('en-IN',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}):'';
+      const banner=document.createElement('div');
+      banner.id='lastDraftBanner'; banner.className='resume-draft-banner';
+      banner.innerHTML='<div>Continue where you left off — <b>'+esc2(label)+'</b>'+(when?'<br><small>Last saved: '+esc2(when)+'</small>':'')+'</div><div><button onclick="gstContinueLastDraft()">CONTINUE →</button> <button class="resume-dismiss" title="Hide this" onclick="gstDismissLastDraft()">✕</button></div>';
+      contentEl.parentNode.insertBefore(banner,contentEl);
+    }catch(e){}
+  }
+  document.addEventListener('DOMContentLoaded',showBanner);
 })();

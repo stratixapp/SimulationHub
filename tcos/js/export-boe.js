@@ -17,6 +17,7 @@ function openBoeWorkstation(jobId) {
   if (!doc) {
     doc = { id: newId('XDOC-BOE'), exportJobId: jobId, type: 'BILL_OF_EXCHANGE', version: 1, status: 'DRAFT', createdAt: Date.now(), updatedAt: Date.now(), fields: blankBoeFields() };
     doc.fields.currency = job.brief.currency || '';
+    xdSeedDoc(doc, job);
     STATE.exportDocs.push(doc);
     saveState();
   }

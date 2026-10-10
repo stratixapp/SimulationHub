@@ -1192,6 +1192,8 @@
 <div class="toast" id="toast"></div>
 
 <script src="auth.js"></script>
+<script src="../shared/access-id.js"></script>
+<script src="lyra-lock.js"></script>
 <script src="dot-ecosystem.js"></script>
 <script src="job-engine.js"></script>
 <script src="documents-data.js"></script>
@@ -3019,7 +3021,11 @@ function openJobModal(existingJob){
   modalPanel.style.maxWidth = '760px';
   modalBar.style.background = 'var(--navy)';
   const job = existingJob || null;
-  const fields = job ? job.fields : {};
+  // Unsaved draft from an earlier, abandoned "Start a New Shipment Lot"
+  // (new Lots only). Rendered through exactly the same path an existing
+  // Job's saved values use, so every dependent field behaves identically.
+  const draft = (!job && CURRENT_USER.id && typeof skGetJobDraft === 'function') ? skGetJobDraft(CURRENT_USER.id) : null;
+  const fields = job ? job.fields : (draft ? Object.assign({}, draft.fields) : {});
   // PO Number is the buyer's own order reference in real life, but for a
   // brand-new Shipment Lot with nothing typed yet, give it a sensible
   // auto-generated placeholder (numbers-only) rather than leaving it
@@ -3027,7 +3033,10 @@ function openJobModal(existingJob){
   // document's own Serial Number field. Only for a fresh Job; editing an
   // existing one never touches whatever's already there.
   if(!job && !fields.poNumber && CURRENT_USER.id && typeof skGenerateRefNumber === 'function'){
-    fields.poNumber = skGenerateRefNumber(CURRENT_USER.id, 'jobMaster:poNumber', 6);
+    // Peek, don't consume — the counter only advances when the Job is saved.
+    fields.poNumber = (typeof skPeekRefNumber === 'function')
+      ? skPeekRefNumber(CURRENT_USER.id, 'jobMaster:poNumber', 6)
+      : skGenerateRefNumber(CURRENT_USER.id, 'jobMaster:poNumber', 6);
   }
   const currentAssignmentId = job ? (job.assignmentId || '') : '';
   // BUGFIX: this modal used to always drop an existing assignment link on
@@ -3044,16 +3053,19 @@ function openJobModal(existingJob){
   const currentAssignment = currentAssignmentId && typeof skGetAssignment === 'function' ? skGetAssignment(currentAssignmentId) : null;
   // Backward compatible with jobs saved before the A/B/C tier system - an
   // older job only has the boolean job.fullAutofill.
-  const currentAutofillTier = job ? (job.autofillTier || (job.fullAutofill ? 'full' : 'basic')) : 'basic';
-  const currentWorkMode = job ? (job.fields.workMode || 'simulator') : 'simulator';
+  const currentAutofillTier = job ? (job.autofillTier || (job.fullAutofill ? 'full' : 'basic')) : ((draft && (draft.tier==='half'||draft.tier==='full')) ? draft.tier : 'basic');
+  // Lyra (assistant.js) switch, stored with the Lot: job.fields.lyra = 'on' | 'off' (default on). Works for edit + draft restore.
+  const currentLyra = (fields && fields.lyra === 'off') ? 'off' : 'on';
+  const currentWorkMode = job ? (job.fields.workMode || 'simulator') : ((draft && draft.workMode==='tcos') ? 'tcos' : 'simulator');
   const docPickerOrAssignmentNoticeHtml = currentAssignment ? `
     <div style="padding:12px 14px;border-radius:9px;background:var(--accent-soft);border:1.5px solid #C7DCFC;font-size:12.5px;color:var(--navy);line-height:1.6;">
       <b>Following assignment: ${currentAssignment.title}</b> — ${(currentAssignment.docSlugs||[]).length} document${(currentAssignment.docSlugs||[]).length===1?'':'s'} set by your faculty. Document selection isn't editable here; only the shipment details above are. To pick your own documents instead, finish/close this Shipment Lot and start a new one.
-    </div>` : skJobDocPickerHTML(job ? job.docSlugs : [], job ? skJobModeGroupForMode(job.fields.mode) : null);
+    </div>` : skJobDocPickerHTML(job ? job.docSlugs : (draft && Array.isArray(draft.docSlugs) ? draft.docSlugs : []), job ? skJobModeGroupForMode(job.fields.mode) : (draft && typeof skJobModeGroupForMode === 'function' ? skJobModeGroupForMode(draft.fields.mode) : null));
   modalBody.innerHTML = `
     <div class="modal-ic" style="background:var(--navy-soft);color:var(--navy);">${ic('layers')}</div>
     <h3>${job ? `Edit Shipment Lot — ${job.jobId}` : 'Start a New Shipment Lot'}</h3>
-    <div class="modal-desc">This is the one shipment your documents will be built around. Fill in what you know — you can leave anything blank and complete it as you go.</div>
+    <div class="modal-desc">This is the one shipment your documents will be built around. Fill in every field (a few are marked optional). ${job ? 'Changes apply when you click Save Changes.' : 'Your progress is saved automatically as a draft until you create the Shipment Lot.'}</div>
+    ${draft ? `<div id="jobDraftNotice" style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 12px;border-radius:9px;background:var(--accent-soft);border:1.5px solid #C7DCFC;font-size:12.3px;color:var(--navy);margin:8px 0;"><span>↺ Restored your unsaved draft${draft.savedAt ? ' from ' + new Date(draft.savedAt).toLocaleString() : ''}.</span><button type="button" id="jobDraftDiscardBtn" style="background:none;border:none;color:var(--red);font-weight:700;font-size:12px;cursor:pointer;white-space:nowrap;">Discard draft</button></div>` : ''}
     <div style="padding:12px;border-radius:9px;background:var(--surface-alt);margin:12px 0;">
       <div style="font-size:12.3px;color:var(--text-1);font-weight:700;margin-bottom:2px;">How much should auto-fill into your selected documents?</div>
       <div style="font-size:11.5px;color:var(--text-2);margin-bottom:10px;line-height:1.5;">Item description, HSN code, quantity, unit, unit price and weight always auto-fill into every item table regardless of which box you pick below — everything else depends on the tier.</div>
@@ -3075,6 +3087,7 @@ function openJobModal(existingJob){
     <div style="margin-top:16px;margin-bottom:8px;" id="jobFormGrid">
       ${skJobFormSectionsHTML(fields, fields.items)}
       <input type="hidden" data-jobfield="workMode" id="jobWorkModeHidden" value="${currentWorkMode==='tcos'?'tcos':'simulator'}">
+      <input type="hidden" data-jobfield="lyra" id="jobLyraHidden" value="${currentLyra}">
     </div>
     <div style="padding:12px;border-radius:9px;background:var(--surface-alt);margin:12px 0;" id="jobWorkModeSection">
       <div style="font-size:12.3px;color:var(--text-1);font-weight:700;margin-bottom:2px;">Where do you want to work on this Shipment Lot's documents?</div>
@@ -3086,10 +3099,16 @@ function openJobModal(existingJob){
         </label>
         <label class="work-mode-box">
           <input type="radio" name="jobWorkModeRadio" value="tcos" id="jobWorkModeTcos" ${currentWorkMode==='tcos'?'checked':''}>
-          <span class="wmb-inner"><b>🔗 TCOS (Core Filing)</b><span>Auto-ticks just the documents TCOS actually supports, for real filing there. Everything else for this Lot stays here as a supporting document.</span></span>
+          <span class="wmb-inner"><b>🔗 TCOS (Core Filing)</b><span>Auto-ticks every document TCOS supports for this shipment's direction (Export or Import), for real filing there — everything you type in this Lot is carried into TCOS automatically. The rest stay here as supporting documents.</span></span>
         </label>
       </div>
     </div>
+    <label id="jobLyraSection" style="display:flex;gap:12px;align-items:flex-start;padding:12px;border-radius:9px;background:linear-gradient(135deg,#F1EEFF,#EAF1FF);border:1.5px solid #D3CCF7;margin:0 0 10px;cursor:pointer;">
+      <input type="checkbox" id="jobLyraToggle" ${currentLyra==='on'?'checked':''} style="margin-top:4px;width:17px;height:17px;flex:none;">
+      <span style="width:34px;height:34px;flex:none;border-radius:50%;background:linear-gradient(135deg,#5B3FD8,#2F6BFF);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:17px;">✦</span>
+      <span style="font-size:12.3px;line-height:1.55;color:var(--text-1);"><b style="font-size:13px;">Lyra — your shipment assistant</b><br>Everything you type in this form is pinned. If a document later has something different — a number, a name, a port — Lyra pops up, shows exactly how it was written here, and explains why it must match. Untick it for tests or exams.</span>
+    </label>
+    <div id="jobTcosSummary" style="display:none;margin:-4px 0 10px;padding:9px 12px;border-radius:9px;background:var(--accent-soft);border:1.5px solid #C7DCFC;font-size:12px;color:var(--navy);line-height:1.5;"></div>
     <div id="jobDocPickerWrap">
       ${docPickerOrAssignmentNoticeHtml}
     </div>
@@ -3114,7 +3133,7 @@ function openJobModal(existingJob){
   // student already picked by hand — purely additive, so switching between
   // the two boxes (or editing the Shipment Mode afterwards) never silently
   // loses a selection.
-  const TCOS_BRIDGE_EXPORT_SLUGS_COMMON = ["shipping-bill","commercial-invoice","packing-list","certificate-of-origin","insurance-certificate","letter-of-credit","bill-of-exchange","export-license","phytosanitary-certificate","health-certificate","fumigation-certificate","catch-certificate","haccp-certificate","dangerous-goods-declaration","bank-realization-certificate"];
+  const TCOS_BRIDGE_EXPORT_SLUGS_COMMON = ["bank-realization-certificate","shipping-bill","commercial-invoice","packing-list","certificate-of-origin","insurance-certificate","letter-of-credit","bill-of-exchange","export-license","phytosanitary-certificate","health-certificate","fumigation-certificate","catch-certificate","haccp-certificate","dangerous-goods-declaration","bank-realization-certificate"];
   const TCOS_BRIDGE_EXPORT_SLUGS_SEA_ONLY = ["booking-confirmation","vgm-certificate","bill-of-lading-sea"];
   const TCOS_BRIDGE_EXPORT_SLUGS_AIR_ONLY = ["air-waybill"];
   const TCOS_BRIDGE_IMPORT_SLUGS = new Set(["bill-of-entry","arrival-notice","delivery-order","equipment-interchange-receipt","proof-of-delivery"]);
@@ -3179,9 +3198,25 @@ function openJobModal(existingJob){
   // while "Document Simulator" is selected would suggest a routing that
   // isn't actually the current plan, so tags clear immediately on switching
   // back rather than lingering.
+  function refreshTcosSummary(useTcos, info){
+    const box = document.getElementById('jobTcosSummary');
+    if(!box) return;
+    if(!useTcos){ box.style.display = 'none'; return; }
+    const ticked = Array.from(document.querySelectorAll('.jobdoc-check')).filter(cb=>cb.checked && info.tcosSlugs.has(cb.getAttribute('data-slug'))).length;
+    const dirLabel = !/^(Sea|Air) /.test(info.mode||'') ? '' : (info.isImport ? 'Import' : 'Export');
+    box.style.display = 'block';
+    box.innerHTML = dirLabel
+      ? ('<b>🔗 TCOS · ' + dirLabel + ' documents</b> — ' + ticked + ' of this Lot\'s documents will be done in TCOS\'s ' + (info.isImport ? 'Import side (Bill of Entry + import freight documents)' : 'Export Documentation Desk, Customs Portal &amp; freight module') + '. ' + (info.isImport ? 'Export-only documents (Commercial Invoice, Packing List…) are not offered here.' : 'Import-only documents (Bill of Entry…) are not offered here.') + ' Your shipment details auto-fill into each one.')
+      : '<b>🔗 TCOS</b> — pick a Sea or Air Shipment Mode above to see which documents TCOS will handle for this Lot.';
+  }
   function refreshTcosTags(){
     const useTcos = !!(document.getElementById('jobWorkModeTcos') && document.getElementById('jobWorkModeTcos').checked);
-    const {tcosSlugs} = shipmentModeInfo();
+    const info = shipmentModeInfo();
+    // TCOS only has Export/Import documents — Road / Domestic and Warehouse
+    // Transfer Lots have no TCOS direction, so no TCOS tags for them.
+    const hasDirection = /^(Sea|Air) /.test(info.mode || '');
+    const tcosSlugs = hasDirection ? info.tcosSlugs : new Set();
+    refreshTcosSummary(useTcos, {mode: info.mode, isImport: info.isImport, tcosSlugs});
     document.querySelectorAll('.jobdoc-check').forEach(cb=>{
       const label = cb.closest('label');
       if(!label) return;
@@ -3190,13 +3225,20 @@ function openJobModal(existingJob){
         if(!tag){
           tag = document.createElement('span');
           tag.className = 'jobdoc-tcos-tag';
-          tag.textContent = '🔗 TCOS';
+          tag.textContent = '🔗 TCOS · ' + (shipmentModeInfo().isImport ? 'Import' : 'Export');
           tag.style.cssText = 'margin-left:6px;font-size:9.5px;font-weight:700;color:var(--accent);background:var(--accent-soft);padding:1px 5px;border-radius:5px;white-space:nowrap;';
           label.querySelector('span').appendChild(tag);
         }
       } else if(tag){ tag.remove(); }
     });
   }
+  const lyraToggle = document.getElementById('jobLyraToggle'), lyraHidden = document.getElementById('jobLyraHidden');
+  // Lyra is locked: flipping her switch needs the developer code (lyra-lock.js). The code is never remembered.
+  if(lyraToggle && lyraHidden) lyraToggle.addEventListener('click', (e)=>{
+    e.preventDefault();
+    const flip = ()=>{ lyraToggle.checked = !lyraToggle.checked; lyraHidden.value = lyraToggle.checked ? 'on' : 'off'; };
+    if(window.LyraLock && typeof window.LyraLock.ask === 'function') window.LyraLock.ask(flip);   // no lock script = switch stays as it is
+  });
   const workModeHidden = document.getElementById('jobWorkModeHidden');
   const workModeSimulatorRadio = document.getElementById('jobWorkModeSimulator');
   const workModeTcosRadio = document.getElementById('jobWorkModeTcos');
@@ -3216,7 +3258,7 @@ function openJobModal(existingJob){
       // lets that synchronous re-render finish first, so this always ends
       // up ticking boxes on the picker's current (post-refresh) DOM instead
       // of ticking boxes that are about to be thrown away.
-      setTimeout(applyFullShipmentAutoSelect, 0);
+      setTimeout(()=>{ applyFullShipmentAutoSelect(); refreshTcosTags(); }, 0);
     });
     // Only the 🔗 tags refresh automatically on open (purely cosmetic,
     // doesn't touch any checkbox) — re-running the actual auto-select here
@@ -3783,6 +3825,73 @@ function openJobModal(existingJob){
   }
   if(jobModeSelectEl) jobModeSelectEl.addEventListener('change', skRefreshJobDocPicker);
 
+  // ---- Draft autosave (brand-new Shipment Lot only) ----------------------
+  // Captures the whole form (Job fields, Item rows, ticked documents,
+  // autofill tier, work mode) shortly after any edit and stores it per
+  // student. Reopening "Start a New Shipment Lot" restores it (see `draft`
+  // at the top). Cleared on create (skCreateJob) or via "Discard draft".
+  if(typeof window.__skJobDraftTeardown === 'function'){ try{ window.__skJobDraftTeardown(); }catch(e){} window.__skJobDraftTeardown = null; }
+  if(!job && CURRENT_USER.id && typeof skSaveJobDraft === 'function'){
+    const draftUserId = CURRENT_USER.id;
+    const restoredFromDraft = !!draft;
+    let draftEnabled = true, draftTimer = null, draftBaseline = null;
+    const captureDraft = ()=>{
+      const f = {};
+      modalBody.querySelectorAll('#jobFormGrid [data-jobfield]').forEach(el=>{ f[el.getAttribute('data-jobfield')] = el.value; });
+      f.items = Array.from(modalBody.querySelectorAll('#jobItemsList .job-item-row')).map(row=>{
+        const it = {};
+        row.querySelectorAll('[data-itemfield]').forEach(el=>{ it[el.getAttribute('data-itemfield')] = el.value; });
+        return it;
+      });
+      const tierEl = modalBody.querySelector('input[name="jobAutofillTier"]:checked');
+      const autoAddEl = document.getElementById('jobDocAutoAddToggle');
+      return {
+        v: 1,
+        fields: f,
+        docSlugs: Array.from(modalBody.querySelectorAll('.jobdoc-check:checked')).map(cb=>cb.dataset.slug),
+        autoAdd: !!(autoAddEl && autoAddEl.checked),
+        tier: tierEl ? tierEl.value : 'basic',
+        workMode: f.workMode === 'tcos' ? 'tcos' : 'simulator'
+      };
+    };
+    const flushDraft = ()=>{
+      draftTimer = null;
+      if(!draftEnabled || !document.getElementById('jobFormGrid')) return;
+      const st = captureDraft();
+      // Untouched blank form (identical to how it opened) isn't worth a draft.
+      if(!restoredFromDraft && draftBaseline !== null && JSON.stringify(st) === draftBaseline){ skClearJobDraft(draftUserId); return; }
+      st.savedAt = new Date().toISOString();
+      skSaveJobDraft(draftUserId, st);
+    };
+    const onDraftEdit = ()=>{
+      if(!draftEnabled) return;
+      if(draftTimer) clearTimeout(draftTimer);
+      draftTimer = setTimeout(flushDraft, 250);
+    };
+    const onPageHide = ()=>{ if(draftTimer){ clearTimeout(draftTimer); flushDraft(); } };
+    ['input','change','click'].forEach(ev=>modalBody.addEventListener(ev, onDraftEdit));
+    window.addEventListener('pagehide', onPageHide);
+    setTimeout(()=>{ draftBaseline = JSON.stringify(captureDraft()); }, 0);
+    if(restoredFromDraft && draft.autoAdd){
+      const aa = document.getElementById('jobDocAutoAddToggle');
+      if(aa) aa.checked = true;
+    }
+    window.__skJobDraftTeardown = ()=>{
+      draftEnabled = false;
+      if(draftTimer){ clearTimeout(draftTimer); draftTimer = null; }
+      ['input','change','click'].forEach(ev=>modalBody.removeEventListener(ev, onDraftEdit));
+      window.removeEventListener('pagehide', onPageHide);
+      window.__skJobDraftTeardown = null;
+    };
+    const discardBtn = document.getElementById('jobDraftDiscardBtn');
+    if(discardBtn) discardBtn.addEventListener('click', ()=>{
+      if(!confirm('Discard this draft and start with a blank form?')) return;
+      if(typeof window.__skJobDraftTeardown === 'function') window.__skJobDraftTeardown();
+      skClearJobDraft(draftUserId);
+      openJobModal(null);
+    });
+  }
+
   document.getElementById('jobSaveBtn').addEventListener('click', ()=>{
     // PHASE 13: every Job field is mandatory, and every field on at least
     // one Item row is mandatory too — EXCEPT (this phase's bugfix):
@@ -3897,8 +4006,15 @@ function openJobModal(existingJob){
       if(!chosenAssignmentId && typeof skUpdateJobDocSlugs === 'function') skUpdateJobDocSlugs(CURRENT_USER.id, docSlugs, autoAddedSlugs);
       if(typeof skUpdateJobAutofillMode === 'function') skUpdateJobAutofillMode(CURRENT_USER.id, autofillTier);
     } else {
+      // The PO number shown in the form was only peeked at; consume it now
+      // that the Job is really being created (a hand-edited PO leaves the
+      // counter alone, same as before).
+      if(typeof skPeekRefNumber === 'function' && typeof skGenerateRefNumber === 'function' && patch.poNumber === skPeekRefNumber(CURRENT_USER.id, 'jobMaster:poNumber', 6)){
+        skGenerateRefNumber(CURRENT_USER.id, 'jobMaster:poNumber', 6);
+      }
       skCreateJob(CURRENT_USER.id, patch, chosenAssignmentId, docSlugs, autofillTier, autoAddedSlugs);
     }
+    if(typeof window.__skJobDraftTeardown === 'function') window.__skJobDraftTeardown();
     closeModal();
     renderJobPanel();
     renderCrossDocPanel();
@@ -3996,6 +4112,8 @@ function renderEmptyJobPanel(el){
   });
 }
 
+/* Student-typed Lot values go into innerHTML below; escape them (plain text is unchanged). */
+function dashEsc(x){ return String(x == null ? '' : x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function renderJobPanel(){
   const el = document.getElementById('jobPanel');
   if(!el || !CURRENT_USER.id) { if(el) el.style.display='none'; return; }
@@ -4082,19 +4200,19 @@ function renderJobPanel(){
     </div>` : '';
   el.innerHTML = `
     <div class="panel-head">
-      <h2>Shipment Lot — <span style="font-family:var(--mono);">${job.jobId}</span>${assignmentBadgeHtml}</h2>
-      <div class="sub">${f.mode || 'Mode not set'} · ${route}</div>
+      <h2>Shipment Lot — <span style="font-family:var(--mono);">${dashEsc(job.jobId)}</span>${assignmentBadgeHtml}</h2>
+      <div class="sub">${dashEsc(f.mode || 'Mode not set')} · ${dashEsc(route)}</div>
     </div>
     ${hasScopeHtml}
     ${scopeProgress.total > 0 && !scopeProgress.done ? `<div style="padding:0 22px 16px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;">${workBtnHtml}</div>` : ''}
     ${completeBannerHtml}
     <div style="padding:16px 22px;display:flex;gap:20px;flex-wrap:wrap;align-items:center;">
       <div style="display:flex;gap:22px;flex-wrap:wrap;flex:1;min-width:260px;">
-        <div><div style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.03em;">Exporter</div><div style="font-weight:600;font-size:13.5px;">${f.sellerName || '—'}</div></div>
-        <div><div style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.03em;">Importer</div><div style="font-weight:600;font-size:13.5px;">${f.buyerName || '—'}</div></div>
-        <div><div style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.03em;">Order / PO No.</div><div style="font-weight:600;font-size:13.5px;font-family:var(--mono);">${f.poNumber || '—'}</div></div>
-        <div><div style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.03em;">Incoterm</div><div style="font-weight:600;font-size:13.5px;">${f.incoterm || '—'}</div></div>
-        <div><div style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.03em;">Cargo</div><div style="font-weight:600;font-size:13.5px;">${f.cargo || '—'}${f.quantity ? ` · ${f.quantity} pkgs` : ''}</div></div>
+        <div><div style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.03em;">Exporter</div><div style="font-weight:600;font-size:13.5px;">${dashEsc(f.sellerName || '—')}</div></div>
+        <div><div style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.03em;">Importer</div><div style="font-weight:600;font-size:13.5px;">${dashEsc(f.buyerName || '—')}</div></div>
+        <div><div style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.03em;">Order / PO No.</div><div style="font-weight:600;font-size:13.5px;font-family:var(--mono);">${dashEsc(f.poNumber || '—')}</div></div>
+        <div><div style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.03em;">Incoterm</div><div style="font-weight:600;font-size:13.5px;">${dashEsc(f.incoterm || '—')}</div></div>
+        <div><div style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.03em;">Cargo</div><div style="font-weight:600;font-size:13.5px;">${dashEsc(f.cargo || '—')}${f.quantity ? ` · ${dashEsc(f.quantity)} pkgs` : ''}</div></div>
       </div>
       <button class="btn-secondary" id="editJobBtn" type="button">Edit Job Details</button>
     </div>`;
@@ -4131,8 +4249,9 @@ function renderJobPanel(){
    straight to the full ordered Document Plan rather than one document —
    see js/app.js + js/export-job.js in tcos/ for the receiving side.
    --------------------------------------------------------------------- */
-const TCOS_ACCESS_ID = "111400112";
+// The access ID itself lives (hashed) in shared/access-id.js -> DotAccess.check(); no plain-text copy here.
 function skBuildBridgeJobDataFromJob(job){
+  if(typeof DotBridge !== "undefined" && typeof DotBridge.buildJobSnapshot === "function") return DotBridge.buildJobSnapshot(job);
   const f = (job && job.fields) || {};
   return {
     mode: f.mode||"", sellerName: f.sellerName||"", sellerAddress: f.sellerAddress||"", sellerCountry: f.sellerCountry||"",
@@ -4186,11 +4305,22 @@ function openTcosDirectModal(job){
       return;
     }
     if(!accessId){ errEl.textContent = "Enter the TCOS access ID to continue."; return; }
-    if(accessId !== TCOS_ACCESS_ID){
+    if(!(window.DotAccess && window.DotAccess.check(accessId))){
       errEl.textContent = "Incorrect access ID. Try again.";
       return;
     }
-    DotBridge.startHandoff({
+    // Import Lots go to TCOS's Import side (Bill of Entry filing, pre-filled);
+    // everything else keeps the Export Documentation Desk route exactly as before.
+    const isImportLot = /import/i.test((job && job.fields && job.fields.mode) || "");
+    DotBridge.startHandoff(isImportLot ? {
+      filingType: "import",
+      userId: CURRENT_USER.email,
+      password: pw,
+      name: CURRENT_USER.name,
+      returnSlug: "bill-of-entry",
+      jobData: skBuildBridgeJobDataFromJob(job),
+      consignaDocType: null
+    } : {
       filingType: "consignia",
       userId: CURRENT_USER.email,
       password: pw,

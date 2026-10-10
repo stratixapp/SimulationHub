@@ -28,7 +28,18 @@ An internet connection is only needed for the map tiles — every other part of 
 
 ## First use
 
-On opening the app, you'll be asked for a name or roll number. Each name gets its own separate, private progress on that browser/computer — a second student typing a different name never sees the first student's data, and typing the same name again later resumes exactly where it left off. The header's **SWITCH STUDENT** button hands the computer to the next person.
+Every time the simulator is opened fresh (a new day, a new window, the browser restarted), it asks for a name or roll number. Each name gets its own separate, private progress on that browser/computer — a second student typing a different name never sees the first student's data, and typing the **same name** again later (capital letters and extra spaces don't matter) resumes exactly where it left off. A simple page refresh does not ask again. The header's **SWITCH STUDENT** button hands the computer to the next person.
+
+Who is signed in is remembered per browser tab, so two tabs can never write into each other's student data.
+
+## Back button
+
+A small round **Back** arrow (←) sits in the top-left corner of every screen (it moves down the edge by itself if something is underneath it) (Home, registration pages, every return / refund / dashboard screen). It returns to the screen the student was on just before — a screen left half-filled comes back with what was typed. If a pop-up (login, OTP) is open, Back closes it first. The browser's / phone's own Back button does the same inside the simulator. Home has no earlier screen, so Back there goes to the page the student came from (e.g. the Simulator Hub) and is hidden if there is none. The code is in `nav-back.js`.
+
+## Drafts and "continue where you left off"
+
+- **Registration (Part-B):** everything typed is auto-saved a moment after typing stops (and when the tab is closed), a green "Draft saved automatically" line confirms it, and the Home page's **CONTINUE APPLICATION** banner reopens the application on the exact tab the student left, showing its name.
+- **Returns, refund and IFF (GSTR-1, 1A, 3B, 4, 5, 5A, 6, 7, 8, 9, 10, 11, RFD-01, IFF):** each module's own SAVE / SAVE DRAFT stores its data per student. The last module saved in appears as a **Continue where you left off** banner on the Home page next time (✕ hides it).
 
 ## What's inside
 

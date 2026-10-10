@@ -62,6 +62,15 @@
   .tb-pill{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:6px 12px;border-radius:20px;background:var(--surface-alt);border:1px solid var(--border);color:var(--text-2);}
   .tb-pill svg{width:14px;height:14px;}
   .tb-pill.timer{font-family:var(--mono);color:var(--navy);}
+  /* Phones: the title + four pills no longer fit in one 62px row (the page scrolled sideways).
+     Let the bar wrap onto a second row instead; desktop layout is untouched. */
+  @media (max-width:700px){
+    .topbar{height:auto;min-height:56px;flex-wrap:wrap;padding:8px 12px;gap:8px 10px;}
+    .tb-title{min-width:0;flex:1 1 140px;}
+    .tb-title .t1,.tb-title .t2{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    .tb-spacer{display:none;}
+    .tb-pill{padding:5px 10px;font-size:11.5px;}
+  }
 
   /* module banner */
   .banner{max-width:1180px;margin:22px auto 0;padding:20px 26px;background:linear-gradient(135deg,var(--navy),#173F6B);
@@ -90,8 +99,8 @@
   .phase-chip-count{font-size:10px;color:#9FC0EE;}
 
   /* layout */
-  .wrap{max-width:1180px;margin:22px auto 70px;padding:0 26px;display:grid;grid-template-columns:250px 1fr;gap:22px;align-items:start;}
-  @media (max-width:860px){.wrap{grid-template-columns:1fr;} .tracker{position:static !important;order:2;}}
+  .wrap{max-width:1180px;margin:22px auto 70px;padding:0 26px;display:grid;grid-template-columns:250px minmax(0,1fr);gap:22px;align-items:start;}
+  @media (max-width:860px){.wrap{grid-template-columns:minmax(0,1fr);} .tracker{position:static !important;order:2;}}
 
   .tracker{position:sticky;top:80px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:8px;}
   .track-item{display:flex;align-items:flex-start;gap:10px;padding:10px 10px;border-radius:9px;position:relative;}
@@ -214,8 +223,8 @@
     /* Redesigned to match an authentic official/government form look — a
        stark black-on-white grid (like a real Bill of Lading or a
        Government of India customs form) instead of the previous
-       vintage-parchment cream/khaki palette. Every .form-*/.doc-grid*/
-       .doc-table/.doc-box/.doc-govt-* rule below reads these same
+       vintage-parchment cream/khaki palette. Every .form-* , .doc-grid* ,
+       .doc-table , .doc-box , .doc-govt-* rule below reads these same
        variables, so this one change re-themes all 102 documents'
        review/PDF layout at once — no change to any renderReview's HTML
        structure or content, design only. */
@@ -255,6 +264,142 @@
   }
   .doc-watermark span{font-size:60px;font-weight:800;color:var(--dl-heading);opacity:.04;transform:rotate(-28deg);white-space:nowrap;text-transform:uppercase;letter-spacing:.06em;}
 
+
+
+
+  /* ===== Lyra — shipment assistant (assistant.js) ===== */
+  #skAsstBtn{position:fixed;right:16px;bottom:18px;z-index:9000;display:flex;align-items:center;gap:7px;height:46px;padding:0 16px 0 12px;border:none;border-radius:23px;background:linear-gradient(135deg,#5B3FD8,#2F6BFF);color:#fff;font-weight:700;font-size:13.5px;box-shadow:0 8px 22px rgba(60,60,160,.38);cursor:pointer;font-family:inherit;}
+  #skAsstBtn.off{background:#7b8498;box-shadow:0 4px 12px rgba(0,0,0,.2);}
+  #skAsstBtn:hover{transform:translateY(-1px);}
+  .sk-asst-badge{position:absolute;top:-6px;right:-4px;min-width:20px;height:20px;padding:0 5px;border-radius:10px;background:#E5484D;color:#fff;font-size:11.5px;font-weight:800;display:flex;align-items:center;justify-content:center;border:2px solid #fff;}
+  .sk-asst-badge.tip{background:#E9A23B;}
+  .sk-asst-badge[hidden]{display:none;}
+  .sk-lyra-av{flex:none;width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#5B3FD8,#2F6BFF);color:#fff;display:inline-flex;align-items:center;justify-content:center;}
+  #skAsstBubble{position:fixed;right:16px;bottom:74px;z-index:9001;max-width:290px;background:#1F2A44;color:#fff;font-size:12.5px;line-height:1.45;padding:10px 13px;border-radius:12px 12px 4px 12px;box-shadow:0 10px 26px rgba(0,0,0,.28);cursor:pointer;}
+  #skAsstBubble[hidden]{display:none;}
+  #skAsstPanel{position:fixed;right:16px;bottom:74px;z-index:9002;width:min(400px,calc(100vw - 24px));max-height:min(74vh,640px);display:flex;flex-direction:column;background:#fff;border:1px solid #D5DAE6;border-radius:16px;box-shadow:0 18px 50px rgba(15,25,60,.28);overflow:hidden;color:#16213a;}
+  #skAsstPanel[hidden]{display:none;}
+  .sk-head{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid #E7EAF2;background:#F6F7FC;}
+  .sk-title{display:flex;align-items:center;gap:10px;flex:1;min-width:0;}
+  .sk-title b{display:block;font-size:14.5px;}.sk-title small{display:block;font-size:11px;color:#667089;}
+  .sk-switch{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#3a4766;cursor:pointer;}
+  .sk-x{border:none;background:transparent;font-size:22px;line-height:1;color:#667089;cursor:pointer;padding:0 4px;}
+  .sk-body{padding:12px 14px;overflow:auto;flex:1;}
+  .sk-foot{display:flex;gap:8px;padding:10px 14px;border-top:1px solid #E7EAF2;background:#F6F7FC;}
+  .sk-foot button{flex:1;height:34px;border:1px solid #CBD3E4;border-radius:8px;background:#fff;font-weight:700;font-size:12px;color:#1F2A44;cursor:pointer;font-family:inherit;}
+  .sk-lead{font-size:12.8px;color:#3a4766;margin-bottom:10px;line-height:1.5;}
+  .sk-empty{text-align:center;padding:18px 6px;color:#3a4766;font-size:13px;}.sk-empty.ok b{color:#12805c;}.sk-empty p{margin:6px 0 0;line-height:1.5;}
+  .sk-card{border:1.5px solid #E1E5F0;border-left-width:5px;border-radius:11px;padding:10px 12px;margin-bottom:10px;background:#fff;}
+  .sk-card.sev-error{border-left-color:#E5484D;}.sk-card.sev-warn{border-left-color:#E9A23B;}.sk-card.sev-tip{border-left-color:#5B8DEF;}
+  .sk-card-top{display:flex;gap:8px;align-items:center;margin-bottom:6px;font-size:13px;}
+  .sk-sev{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;padding:2px 7px;border-radius:9px;background:#FFF3DC;color:#9a6200;white-space:nowrap;}
+  .sev-error .sk-sev{background:#FFE6E7;color:#b3262b;}.sev-tip .sk-sev{background:#E6EEFF;color:#2a55b3;}
+  .sk-pop-msg{font-size:13px;line-height:1.55;color:#16213a;}
+  .sk-pop-msg code,.sk-gate-card code{background:#EEF1FA;border-radius:5px;padding:1px 6px;font-family:var(--mono,monospace);font-size:12px;color:#1F2A44;word-break:break-word;}
+  .sk-card details,#skAsstPop details{margin-top:8px;font-size:12.3px;line-height:1.55;color:#3a4766;}
+  .sk-card summary,#skAsstPop summary{cursor:pointer;font-weight:700;color:#3b4fb8;}
+  .sk-card details p,#skAsstPop details p{margin:6px 0 0;}
+  .sk-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;}
+  .sk-actions button,.sk-gate-actions button{height:34px;padding:0 13px;border:1.5px solid #CBD3E4;border-radius:8px;background:#fff;font-weight:700;font-size:12.5px;color:#1F2A44;cursor:pointer;font-family:inherit;}
+  button.sk-fix{background:#2F6BFF;border-color:#2F6BFF;color:#fff;}
+  button.sk-ghost{color:#667089;}
+  #skAsstPop{position:fixed;z-index:9003;width:380px;max-width:calc(100vw - 24px);background:#fff;border:1.5px solid #CBD3E4;border-top:5px solid #E9A23B;border-radius:14px;box-shadow:0 16px 44px rgba(15,25,60,.3);padding:12px 14px 14px;color:#16213a;animation:skPop .18s ease-out;}
+  #skAsstPop.sev-error{border-top-color:#E5484D;}
+  #skAsstPop.sheet{left:8px!important;right:8px;bottom:78px;top:auto!important;width:auto!important;max-width:none;max-height:calc(100vh - 100px)!important;}
+  .sk-pop-head{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+  .sk-pop-head>div{flex:1;min-width:0;}.sk-pop-head b{display:block;font-size:13.5px;}.sk-pop-head small{display:block;font-size:11px;color:#667089;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  @keyframes skPop{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
+  .sk-asst-flag{outline:2.5px solid #E9A23B!important;outline-offset:1px;}
+  .sk-asst-hl{outline:3px solid #2F6BFF!important;outline-offset:2px;animation:skHl 1s ease 2;}
+  @keyframes skHl{50%{outline-color:#9bb8ff;}}
+  #skAsstGate{position:fixed;inset:0;z-index:9100;background:rgba(15,25,60,.5);display:flex;align-items:center;justify-content:center;padding:16px;}
+  .sk-gate-card{width:min(460px,100%);background:#fff;border-radius:16px;padding:18px 20px;box-shadow:0 24px 60px rgba(0,0,0,.35);max-height:88vh;overflow:auto;}
+  .sk-gate-head{display:flex;align-items:center;gap:10px;}.sk-gate-head h3{margin:0;font-size:16px;color:#1F2A44;}
+  .sk-gate-sub{margin:10px 0 4px;font-size:13px;color:#3a4766;}
+  .sk-gate-card ul{margin:6px 0;padding-left:18px;font-size:12.8px;line-height:1.55;}.sk-gate-card li{margin-bottom:8px;}
+  .sk-gate-note{font-size:12px;color:#667089;margin:8px 0 12px;}
+  .sk-gate-actions{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;}
+  @media (max-width:640px){#skAsstBtn .sk-btn-name{display:none;}#skAsstBtn{padding:0 13px;}#skAsstPanel{right:8px;left:8px;width:auto;bottom:74px;}}
+  @media print{#skAsstBtn,#skAsstBubble,#skAsstPanel,#skAsstPop,#skAsstGate{display:none!important;}}
+
+  /* ===== Lyra: ✦ help buttons, error explainer, Ask tab, web results ===== */
+  .sk-qbtn{display:inline-flex;align-items:center;justify-content:center;width:19px;height:19px;margin-left:7px;padding:0;border:none;border-radius:50%;background:linear-gradient(135deg,#5B3FD8,#2F6BFF);color:#fff;font-size:11px;line-height:1;cursor:pointer;vertical-align:middle;box-shadow:0 1px 4px rgba(60,60,160,.35);}
+  .sk-qbtn:hover,.sk-qbtn:focus-visible{transform:scale(1.15);outline:2px solid #9bb8ff;outline-offset:1px;}
+  th .sk-qbtn{width:17px;height:17px;font-size:10px;margin-left:5px;}
+  .sk-ferr-btn{margin-left:8px;border:1.5px solid #5B3FD8;background:#fff;color:#5B3FD8;border-radius:12px;padding:1px 9px;font-size:11.5px;font-weight:700;cursor:pointer;font-family:inherit;}
+  .sk-ferr-btn:hover{background:#5B3FD8;color:#fff;}
+  .sk-tabs{display:flex;border-bottom:1px solid #E7EAF2;background:#fff;}
+  .sk-tabs button{flex:1;height:38px;border:none;background:transparent;font-weight:700;font-size:12.5px;color:#667089;cursor:pointer;font-family:inherit;border-bottom:3px solid transparent;}
+  .sk-tabs button.on{color:#3b2fc9;border-bottom-color:#5B3FD8;}
+  .sk-ask-form{display:flex;gap:8px;margin-bottom:10px;}
+  .sk-ask-form input{flex:1;min-width:0;height:38px;border:1.5px solid #CBD3E4;border-radius:9px;padding:0 11px;font-size:13px;font-family:inherit;}
+  .sk-ask-form input:focus{outline:2px solid #9bb8ff;border-color:#5B8DEF;}
+  .sk-ask-form button{height:38px;padding:0 16px;border-radius:9px;font-weight:700;cursor:pointer;font-family:inherit;}
+  .sk-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;}
+  .sk-chip{border:1.5px solid #D3CCF7;background:#F6F4FF;color:#3b2fc9;border-radius:15px;padding:4px 11px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;}
+  .sk-chip:hover{background:#5B3FD8;color:#fff;}
+  .sk-sec{margin:6px 0 0;font-size:12.6px;line-height:1.55;color:#2c3754;}
+  .sk-sec b{color:#1F2A44;}
+  .sk-sec-req{font-size:11.5px;color:#667089;}
+  .sk-list{margin:4px 0 0;padding-left:18px;font-size:12.4px;line-height:1.5;color:#2c3754;}
+  .sk-seen{margin:6px 0 10px;font-size:12.3px;color:#3a4766;}
+  .sk-web-actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0 4px;}
+  .sk-web-actions button{height:32px;padding:0 12px;border:1.5px solid #CBD3E4;border-radius:8px;background:#fff;font-weight:700;font-size:12.3px;cursor:pointer;font-family:inherit;color:#1F2A44;}
+  .sk-link{font-size:12.3px;font-weight:700;color:#2F6BFF;text-decoration:none;}.sk-link:hover{text-decoration:underline;}
+  .sk-web-msg{font-size:12.3px;color:#667089;background:#F6F7FC;border-radius:8px;padding:8px 10px;margin-top:6px;line-height:1.5;}
+  .sk-web-card{border:1.5px solid #E1E5F0;border-radius:10px;padding:9px 11px;margin-top:8px;background:#fff;}
+  .sk-web-card b{font-size:13px;display:block;}.sk-web-card small{display:block;color:#667089;font-size:11px;margin-bottom:3px;}.sk-web-card p{margin:4px 0 6px;font-size:12.4px;line-height:1.55;color:#2c3754;}
+  .sk-web-note{font-size:11px;color:#8590aa;margin-top:6px;line-height:1.45;}
+  #skAsstPop{overflow-y:auto;max-height:calc(100vh - 20px);}
+  #skAsstPop.help{border-top-color:#5B3FD8;}
+  .sk-help-body{max-height:min(46vh,340px);overflow:auto;padding-right:4px;}
+  #skAsstPop .sk-web-out{max-height:200px;overflow:auto;}
+  #skAsstPop details[open] summary{margin-bottom:2px;}
+  @media (max-width:640px){#skAsstPop.sheet .sk-help-body{max-height:36vh;}}
+  @media print{.sk-qbtn,.sk-ferr-btn{display:none!important;}}
+  /* ===== auto-signature in the "Document Prepared By" box ===== */
+  @font-face{font-family:"Dancing Script";font-style:normal;font-weight:600;font-display:swap;src:url("fonts/dancing-script-latin-600-normal.woff2") format("woff2");}
+  .doc-sig-blank .box.signed{position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden;padding:0 6px 8px;}
+  .sig-script{font-family:"Dancing Script","Segoe Script","Brush Script MT","Lucida Handwriting",cursive;font-weight:600;color:#12307a;line-height:1.15;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:clip;transform:rotate(-3deg);letter-spacing:.2px;}
+  .sig-date{position:absolute;right:6px;bottom:3px;font-family:var(--mono,monospace);font-size:8.5px;color:var(--dl-label,#3D5A78);letter-spacing:.02em;}
+  .sb-autosig{position:relative;height:42px;margin-top:6px;border-bottom:1px solid #9AA3B2;}
+  .sb-autosig .sig-script{position:absolute;left:4px;bottom:4px;}
+  .sb-autosig .sig-date{right:2px;bottom:2px;}
+  /* Review pane: the document is wider than the content column on tablets / small laptops
+     (700-1040px). Without minmax(0,1fr) above it stretched the whole page sideways; now the
+     column keeps its width and the document scrolls inside this box. (Print + PDF capture
+     show it unclipped — see skWithUnclippedReview in engine.js.) */
+  .review-scroll{max-width:100%;overflow-x:auto;}
+  /* keep the generic letterhead at the width it already had on narrow screens (its content's own
+     minimum), so PDFs captured on a tablet/phone look exactly as they did before this wrapper */
+  .review-scroll > .doc-letterhead:not(.sb-letterhead){min-width:717px;}
+  @media print{ .review-scroll{overflow:visible;} }
+  /* ===== Shipping Bill specimen print layout (engine.js renderShippingBillSpecimen) =====
+     Two fixed A4 pages (794 x 1123 px @96dpi). Scoped to .sb-* so no other
+     document's letterhead is affected. */
+  .sb-scroll{overflow-x:auto;max-width:100%;}
+  .doc-letterhead.sb-letterhead{width:794px;max-width:none;border:none;box-shadow:none;background:transparent;overflow:visible;}
+  .sb-page{position:relative;box-sizing:border-box;width:794px;min-height:1123px;padding:45px 53px 78px;margin:0 0 14px;background:#fff;outline:1px solid #cfd6e2;overflow:hidden;font-family:Helvetica,Arial,sans-serif;color:#000;}
+  .sb-wm{position:absolute;left:0;right:0;top:50%;text-align:center;transform:translateY(-50%) rotate(-38deg);pointer-events:none;z-index:0;color:rgba(140,140,153,.15);font-weight:800;white-space:nowrap;}
+  .sb-wm .a{font-size:77px;line-height:1;}
+  .sb-wm .b{font-size:29px;margin-top:10px;}
+  .sb-body{position:relative;z-index:1;}
+  .sb-h1{text-align:center;font-weight:700;font-size:16.7px;line-height:20px;color:#1F2A44;}
+  .sb-c{text-align:center;font-size:11.5px;line-height:14px;}
+  .sb-title{text-align:center;font-weight:700;font-size:13.3px;line-height:17px;margin-top:4px;}
+  .sb-sub{text-align:center;font-size:10.7px;line-height:13px;color:#555;margin:1px 0 8px;}
+  .sb-bar{background:#1F2A44;color:#fff;font-weight:700;font-size:12.3px;line-height:15px;padding:3px 8px;margin-top:8px;}
+  .sb-kv,.sb-grid,.sb-sign{width:100%;border-collapse:collapse;table-layout:fixed;}
+  .sb-kv td,.sb-grid td,.sb-grid th,.sb-sign td{border:1px solid #9AA3B2;padding:3px 5px;vertical-align:top;word-wrap:break-word;overflow-wrap:anywhere;}
+  .sb-kv td.l{background:#EEF1F6;font-size:9.6px;line-height:12px;color:#555;}
+  .sb-kv td.v{font-size:11.5px;line-height:14.5px;}
+  .sb-grid th{background:#EEF1F6;font-size:9.9px;line-height:12px;text-align:left;font-weight:700;}
+  .sb-grid td{font-size:10.7px;line-height:13.5px;}
+  .sb-sign td{font-size:11.5px;line-height:14.5px;padding:8px 9px;}
+  .sb-mini{font-size:10px;font-weight:700;color:#1F2A44;margin:6px 0 2px;text-transform:uppercase;letter-spacing:.03em;}
+  .sb-pref{position:absolute;right:53px;bottom:48px;font-size:8.8px;color:#555;z-index:1;}
+  .sb-foot{position:absolute;left:0;right:0;bottom:26px;text-align:center;font-size:8.8px;color:#555;z-index:1;padding:0 20px;}
+  @media print{ .sb-scroll{overflow:visible;} .sb-page{outline:none;margin:0;page-break-after:always;} }
   .doc-lh-head{position:relative;z-index:1;display:flex;justify-content:space-between;align-items:flex-start;gap:24px;padding:26px 30px 20px;}
 
   /* ===== Government of India band (only Shipping Bill / Bill of Entry / E-Way Bill / Out of Charge) ===== */
@@ -843,3 +988,6 @@
   .ooc-status-row.pending{background:var(--surface-alt,#FAFBFC);color:var(--dl-label);}
   .ooc-score-bar{height:6px;border-radius:3px;background:var(--surface-alt,#FAFBFC);overflow:hidden;margin:14px 30px 0;}
   .ooc-score-fill{height:100%;background:#15803D;}
+
+/* Lyra developer-code lock */
+#skAsstBtn.sk-locked::after{content:"\1F512";font-size:11px;margin-left:5px;opacity:.9;}

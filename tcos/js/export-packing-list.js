@@ -20,6 +20,7 @@ function openPackingListWorkstation(jobId) {
   if (!doc) {
     doc = { id: newId('XDOC-PKL'), exportJobId: jobId, type: 'PACKING_LIST', version: 1, status: 'DRAFT', createdAt: Date.now(), updatedAt: Date.now(), fields: blankPackingListFields() };
     doc.fields.shipment.portOfLoading = '';
+    xdSeedDoc(doc, job);
     STATE.exportDocs.push(doc);
     saveState();
   }

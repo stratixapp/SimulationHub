@@ -34,7 +34,7 @@
     .reduce((sum, f) => {
       const t = VATSIM.computeTotals(f.boxes);
       const isPaid = f.payment && f.payment.status === "Paid";
-      return sum + (!isPaid && t.box14 > 0 ? t.box14 : 0);
+      return sum + (!isPaid && t.box14 > 0 ? VATSIM.netPayable(f, filings).net : 0);
     }, 0);
   document.getElementById("outstandingLiability").textContent = "AED " + VATSIM.fmtAED(unpaidPayable) + " outstanding";
   if (unpaidPayable > 0) document.getElementById("outstandingLiability").style.color = "var(--danger)";

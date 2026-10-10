@@ -109,14 +109,26 @@
     </div>
 
     <div class="panel panel-pad" style="margin-bottom:18px">
-      <h3 style="font-size:14px;margin-bottom:6px">VAT Filing Stagger</h3>
+      <h3 style="font-size:14px;margin-bottom:6px">VAT Filing Frequency</h3>
       <p style="font-size:12.5px;color:var(--text-muted);margin-bottom:14px">
-        Choose how often you're required to file. Changing this regenerates your upcoming (Draft) filing periods —
+        Choose how often you're required to file. On the real portal the FTA assigns your tax periods (quarterly "stagger" group or monthly) and shows them in EmaraTax; this simulator uses plain calendar quarters or months for practice. Changing this regenerates your upcoming (Draft) filing periods —
         already-Submitted returns are kept as-is.
       </p>
       <div class="radio-pill-group" id="staggerGroup">
-        <label class="radio-pill"><input type="radio" name="stagger" value="1" /> Stagger 1 — Monthly</label>
-        <label class="radio-pill"><input type="radio" name="stagger" value="2" /> Stagger 2 — Quarterly</label>
+        <label class="radio-pill"><input type="radio" name="stagger" value="1" /> Monthly (calendar months)</label>
+        <label class="radio-pill"><input type="radio" name="stagger" value="2" /> Quarterly (calendar quarters)</label>
+      </div>
+    </div>
+
+    <div class="panel panel-pad" style="margin-bottom:18px">
+      <h3 style="font-size:14px;margin-bottom:6px">Customs &amp; Tourist-Refund Feed (Box 2 &amp; Box 6)</h3>
+      <p style="font-size:12.5px;color:var(--text-muted);margin-bottom:14px">
+        On the real VAT201, Box 2 and Box 6 are locked: they only show a figure when the tourist-refund operator or UAE Customs actually reported something for your TRN. By default this simulator behaves the same way, so both stay <strong>0.00</strong>.
+        Switch the training feed on to practise a Box 6 &rarr; Box 7 correction and the Box 10 recovery. Applies to open (Draft) returns only; submitted returns are never changed.
+      </p>
+      <div class="radio-pill-group" id="feedGroup">
+        <label class="radio-pill"><input type="radio" name="feedMode" value="off" /> Off &mdash; real behaviour (0.00)</label>
+        <label class="radio-pill"><input type="radio" name="feedMode" value="on" /> On &mdash; simulated training feed</label>
       </div>
     </div>
 
@@ -134,15 +146,26 @@
     <div class="panel panel-pad" style="margin-bottom:18px">
       <h3 style="font-size:14px;margin-bottom:6px">Account &amp; Data</h3>
       <p style="font-size:12.5px;color:var(--text-muted);margin-bottom:14px">
-        These actions only ever affect <strong>your own</strong> student profile — VAT, Corporate Tax, and your UAE PASS / Emirates ID data. Other students on this computer are never touched.
+        Manage what this simulator has saved in this browser. Options 1 and 2 only affect <strong>your own</strong> profile; option 3 affects <strong>every</strong> student on this computer.
       </p>
       <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">
         <button class="btn btn-outline" data-action="logout">↪ Log Out</button>
-        <button class="btn btn-danger" id="btnStartErase">⚠ Complete Erase — Delete My Data</button>
+        <button class="btn btn-outline" id="btnViewCreds">🔑 1. View my saved IDs &amp; passwords</button>
+        <button class="btn btn-danger" id="btnStartErase">⚠ 2. Erase my data completely</button>
+        <button class="btn btn-danger" id="btnStartEraseAll">☢ 3. Erase ALL users on this computer</button>
       </div>
 
+      <!-- Option 1 -->
+      <div id="credsBox" style="display:none;border:1px solid var(--border-strong);border-radius:8px;padding:16px;margin-top:6px">
+        <p style="font-size:13px;font-weight:600;margin-bottom:4px">Where your IDs and passwords are saved</p>
+        <p style="font-size:12px;color:var(--text-muted);margin-bottom:12px">This is a training simulator: everything below is stored as plain text in this browser's local storage (key name shown under each heading). Nothing is sent anywhere.</p>
+        <div id="credsList"></div>
+        <button class="btn btn-outline btn-sm" id="btnCloseCreds" style="margin-top:6px">Close</button>
+      </div>
+
+      <!-- Option 2 -->
       <div id="eraseConfirmBox" style="display:none;border:1px solid var(--danger);background:var(--danger-bg);border-radius:8px;padding:16px;margin-top:6px">
-        <p style="font-size:13px;font-weight:600;color:var(--danger);margin-bottom:8px">This permanently deletes your VAT account, all filings, your Corporate Tax company data, and your saved UAE PASS / Emirates ID — for you only. This cannot be undone.</p>
+        <p style="font-size:13px;font-weight:600;color:var(--danger);margin-bottom:8px">This permanently deletes YOUR VAT account, login ID &amp; password, all filings, messages, invoices, your Corporate Tax data and your saved UAE PASS / Emirates ID. Other students are not touched. This cannot be undone.</p>
         <div class="field" id="f_erasepw" style="margin-bottom:10px">
           <label for="erasePassword">Re-enter your password to confirm</label>
           <input type="password" id="erasePassword" placeholder="Your login password" />
@@ -153,6 +176,26 @@
           <button class="btn btn-outline" id="btnCancelErase">Cancel</button>
         </div>
       </div>
+
+      <!-- Option 3 -->
+      <div id="eraseAllBox" style="display:none;border:1px solid var(--danger);background:var(--danger-bg);border-radius:8px;padding:16px;margin-top:6px">
+        <p style="font-size:13px;font-weight:600;color:var(--danger);margin-bottom:8px">Full wipe: this deletes EVERY student who has ever logged in to the UAE VAT / Corporate Tax simulators on this computer — accounts, passwords, PINs, UAE PASS, Emirates IDs, filings and CT data. You will be logged out. This cannot be undone.</p>
+        <p id="eraseAllCounts" style="font-size:12.5px;margin-bottom:10px"></p>
+        <div class="field" id="f_eraseallpw" style="margin-bottom:10px">
+          <label for="eraseAllPassword">Your password</label>
+          <input type="password" id="eraseAllPassword" placeholder="Your login password" />
+          <div class="error-msg">Incorrect password.</div>
+        </div>
+        <div class="field" id="f_eraseallphrase" style="margin-bottom:10px">
+          <label for="eraseAllPhrase">Type <strong>ERASE ALL</strong> to confirm</label>
+          <input type="text" id="eraseAllPhrase" placeholder="ERASE ALL" autocomplete="off" />
+          <div class="error-msg">Type exactly: ERASE ALL</div>
+        </div>
+        <div style="display:flex;gap:10px">
+          <button class="btn btn-danger" id="btnConfirmEraseAll">Yes, wipe everything on this computer</button>
+          <button class="btn btn-outline" id="btnCancelEraseAll">Cancel</button>
+        </div>
+      </div>
     </div>
 
     <div class="footer-note" style="border:none">
@@ -161,6 +204,7 @@
   </main>
 </div>
 
+<script src="../shared/nav-back.js"></script>
 <script src="../shared/identity.js"></script>
 <script src="../js/storage.js"></script>
 <script>
@@ -171,46 +215,69 @@
   if (!account) { window.location.href = "../index.html"; return; }
   VATSIM.wireChrome();
 
-  // Complete Erase — only ever touches the CURRENTLY logged-in student's
-  // own namespace across VAT, Corporate Tax, and the shared identity
-  // bridge. Requires re-entering the login password first, so a student
-  // can't accidentally (or someone else can't deliberately) wipe an
-  // account they're not actually signed into.
-  document.getElementById("btnStartErase").addEventListener("click", () => {
-    document.getElementById("eraseConfirmBox").style.display = "";
-    document.getElementById("erasePassword").focus();
-  });
-  document.getElementById("btnCancelErase").addEventListener("click", () => {
-    document.getElementById("eraseConfirmBox").style.display = "none";
-    document.getElementById("erasePassword").value = "";
-    document.getElementById("f_erasepw").classList.remove("invalid");
-  });
-  document.getElementById("btnConfirmErase").addEventListener("click", () => {
-    const pw = document.getElementById("erasePassword").value;
-    const current = VATSIM.getAccount();
-    if (!current || pw !== current.password) {
-      document.getElementById("f_erasepw").classList.add("invalid");
-      return;
-    }
-    // 1) This student's own VAT keys (account, filings, uaepass, emiratesid, etc.)
-    Object.values(VATSIM.KEYS).forEach((k) => { try { localStorage.removeItem(k); } catch(e){} });
-    // 2) Remove this student from the VAT registry.
-    const myId = VATSIM.getActiveStudentId ? VATSIM.getActiveStudentId() : null;
-    if (myId !== null && VATSIM.getStudentRegistry) {
-      VATSIM.saveStudentRegistry(VATSIM.getStudentRegistry().filter((s) => s.id !== myId));
-    }
-    // 3) This student's Corporate Tax company data.
-    try { localStorage.removeItem("uae_ct_sim_state" + (myId ? "_" + myId : "")); } catch(e){}
-    // 4) This student's shared identity slot.
-    if (typeof SharedIdentity !== "undefined") SharedIdentity.clear();
-    // 5) This student's entry in the general portal login registry, if any.
-    try {
-      const reg = JSON.parse(localStorage.getItem("uae_tax_portal_students_v1") || "[]");
-      localStorage.setItem("uae_tax_portal_students_v1", JSON.stringify(reg.filter((s) => s.id !== myId)));
-    } catch(e){}
+  // Account & Data — three separate actions (see the panel above):
+  //   1) view where THIS student's IDs / passwords are saved (read-only)
+  //   2) erase THIS student completely (password required)
+  //   3) erase EVERY student on this computer (password + typed phrase)
+  // All of them only touch this simulator's own keys; the Simulator Hub and
+  // the other simulators share this browser origin and are never touched.
+  const $ = (id) => document.getElementById(id);
+  const boxes = ["credsBox", "eraseConfirmBox", "eraseAllBox"];
+  function openOnly(id) {
+    boxes.forEach((b) => { $(b).style.display = b === id ? "" : "none"; });
+    ["erasePassword", "eraseAllPassword", "eraseAllPhrase"].forEach((i) => { $(i).value = ""; });
+    ["f_erasepw", "f_eraseallpw", "f_eraseallphrase"].forEach((i) => $(i).classList.remove("invalid"));
+  }
+  function esc(v) { return String(v == null ? "" : v).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
 
+  // ---- Option 1: view credentials
+  $("btnViewCreds").addEventListener("click", () => {
+    openOnly("credsBox");
+    const ov = VATSIM.getCredentialsOverview();
+    $("credsList").innerHTML = ov.groups.length ? ov.groups.map((g) =>
+      '<div style="margin-bottom:14px"><div style="font-weight:600;font-size:13px">' + esc(g.title) + '</div>' +
+      '<div style="font-size:11px;color:var(--text-muted);margin-bottom:6px">Stored in: <code>' + esc(g.storedIn) + '</code></div>' +
+      '<table style="width:100%;font-size:12.5px;border-collapse:collapse">' + g.rows.filter((r) => r[1]).map((r) =>
+        '<tr><td style="padding:4px 8px 4px 0;color:var(--text-muted);width:38%">' + esc(r[0]) + '</td><td style="padding:4px 0">' +
+        (r[2] ? '<span class="secret" data-v="' + esc(r[1]) + '">••••••••</span> <button type="button" class="btn btn-ghost btn-sm toggle-secret">Show</button>'
+              : esc(r[1])) + '</td></tr>').join("") + '</table></div>'
+    ).join("") : '<p style="font-size:12.5px">Nothing saved for this profile.</p>';
+    $("credsList").querySelectorAll(".toggle-secret").forEach((btn) => btn.addEventListener("click", () => {
+      const sp = btn.previousElementSibling, shown = btn.textContent === "Hide";
+      sp.textContent = shown ? "••••••••" : sp.dataset.v; btn.textContent = shown ? "Show" : "Hide";
+    }));
+  });
+  $("btnCloseCreds").addEventListener("click", () => openOnly(null));
+
+  // ---- Option 2: erase me
+  $("btnStartErase").addEventListener("click", () => { openOnly("eraseConfirmBox"); $("erasePassword").focus(); });
+  $("btnCancelErase").addEventListener("click", () => openOnly(null));
+  $("btnConfirmErase").addEventListener("click", () => {
+    const current = VATSIM.getAccount();
+    if (!current || $("erasePassword").value !== current.password) { $("f_erasepw").classList.add("invalid"); return; }
+    VATSIM.eraseCurrentStudent();
     VATSIM.toast("Your data has been permanently deleted.", "success");
     setTimeout(() => (window.location.href = "../index.html"), 700);
+  });
+
+  // ---- Option 3: erase everyone
+  $("btnStartEraseAll").addEventListener("click", () => {
+    openOnly("eraseAllBox");
+    const c = VATSIM.countAllStudents();
+    $("eraseAllCounts").textContent = "Found on this computer: " + c.vatAccounts + " VAT account(s), " + c.portalLogins + " portal login(s), " + c.keys + " saved data item(s).";
+    $("eraseAllPassword").focus();
+  });
+  $("btnCancelEraseAll").addEventListener("click", () => openOnly(null));
+  $("btnConfirmEraseAll").addEventListener("click", () => {
+    const current = VATSIM.getAccount();
+    const pwOk = !!current && $("eraseAllPassword").value === current.password;
+    const phraseOk = $("eraseAllPhrase").value.trim() === "ERASE ALL";
+    $("f_eraseallpw").classList.toggle("invalid", !pwOk);
+    $("f_eraseallphrase").classList.toggle("invalid", !phraseOk);
+    if (!pwOk || !phraseOk) return;
+    VATSIM.eraseAllStudents();
+    VATSIM.toast("All UAE VAT / Corporate Tax data on this computer has been erased.", "success");
+    setTimeout(() => (window.location.href = "../index.html"), 900);
   });
 
   const usage = VATSIM.getStorageUsageEstimate();
@@ -220,6 +287,17 @@
   document.getElementById("storagePctText").textContent = usage.pctUsed + "%";
   if (usage.pctUsed > 70) document.getElementById("storageWarning").style.display = "block";
 
+  const feedNow = account.simulateFeeds ? "on" : "off";
+  document.querySelectorAll('input[name="feedMode"]').forEach((r) => {
+    if (r.value === feedNow) { r.checked = true; r.closest(".radio-pill").classList.add("checked"); }
+    r.addEventListener("change", () => {
+      document.querySelectorAll("#feedGroup .radio-pill").forEach((p) => p.classList.remove("checked"));
+      r.closest(".radio-pill").classList.add("checked");
+      VATSIM.setSimulateFeeds(r.value === "on");
+      VATSIM.toast("Box 2 / Box 6 feed " + (r.value === "on" ? "switched ON for open returns." : "switched OFF — open returns now show 0.00."), "success");
+    });
+  });
+
   const current = account.staggerType || "2";
   document.querySelectorAll('input[name="stagger"]').forEach((r) => {
     if (r.value === current) { r.checked = true; r.closest(".radio-pill").classList.add("checked"); }
@@ -227,7 +305,7 @@
       document.querySelectorAll(".radio-pill").forEach((p) => p.classList.remove("checked"));
       r.closest(".radio-pill").classList.add("checked");
       if (r.value === account.staggerType) return;
-      if (!confirm("Switch to " + (r.value === "1" ? "Monthly (Stagger 1)" : "Quarterly (Stagger 2)") + " filing? This regenerates your upcoming Draft periods.")) {
+      if (!confirm("Switch to " + (r.value === "1" ? "Monthly" : "Quarterly") + " filing? This regenerates your upcoming Draft periods.")) {
         r.checked = false;
         document.querySelector('input[name="stagger"][value="' + account.staggerType + '"]').checked = true;
         return;
