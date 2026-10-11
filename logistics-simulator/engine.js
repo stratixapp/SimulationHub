@@ -1,0 +1,1928 @@
+/* =========================================================================
+   SKELORA INSTITUTE LOGISTICS SIMULATOR — SHARED EXERCISE ENGINE
+   This file is intentionally generic: it knows nothing about any specific
+   document. Each document (Commercial Invoice, Bill of Lading, ...) is just
+   a config object in documents-data.js. To add a new document, add a new
+   config — you should not need to touch this file.
+   ========================================================================= */
+
+const ICONS = {
+  check:'<circle cx="12" cy="12" r="9"/><polyline points="8,12.5 11,15.5 16,9"/>',
+  x:'<line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/>',
+  plus:'<circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>',
+  printer:'<polyline points="6,9 6,2 18,2 18,9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/>',
+  refresh:'<polyline points="23,4 23,10 17,10"/><polyline points="1,20 1,14 7,14"/><path d="M3.5 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.65 4.36A9 9 0 0 0 20.5 15"/>',
+  chevRight:'<polyline points="9,6 15,12 9,18"/>',
+  chevLeft:'<polyline points="15,18 9,12 15,6"/>',
+  clock:'<circle cx="12" cy="12" r="9"/><polyline points="12,7 12,12 16,14"/>'
+};
+const ic = (n)=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICONS[n]||''}</svg>`;
+
+/* ---------------------------------------------------------------------
+   STATE
+   --------------------------------------------------------------------- */
+let CONFIG = null;
+let CURRENT_SLUG = null;
+let CURRENT_USER = null;
+let formData = {};
+let currentStep = 0;
+let maxReached = 0;
+let expandedPhases = new Set(); /* which phase names are expanded in the sidebar tracker (collapsible phase groups) */
+let fieldErrors = new Set();
+let fieldErrorMsgs = {};
+let tableCellErrors = new Set();   /* keys: "tableName:rowIdx:colKey" — cells that failed a cellPatterns check */
+let tableErrorMsgs = {};           /* tableName -> array of specific human-readable messages for its ferr banner */
+let startTime = Date.now();
+let timerInterval = null;
+
+/* ---------------------------------------------------------------------
+   GENERIC FIELD RENDERING
+   Supported field.type: text, textarea, date, select, checkbox,
+   static (read-only HTML block), computed (derived value display),
+   table (repeatable rows)
+   --------------------------------------------------------------------- */
+/* Shared row-builder for Learn panel content, used both by standalone-field
+   panels (renderLearnPanel) and by the per-table-column panel block
+   (renderTableColumnLearnBlock) below, so both render identically and stay
+   in sync automatically if this list of dimensions ever changes.
+   "context" (where/when this field is actually used) and "money" (typical
+   rate/amount, for anything with a financial dimension) are additive —
+   any of the 55 existing learn:{} objects written before these two existed
+   simply don't show those two rows, since row() already no-ops on falsy
+   content. Nothing about the existing explanation/purpose/example/
+   mistakes/validation/hint fields changes. */
+function learnRowsHtml(l){
+  const row = (icon,label,content)=> content ? `<div style="margin-bottom:8px;"><div style="font-weight:600;font-size:11.5px;color:var(--text-2);margin-bottom:2px;">${icon} ${label}</div><div style="font-size:12.5px;color:var(--text-2);line-height:1.55;">${content}</div></div>` : "";
+  return `${row("📖","Explanation",l.explanation)}
+    ${row("🎯","Purpose",l.purpose)}
+    ${row("📍","Where &amp; When Used",l.context)}
+    ${row("💰","Money Involved",l.money)}
+    ${row("📝","Example",l.example)}
+    ${row("⚠️","Common Mistakes",l.mistakes)}
+    ${row("✅","Validation",l.validation)}
+    ${row("⭐","Hint",l.hint)}`;
+}
+function renderLearnPanel(f){
+  if(!f.learn) return "";
+  return `<details class="learn-panel" style="margin-top:6px;border:1px solid var(--border);border-radius:8px;background:var(--surface-2,#F7F6F2);">
+    <summary style="cursor:pointer;padding:8px 12px;font-size:12px;font-weight:600;color:var(--accent,#8A6D3B);list-style:none;">💡 Learn about this field</summary>
+    <div style="padding:4px 14px 12px;">${learnRowsHtml(f.learn)}</div>
+  </details>`;
+}
+/* Table columns (type:"table" fields) never routed through renderLearnPanel —
+   each row would otherwise repeat the same panel once per line item, which
+   is noisy. Instead, any column that carries its own `learn` object gets
+   listed once, above the table, inside a single collapsible "Learn about
+   these columns" block. Columns without `learn` are simply left out — most
+   table columns (quantity, description, etc.) don't need one. */
+function renderTableColumnLearnBlock(f){
+  const withLearn = (f.columns||[]).filter(c=>c.learn);
+  if(!withLearn.length) return "";
+  const items = withLearn.map(c=>`<details class="learn-panel" style="margin-top:6px;border:1px solid var(--border);border-radius:8px;background:var(--surface-2,#F7F6F2);">
+      <summary style="cursor:pointer;padding:8px 12px;font-size:12px;font-weight:600;color:var(--accent,#8A6D3B);list-style:none;">💡 ${c.label}</summary>
+      <div style="padding:4px 14px 12px;">${learnRowsHtml(c.learn)}</div>
+    </details>`).join("");
+  return `<details style="margin-bottom:10px;">
+    <summary style="cursor:pointer;padding:2px 0;font-size:12px;font-weight:600;color:var(--accent,#8A6D3B);list-style:none;">💡 Learn about these columns (${withLearn.length})</summary>
+    <div style="margin-top:4px;">${items}</div>
+  </details>`;
+}
+
+/* Escapes a value before it's dropped into an HTML attribute or element
+   content. Fixes a real data-loss bug: without this, typing a double-quote
+   into any text/date field or table cell (e.g. a 40" container size, or an
+   Indian trade name written as M/s "Golden Star Textiles") broke the
+   surrounding value="..." attribute on re-render (Next/Back, add/remove
+   row) and silently truncated whatever the student typed after the quote. */
+function escAttr(v){
+  return String(v ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+function renderField(f){
+  if(f.showIf && !f.showIf(formData)) return "";
+  if(f.type==="static"){
+    return `<div class="declaration-box" style="grid-column:1/-1;">${f.html}</div>`;
+  }
+  if(f.type==="table") return renderTableField(f);
+  if(f.type==="computed") return renderComputedField(f);
+
+  const val = formData[f.name] ?? "";
+  const req = f.required ? '<span class="req">*</span>' : "";
+  const errCls = fieldErrors.has(f.name) ? "field-error" : "";
+  const fullCls = f.full ? "field full" : "field";
+
+  if(f.type==="checkbox"){
+    return `<div class="${fullCls}"><label class="check-row"><input type="checkbox" data-field="${f.name}" ${formData[f.name]?"checked":""}/> <span>${f.label}</span></label>${renderLearnPanel(f)}</div>`;
+  }
+  let input;
+  if(f.type==="textarea"){
+    input = `<textarea class="finput ${errCls}" data-field="${f.name}" placeholder="${escAttr(f.placeholder||"")}">${escAttr(val)}</textarea>`;
+  } else if(f.type==="select"){
+    input = `<select class="finput ${errCls}" data-field="${f.name}"><option value="">Select…</option>${f.options.map(o=>`<option value="${escAttr(o)}" ${val===o?"selected":""}>${escAttr(o)}</option>`).join("")}</select>`;
+  } else {
+    const upStyle = f.uppercase ? ' style="text-transform:uppercase;letter-spacing:.3px;"' : "";
+    input = `<input class="finput ${errCls}" type="${f.type}" data-field="${f.name}" placeholder="${escAttr(f.placeholder||"")}" value="${escAttr(val)}"${upStyle}/>`;
+  }
+  return `<div class="${fullCls}">
+    <label>${f.label}${req}</label>
+    ${input}
+    ${f.help?`<div class="fhelp">${f.help}</div>`:""}
+    ${fieldErrors.has(f.name)?`<div class="ferr">${fieldErrorMsgs[f.name]||"This field is required."}</div>`:""}
+    ${renderLearnPanel(f)}
+  </div>`;
+}
+
+function renderComputedField(f){
+  const value = f.compute(formData);
+  const fullCls = f.full ? "field full" : "field";
+  return `<div class="${fullCls}">
+    <label>${f.label}</label>
+    <div class="computed-box" id="computed-${f.name}">${value}</div>
+    ${f.help?`<div class="fhelp">${f.help}</div>`:""}
+    ${renderLearnPanel(f)}
+  </div>`;
+}
+
+function renderTableField(f){
+  if(!formData[f.name] || formData[f.name].length===0){
+    formData[f.name] = f.defaultRows ? f.defaultRows.map(r=>({...r})) : [ emptyRow(f) ];
+  }
+  const rows = formData[f.name].map((row,i)=>{
+    const cells = f.columns.map(col=>{
+      if(col.autoNumber){
+        // Sequential row number, always in sync with row position — never
+        // hand-typed, never goes out of order when rows are added/removed.
+        return `<td class="li-amount" id="cell-${f.name}-${i}-${col.key}">${i+1}</td>`;
+      }
+      if(col.computed){
+        const v = col.computed(row);
+        return `<td class="li-amount" id="cell-${f.name}-${i}-${col.key}">${v}</td>`;
+      }
+      const cellErr = tableCellErrors.has(`${f.name}:${i}:${col.key}`) ? "field-error" : "";
+      return `<td><input class="li-input ${col.numeric?"li-num":""} ${cellErr}" data-table="${f.name}" data-row="${i}" data-col="${col.key}" value="${escAttr(row[col.key]||"")}" placeholder="${escAttr(col.placeholder||"")}"/></td>`;
+    }).join("");
+    const removeBtn = formData[f.name].length>1 ? `<button class="li-remove" data-table-remove="${f.name}" data-row="${i}">${ic("x")}</button>` : "";
+    return `<tr>${cells}<td>${removeBtn}</td></tr>`;
+  }).join("");
+  let footerRow = "";
+  if(f.footer){
+    footerRow = `<tfoot><tr>
+      <td colspan="${f.columns.length-1}" style="text-align:right;font-weight:700;">${f.footer.label}</td>
+      <td id="footer-${f.name}" style="font-weight:700;font-family:var(--mono);">${f.footer.compute(formData[f.name])}</td>
+      <td></td>
+    </tr></tfoot>`;
+  }
+  const errMsgs = tableErrorMsgs[f.name];
+  const errBlock = fieldErrors.has(f.name)
+    ? `<div class="ferr" style="margin-top:8px;">${
+        errMsgs && errMsgs.length
+          ? errMsgs.slice(0,5).map(m=>`• ${m}`).join("<br>") + (errMsgs.length>5 ? `<br>+ ${errMsgs.length-5} more` : "")
+          : (f.errorMsg||"Please complete at least one row.")
+      }</div>`
+    : "";
+  return `<div class="field full">
+    <label>${f.label}${f.required?'<span class="req">*</span>':""}</label>
+    ${f.help?`<div class="fhelp" style="margin-bottom:10px;">${f.help}</div>`:""}
+    ${renderTableColumnLearnBlock(f)}
+    <div class="li-table-wrap"><table class="li-table">
+      <thead><tr>${f.columns.map(c=>`<th>${c.label}</th>`).join("")}<th></th></tr></thead>
+      <tbody id="tbody-${f.name}">${rows}</tbody>
+      ${footerRow}
+    </table></div>
+    <button class="btn-secondary" data-table-add="${f.name}" style="margin-top:12px;">${ic("plus")} ${f.addLabel||"Add Row"}</button>
+    ${errBlock}
+  </div>`;
+}
+function emptyRow(f){ const r={}; f.columns.forEach(c=>{ if(!c.computed && !c.autoNumber) r[c.key]=""; }); return r; }
+
+/* Recompute a table's row + footer without a full re-render (keeps input focus) */
+function refreshTableRow(tableName, rowIdx){
+  const f = findFieldByName(tableName);
+  if(!f) return;
+  const row = formData[tableName][rowIdx];
+  f.columns.forEach(col=>{
+    if(col.computed){
+      const cell = document.getElementById(`cell-${tableName}-${rowIdx}-${col.key}`);
+      if(cell) cell.textContent = col.computed(row);
+    }
+  });
+  if(f.footer){
+    const footCell = document.getElementById(`footer-${tableName}`);
+    if(footCell) footCell.textContent = f.footer.compute(formData[tableName]);
+  }
+  refreshDependentComputed(tableName);
+}
+function findFieldByName(name){
+  for(const step of CONFIG.steps){
+    if(step.fields){
+      const f = step.fields.find(x=>x.name===name);
+      if(f) return f;
+    }
+  }
+  return null;
+}
+
+/* Update any top-level "computed" field whose deps include the changed field/table */
+function refreshDependentComputed(changedName){
+  CONFIG.steps.forEach(step=>{
+    if(!step.fields) return;
+    step.fields.forEach(f=>{
+      if(f.type==="computed" && f.deps && f.deps.includes(changedName)){
+        const el = document.getElementById(`computed-${f.name}`);
+        if(el) el.textContent = f.compute(formData);
+      }
+    });
+  });
+}
+
+/* ---------------------------------------------------------------------
+   STEP RENDERING
+   --------------------------------------------------------------------- */
+const stepBody = () => document.getElementById("stepBody");
+
+/* ===================== PHASE 8: SPLIT-SCREEN REFERENCE MODE =====================
+   Opt-in only (default off, same as every existing document). When enabled, shows a
+   left-hand reference panel built from each field's own label/placeholder/help - the
+   exact same real example data already defined in documents-data.js - next to the
+   normal editable field grid, so a student can copy from a worked example the way
+   they would in a real documentation office. Nothing about the existing single-column
+   layout changes unless this is switched on. */
+function isSplitScreenOn(){
+  try { return localStorage.getItem("skelora_split_v1") === "on"; } catch(e){ return false; }
+}
+function renderReferenceEntry(f){
+  if(f.showIf && !f.showIf(formData)) return "";
+  if(f.type==="static" || f.type==="computed") return "";
+  if(f.type==="table"){
+    return `<div class="ref-entry"><div class="ref-label">${f.label}</div><div class="ref-value ref-value-muted">${f.help || "See the required columns below for the exact format expected in each row."}</div></div>`;
+  }
+  if(f.type==="checkbox"){
+    return `<div class="ref-entry"><div class="ref-label">${f.label}</div><div class="ref-value ref-value-muted">${f.help || "Confirm this once it is true for this shipment."}</div></div>`;
+  }
+  const example = f.placeholder ? f.placeholder : null;
+  return `<div class="ref-entry">
+    <div class="ref-label">${f.label}${f.required ? ' <span class="req">*</span>' : ''}</div>
+    ${example ? `<div class="ref-value">${example}</div>` : `<div class="ref-value ref-value-muted">No fixed example — enter your own value.</div>`}
+    ${f.help ? `<div class="ref-help">${f.help}</div>` : ""}
+  </div>`;
+}
+function renderReferencePanel(step){
+  const entries = (step.fields||[]).map(renderReferenceEntry).filter(Boolean).join("");
+  if(!entries) return "";
+  return `<aside class="ref-panel">
+    <div class="ref-panel-head"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg> Reference Example</div>
+    <div class="ref-panel-body">${entries}</div>
+  </aside>`;
+}
+
+function renderStep(idx){
+  const step = CONFIG.steps[idx];
+  if(step.phase){
+    const phaseSteps = CONFIG.steps.filter(s=>s.phase===step.phase);
+    const phaseNames = [...new Set(CONFIG.steps.map(s=>s.phase).filter(Boolean))];
+    const phaseNum = phaseNames.indexOf(step.phase)+1;
+    const stepInPhase = phaseSteps.indexOf(step)+1;
+    document.getElementById("stepEyebrow").textContent = `Phase ${phaseNum} of ${phaseNames.length} · ${step.phase} · Step ${stepInPhase} of ${phaseSteps.length} · ~${step.est} min`;
+  } else {
+    document.getElementById("stepEyebrow").textContent = `Step ${idx+1} of ${CONFIG.steps.length} · ~${step.est} min`;
+  }
+  document.getElementById("stepTitle").textContent = step.title;
+  document.getElementById("stepSub").textContent = step.sub || "";
+  document.getElementById("progressPill").textContent = `Step ${idx+1} of ${CONFIG.steps.length}`;
+
+  let html = "";
+  if(step.intro) html += `<div class="step-intro">${step.intro}</div>`;
+
+  if(step.custom==="review"){
+    html += renderMismatchBanner();
+    html += `<div class="review-scroll">${wrapAsLetterhead(step.renderReview(skEscapeDeep(formData)))}</div>`;
+    html += `<div class="pdf-download-row">
+      <button class="btn-secondary" id="downloadOriginalBtn">${ic("printer")} Download Original (PDF)</button>
+      <button class="btn-secondary" id="downloadCopyBtn">${ic("printer")} Download Copy (PDF)</button>
+      <span id="pdfGenStatus" class="pdf-gen-status"></span>
+    </div>
+    <div id="pdfGenShipWrap" style="display:none;margin-top:10px;">
+      <div class="ship-loader" aria-hidden="true">
+        <svg viewBox="0 0 300 80" preserveAspectRatio="xMidYMid meet">
+          <clipPath id="shipWaterClipPdf"><rect x="0" y="0" width="300" height="80"/></clipPath>
+          <g clip-path="url(#shipWaterClipPdf)">
+            <path class="sl-wave sl-wave1" d="M-50,55 Q-25,45 0,55 T50,55 T100,55 T150,55 T200,55 T250,55 T300,55 T350,55 V80 H-50 Z" fill="#1F6FEB" opacity=".5"/>
+            <path class="sl-wave sl-wave2" d="M-50,60 Q-25,52 0,60 T50,60 T100,60 T150,60 T200,60 T250,60 T300,60 T350,60 V80 H-50 Z" fill="#12467D" opacity=".85"/>
+            <g class="sl-ship">
+              <path d="M-20,44 L46,44 L38,56 L-12,56 Z" fill="#F5820A" stroke="#111318" stroke-width="2" stroke-linejoin="round"/>
+              <rect x="0" y="27" width="22" height="17" rx="2" fill="#111318"/>
+              <rect x="16" y="17" width="6" height="11" rx="1" fill="#F5820A" stroke="#111318" stroke-width="1"/>
+              <text x="11" y="39" font-size="8.5" font-weight="800" fill="#F5820A" text-anchor="middle" font-family="Arial,sans-serif">AS</text>
+            </g>
+          </g>
+        </svg>
+      </div>
+    </div>`;
+  } else if(step.custom==="complete"){
+    html += renderComplete();
+  } else {
+    const fieldGridHtml = `<div class="field-grid">${(step.fields||[]).map(renderField).join("")}</div>`;
+    if(isSplitScreenOn()){
+      const refPanelHtml = renderReferencePanel(step);
+      html += refPanelHtml ? `<div class="step-split">${refPanelHtml}<div class="step-split-main">${fieldGridHtml}</div></div>` : fieldGridHtml;
+    } else {
+      html += fieldGridHtml;
+    }
+  }
+  stepBody().innerHTML = html;
+  /* Phase 8: retrigger the fade-in animation (removing then re-adding the class,
+     with a forced reflow in between, is required for CSS animations to replay) */
+  const sb = stepBody();
+  sb.classList.remove("step-fade-in");
+  void sb.offsetWidth;
+  sb.classList.add("step-fade-in");
+
+  document.getElementById("backBtn").disabled = (idx===0);
+  const nextBtn = document.getElementById("nextBtn");
+  if(idx===CONFIG.steps.length-1){
+    nextBtn.style.display = "none";
+  } else if(step.custom==="review"){
+    nextBtn.style.display = "flex";
+    nextBtn.innerHTML = `Mark Complete ${ic("check")}`;
+  } else {
+    nextBtn.style.display = "flex";
+    nextBtn.innerHTML = `Save & Continue ${ic("chevRight")}`;
+  }
+  renderTracker();
+  bindStepButtons(step);
+  // Lyra (assistant.js): refresh her badge / listeners for this step. Optional and fail-safe.
+  if(typeof skAssistantAfterRender === "function"){ try{ skAssistantAfterRender(); }catch(e){} }
+}
+
+/* ---------------------------------------------------------------------
+   PROGRESS PERSISTENCE (offline, per-student, this computer only)
+   --------------------------------------------------------------------- */
+function saveProgressSnapshot(status){
+  if(!CURRENT_USER || !CURRENT_SLUG) return;
+  skSaveDocProgress(CURRENT_USER.id, CURRENT_SLUG, {
+    status,
+    currentStep,
+    maxReached,
+    formData,
+    docTitle: CONFIG.title
+  });
+  if(typeof skAppendAudit === "function"){
+    const stepTitle = CONFIG.steps[currentStep] ? CONFIG.steps[currentStep].title : null;
+    skAppendAudit(CURRENT_USER.id, CURRENT_SLUG, status==="completed" ? "completed" : "saved",
+      {currentStep, maxReached, stepTitle, docTitle: CONFIG.title});
+  }
+}
+
+/* ---------------------------------------------------------------------
+   GENERIC LETTERHEAD WRAPPER
+   Every one of the 11 (and future) exercise configs already renders its
+   own review document via renderReview(). This wraps that output in a
+   shared, professional letterhead — company name, doc-type/number,
+   watermark, footer metadata, and a terms strip — without any config
+   needing to know about it.
+   --------------------------------------------------------------------- */
+let letterheadMeta = null;
+function getLetterheadMeta(){
+  if(!letterheadMeta){
+    letterheadMeta = {
+      docId: "DOC-" + Math.random().toString(36).slice(2,10).toUpperCase(),
+      verifyCode: Math.random().toString(36).slice(2,10).toUpperCase()
+    };
+  }
+  return letterheadMeta;
+}
+const ISSUER_NAME_FIELDS = ["terminalName","carrierName","oceanCarrier","airlineName","issuingBankName","bankName","insuranceCompany","transporterName","vendorName","accreditedAgencyName","labName","inspectionAgency","packerCompanyName","preparedByCompany","warehouseNameOnReceipt","manufacturerName",
+  "consignorName","expName","exporterName","exporterNamePhyto","importerName","shipperName","buyerName","supName","supplierName","applicantName","beneficiaryName","sellerName","fromName","drawerName","shippingLineName"];
+const DOC_NUMBER_FIELDS = ["jobNumber","igmNumber","requestNumber","referenceNo","billNo","creditNoteNo","debitNoteNo","receiptNo","invoiceNo","blNumber","plNumber","lrNumber","grnNumber","flightNumber","documentNumber",
+  "certificateNo","bgNumber","swbNumber",
+  "lcNumber","poNumber","mawbNumber","blAwbNo",
+  "packingListNo","challanNo","leoNumber","lcNo","deliveryNoteNo","ewayBillNo",
+  "awbNumber","sbNumberGenerated","beNumberGenerated","lcMt700Ref","ebnGenerated","swbNumberGenerated","soNumberGenerated","proformaNo","mrNumberGenerated","declarationNo","dutyWorksheetNo","whrNumberGenerated","msdsNo","oocNumberGenerated","bookingNo","podNumber",
+  // BUGFIX (found by an actual PDF download test, not code reading): the
+  // letterhead's top-right "No. X" falls back to CONFIG.docCodeExample —
+  // a static illustrative placeholder — whenever a document's own number
+  // field isn't in this list. None of these 10 field names, across the
+  // 14 documents built this session, were registered here, so every one
+  // of them showed the same fixed example number instead of the
+  // student's actual entered/generated one. Confirmed by downloading a
+  // real Duty Challan PDF: the CIN box correctly showed the live value,
+  // but the letterhead header above it still showed the placeholder.
+  "permitNo","cin","examReportNo","authNo","checklistNo","routingRef","acceptanceRef","fuelSlipNo","tollReceiptNo","memoNo"];
+
+function firstNonEmpty(fields, data){
+  for(const f of fields){ if(data[f] && String(data[f]).trim()) return data[f]; }
+  return null;
+}
+
+/* ===================== REAL CODE128B BARCODE (scannable) =====================
+   This is the exact, standard Code 128 Set-B symbol table (ISO/IEC 15417) — the
+   same table used by production barcode libraries. Each entry is a sequence of
+   11 modules (13 for the STOP symbol), read left-to-right as bar(1)/space(0).
+   Encoding: START_B + each character (ASCII 32-126, code - 32) + checksum + STOP,
+   checksum = (104 + sum(charValue * position)) mod 103, position starting at 1.
+   This produces a genuinely scannable barcode, not a decorative stand-in. */
+const CODE128_BARS = [
+  11011001100,11001101100,11001100110,10010011000,10010001100,10001001100,10011001000,10011000100,
+  10001100100,11001001000,11001000100,11000100100,10110011100,10011011100,10011001110,10111001100,
+  10011101100,10011100110,11001110010,11001011100,11001001110,11011100100,11001110100,11101101110,
+  11101001100,11100101100,11100100110,11101100100,11100110100,11100110010,11011011000,11011000110,
+  11000110110,10100011000,10001011000,10001000110,10110001000,10001101000,10001100010,11010001000,
+  11000101000,11000100010,10110111000,10110001110,10001101110,10111011000,10111000110,10001110110,
+  11101110110,11010001110,11000101110,11011101000,11011100010,11011101110,11101011000,11101000110,
+  11100010110,11101101000,11101100010,11100011010,11101111010,11001000010,11110001010,10100110000,
+  10100001100,10010110000,10010000110,10000101100,10000100110,10110010000,10110000100,10011010000,
+  10011000010,10000110100,10000110010,11000010010,11001010000,11110111010,11000010100,10001111010,
+  10100111100,10010111100,10010011110,10111100100,10011110100,10011110010,11110100100,11110010100,
+  11110010010,11011011110,11011110110,11110110110,10101111000,10100011110,10001011110,10111101000,
+  10111100010,11110101000,11110100010,10111011110,10111101110,11101011110,11110101110,11010000100,
+  11010010000,11010011100,1100011101011
+];
+function code128Modules(text){
+  const START_B = 104, STOP = 106, MODULO = 103;
+  const safe = String(text).toUpperCase().replace(/[^\x20-\x7E]/g, "").slice(0, 24) || "SKELORA";
+  const chars = safe.split("").map(c => c.charCodeAt(0) - 32);
+  let modules = CODE128_BARS[START_B].toString();
+  let checksum = START_B;
+  chars.forEach((v,i)=>{ modules += CODE128_BARS[v].toString(); checksum += v*(i+1); });
+  checksum = checksum % MODULO;
+  modules += CODE128_BARS[checksum].toString();
+  modules += CODE128_BARS[STOP].toString();
+  return {modules, text: safe};
+}
+function renderBarcodeSVG(text){
+  const {modules, text: safe} = code128Modules(text);
+  const moduleW = 2;
+  const height = 44;
+  let x = 0, rects = "";
+  for(const m of modules){
+    if(m === "1") rects += `<rect x="${x}" y="0" width="${moduleW}" height="${height}" fill="#111"/>`;
+    x += moduleW;
+  }
+  const totalWidth = modules.length * moduleW;
+  return `<div class="doc-barcode-block">
+    <svg viewBox="0 0 ${totalWidth} ${height}" width="${totalWidth}" height="${height}" style="display:block;max-width:100%;" preserveAspectRatio="xMinYMin meet">${rects}</svg>
+    <div class="doc-barcode-text">${skEscHtml(safe)}</div>
+  </div>`;
+}
+
+/* ===================== HOLOGRAM DIGITAL SEAL =====================
+   A deterministic, seeded design per document type - each of the 40 document
+   types gets its own combination of pattern, hue, ring text and rotation, so no
+   two documents look identical, while the same document always renders the
+   same seal. The color-shift "hologram" look is a real animated CSS effect
+   (conic-gradient + blend mode), not a static image. */
+function sealSeedRng(seedStr){
+  let h = 1779033703 ^ seedStr.length;
+  for(let i=0;i<seedStr.length;i++){ h = Math.imul(h ^ seedStr.charCodeAt(i), 3432918353); h = (h<<13)|(h>>>19); }
+  return function(){ h = Math.imul(h ^ (h>>>16), 2246822507); h = Math.imul(h ^ (h>>>13), 3266489909); return ((h ^= h>>>16)>>>0) / 4294967296; };
+}
+const SEAL_RING_TEXTS = [
+  "SKELORA INSTITUTE • VERIFIED • ", "OFFICIAL TRAINING DOCUMENT • ", "AUTHENTICATED COPY • ", "DIGITALLY SEALED • "
+];
+function sealInnerPattern(kind, hue){
+  const c = `hsl(${hue},70%,42%)`;
+  if(kind===0) return `<circle cx="50" cy="50" r="30" fill="none" stroke="${c}" stroke-width="2"/><circle cx="50" cy="50" r="21" fill="none" stroke="${c}" stroke-width="1.4"/><circle cx="50" cy="50" r="12" fill="none" stroke="${c}" stroke-width="1"/>`;
+  if(kind===1){ let l=""; for(let i=0;i<12;i++){ const a=(i*30)*Math.PI/180; l+=`<line x1="50" y1="50" x2="${50+30*Math.cos(a)}" y2="${50+30*Math.sin(a)}" stroke="${c}" stroke-width="1.6"/>`; } return l; }
+  if(kind===2){ let d=""; for(let i=0;i<6;i++){ const a=(i*60)*Math.PI/180; d+=`<circle cx="${50+18*Math.cos(a)}" cy="${50+18*Math.sin(a)}" r="4" fill="${c}"/>`; } return d+`<circle cx="50" cy="50" r="4" fill="${c}"/>`; }
+  if(kind===3){ let l=""; for(let r=8;r<=30;r+=7){ l+=`<circle cx="50" cy="50" r="${r}" fill="none" stroke="${c}" stroke-width="1" stroke-dasharray="3 3"/>`; } return l; }
+  let d=""; for(let i=0;i<8;i++){ const a1=(i*45)*Math.PI/180, a2=((i*45)+22)*Math.PI/180; d+=`<path d="M50,50 L${50+26*Math.cos(a1)},${50+26*Math.sin(a1)} L${50+26*Math.cos(a2)},${50+26*Math.sin(a2)} Z" fill="${c}" opacity=".55"/>`; } return d;
+}
+function renderHologramSeal(seedStr, initials){
+  const rng = sealSeedRng(seedStr);
+  const hue = Math.floor(rng()*360);
+  const kind = Math.floor(rng()*5);
+  const ringText = SEAL_RING_TEXTS[Math.floor(rng()*SEAL_RING_TEXTS.length)];
+  const rotation = Math.floor(rng()*360);
+  const arcId = "sealArc" + Math.abs(seedStr.split("").reduce((a,c)=>a+c.charCodeAt(0),0));
+  const fullRingText = (ringText + ringText).slice(0, 40);
+  return `<div class="holo-seal" style="transform:rotate(${rotation}deg);" title="Hologram digital seal — training specimen, not a real security feature">
+    <svg viewBox="0 0 100 100" width="100" height="100">
+      <defs><path id="${arcId}" d="M 50,50 m -42,0 a 42,42 0 1,1 84,0 a 42,42 0 1,1 -84,0"/></defs>
+      <circle cx="50" cy="50" r="47" fill="#fff" stroke="hsl(${hue},60%,55%)" stroke-width="1"/>
+      <text font-size="6.4" fill="hsl(${hue},55%,38%)" letter-spacing="1" font-family="var(--mono)">
+        <textPath href="#${arcId}" startOffset="0%">${fullRingText}</textPath>
+      </text>
+      <g transform="rotate(${-rotation} 50 50)">${sealInnerPattern(kind, hue)}</g>
+      <text x="50" y="53" text-anchor="middle" font-size="11" font-weight="800" fill="hsl(${hue},60%,32%)" font-family="var(--sans)" transform="rotate(${-rotation} 50 50)">${initials}</text>
+    </svg>
+    <div class="holo-shimmer" style="--holo-hue:${hue}deg;"></div>
+  </div>`;
+}
+
+/* PHASE 3: Cross-document validation banner — generic for every document,
+   nothing here is per-document config. Compares this document's own
+   contextKey-tagged fields against the canonical transaction context from
+   other already-completed documents (and the active Job, if any), and
+   shows a plain-language warning if any disagree. Purely informational —
+   never blocks "Mark Complete". Falls back to "" if workflow-rules.js
+   isn't loaded, so nothing breaks on a page that predates this feature. */
+function renderMismatchBanner(){
+  if(typeof skGetTransactionContext !== "function" || typeof skFindDocumentMismatches !== "function") return "";
+  const context = skGetTransactionContext(CURRENT_USER.id);
+  const mismatches = skFindDocumentMismatches(CONFIG, formData, context);
+  if(mismatches.length === 0) return "";
+  const rows = mismatches.map(m => `
+    <li style="margin-bottom:8px;">
+      <b>${skEscHtml(m.label)}</b>: this document says <code>${skEscHtml(m.thisValue)}</code>, but <b>${skEscHtml(m.canonicalSource)}</b> already says <code>${skEscHtml(m.canonicalValue)}</code>.
+    </li>`).join("");
+  return `<div id="mismatchBanner" style="margin-bottom:18px;padding:16px 20px;border-radius:10px;background:#FBF1DE;border:1.5px solid #E8C77A;color:#5B4400;">
+    <div style="font-weight:700;font-size:13.5px;margin-bottom:8px;">⚠️ Cross-Document Mismatch — ${mismatches.length} field${mismatches.length>1?'s':''} disagree with an earlier document</div>
+    <ul style="margin:0;padding-left:18px;font-size:13px;line-height:1.5;">${rows}</ul>
+    <div style="font-size:12px;margin-top:8px;opacity:.85;">You can still mark this complete — but in a real transaction this is exactly the kind of discrepancy that gets a shipment held at customs or a bank presentation rejected. Worth double-checking before moving on.</div>
+  </div>`;
+}
+
+/* ===================== SHIP WATERMARK =====================
+   A large, faint cargo-ship silhouette sitting low behind every
+   document's letterhead — purely decorative (like the text watermark
+   above it), rendered as inline SVG so it survives offline/PWA use and
+   the html2canvas PDF capture with no external image request. Shares
+   the shared wrapAsLetterhead() wrapper, so it appears identically on
+   every document with no per-document config needed. */
+function renderShipWatermark(){
+  return `<div class="doc-ship-watermark" aria-hidden="true">
+    <svg viewBox="0 0 640 220" xmlns="http://www.w3.org/2000/svg">
+      <g fill="currentColor">
+        <path d="M40,168 L580,168 L556,196 Q400,208 300,208 Q160,208 70,196 Z"/>
+        <rect x="55" y="158" width="510" height="10"/>
+        <rect x="80"  y="118" width="52" height="40"/>
+        <rect x="136" y="118" width="52" height="40"/>
+        <rect x="192" y="106" width="52" height="52"/>
+        <rect x="248" y="106" width="52" height="52"/>
+        <rect x="304" y="118" width="52" height="40"/>
+        <rect x="360" y="106" width="52" height="52"/>
+        <rect x="192" y="70"  width="52" height="34"/>
+        <rect x="248" y="70"  width="52" height="34"/>
+        <rect x="360" y="70"  width="52" height="34"/>
+        <rect x="432" y="86"  width="86" height="72"/>
+        <rect x="450" y="60"  width="50" height="28"/>
+        <rect x="466" y="34"  width="10" height="28"/>
+        <rect x="444" y="98" width="16" height="14" fill="#fff"/>
+        <rect x="466" y="98" width="16" height="14" fill="#fff"/>
+        <rect x="488" y="98" width="16" height="14" fill="#fff"/>
+        <rect x="96" y="52" width="6" height="66"/>
+        <path d="M99,52 L150,86 L146,92 L99,64 Z"/>
+        <rect x="500" y="70" width="14" height="18"/>
+      </g>
+    </svg>
+  </div>`;
+}
+
+/* Auto-signature for the "Document Prepared By" box: the logged-in student's name
+   rendered in a handwriting face (bundled Dancing Script, so it looks the same
+   offline and inside the html2canvas/PDF capture) with today's date. Guests (no
+   real name) get an empty box, exactly as before. */
+function skAutoSignatureHtml(name){
+  const nm = String(name == null ? "" : name).replace(/\s+/g, " ").trim();
+  if(!nm || nm === "—" || /^guest$/i.test(nm)) return "";
+  const esc = x => String(x).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+  const MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const n = new Date();
+  const dt = String(n.getDate()).padStart(2,"0") + "-" + MON[n.getMonth()] + "-" + n.getFullYear();
+  const len = nm.length;
+  // Dancing Script averages ~0.45em per character; the box fits ~178px of ink.
+  const size = Math.max(10, Math.min(30, Math.floor(178 / (len * 0.45))));
+  return `<div class="sig-script" style="font-size:${size}px" aria-label="Signature of ${esc(nm)}">${esc(nm)}</div><div class="sig-date">${dt}</div>`;
+}
+
+/* HTML-escaping for text the student typed. Every document's review renderer
+   (documents-data.js) interpolates form values straight into HTML, so a value like
+   <img onerror=...> executed on the review page and in the PDF capture. The
+   review now receives an escaped deep copy of the form data (plain text is
+   byte-for-byte unchanged; only & < > " are encoded, which render identically). */
+function skEscHtml(x){ return String(x == null ? "" : x).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+function skEscapeDeep(v){
+  if(typeof v === "string") return skEscHtml(v);
+  if(Array.isArray(v)) return v.map(skEscapeDeep);
+  if(v && typeof v === "object"){ const o = {}; for(const k of Object.keys(v)) o[k] = skEscapeDeep(v[k]); return o; }
+  return v;
+}
+
+function wrapAsLetterhead(innerHtml){
+  // Shipping Bill only: dedicated specimen print layout (falls back to the
+  // generic letterhead below if anything in it ever throws).
+  if(CURRENT_SLUG === "shipping-bill" && typeof renderShippingBillSpecimen === "function"){
+    try{ return renderShippingBillSpecimen(); }catch(e){ console.error("Shipping Bill layout failed, using default:", e); }
+  }
+  const issuer = firstNonEmpty(ISSUER_NAME_FIELDS, formData) || "Skelora Institute Logistics Simulator";
+  const docNumber = firstNonEmpty(DOC_NUMBER_FIELDS, formData) || CONFIG.docCodeExample;
+  const meta = getLetterheadMeta();
+  const placeOfIssue = firstNonEmpty(["placeOfIssue","portOfLoading","originCity","issuePlace","signPlace"], formData) || "—";
+  const issueDate = firstNonEmpty(["shippedOnBoardDate","issueDate","dateOfIssue","jobDate","importDate","invoiceDate","docDate","signDate"], formData) || new Date().toISOString().slice(0,10);
+  const sealInitials = CONFIG.title.split(/\s+/).map(w=>w[0]).join("").slice(0,3).toUpperCase();
+  const barcodeValue = String(docNumber).toUpperCase() !== String(CONFIG.docCodeExample).toUpperCase() ? docNumber : (meta.docId + meta.verifyCode);
+  const govtBand = CONFIG.govtIssuer ? `<div class="doc-govt-band">
+    <div class="doc-govt-emblem" title="Specimen mark for training purposes only — not an official Government of India emblem">
+      <svg viewBox="0 0 40 40" width="34" height="34"><circle cx="20" cy="20" r="18" fill="none" stroke="#D9C9A8" stroke-width="1.6"/><circle cx="20" cy="20" r="12" fill="none" stroke="#D9C9A8" stroke-width="1"/>${Array.from({length:24}).map((_,i)=>{const a=i*15*Math.PI/180;return `<line x1="20" y1="20" x2="${20+17*Math.cos(a)}" y2="${20+17*Math.sin(a)}" stroke="#D9C9A8" stroke-width="0.6"/>`;}).join("")}</svg>
+    </div>
+    <div class="doc-govt-text">
+      <div class="l1">${CONFIG.govtIssuer.line1}</div>
+      <div class="l2">${CONFIG.govtIssuer.line2}</div>
+      <div class="l3">${CONFIG.govtIssuer.line3}</div>
+    </div>
+  </div>` : "";
+  const govtFiledVia = CONFIG.govtIssuer ? `<div class="doc-govt-filedvia">${CONFIG.govtIssuer.filedVia}</div>` : "";
+  const regulatoryNoteHtml = CONFIG.regulatoryNote ? `<div class="doc-regulatory-note">${CONFIG.regulatoryNote}</div>` : "";
+  return `<div class="doc-letterhead">
+    <div class="doc-training-disclaimer">For Training Purposes Only — This is a simulated document with no legal or commercial validity.</div>
+    <div class="doc-watermark"><span>${CONFIG.title}</span></div>
+    ${renderShipWatermark()}
+    ${govtBand}
+    <div class="doc-lh-head">
+      <div>
+        <div class="doc-lh-name">${skEscHtml(issuer)}</div>
+        <div class="doc-lh-sub">${CONFIG.subtitle}</div>
+        ${govtFiledVia}
+        ${regulatoryNoteHtml}
+      </div>
+      <div class="doc-lh-type">
+        <div class="t">${CONFIG.title}</div>
+        <div class="n">No. ${skEscHtml(docNumber)}</div>
+      </div>
+    </div>
+    <div class="doc-lh-rule"></div>
+    ${innerHtml}
+    <div class="doc-stamp-row">
+      <div style="display:flex;align-items:flex-end;gap:16px;">
+        <div>
+          <div style="font-size:11.5px;color:var(--text-2);margin-bottom:10px;">Issued: <b>${skEscHtml(issueDate)}</b> — Place of Issue: <b>${skEscHtml(placeOfIssue)}</b></div>
+          <div class="doc-stamp-circle">Official<br>Stamp Area</div>
+        </div>
+        ${renderHologramSeal(CONFIG.title + docNumber, sealInitials)}
+      </div>
+      <div style="display:flex;gap:14px;flex-wrap:wrap;">
+        <div class="doc-sig-blank">
+          <div class="box"></div>
+          <div class="cap">Authorized Signatory — ${skEscHtml(issuer)}</div>
+        </div>
+        <div class="doc-sig-blank">
+          <div class="box${(typeof CURRENT_USER !== "undefined" && CURRENT_USER && skAutoSignatureHtml(CURRENT_USER.name)) ? " signed" : ""}">${(typeof CURRENT_USER !== "undefined" && CURRENT_USER) ? skAutoSignatureHtml(CURRENT_USER.name) : ""}</div>
+          <!-- BUGFIX (requested): every document only ever showed who
+               ISSUED it (Authorized Signatory / issuer company), never
+               who actually filled it out in the simulator. Added here,
+               in the one shared letterhead wrapper every document
+               renders through, instead of in each of the ~75 individual
+               document field lists — same effect, one place to maintain. -->
+          <div class="cap">Document Prepared By — ${String((typeof CURRENT_USER !== "undefined" && CURRENT_USER && CURRENT_USER.name) || "—").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;")}</div>
+        </div>
+      </div>
+    </div>
+    <div class="doc-barcode-row">
+      ${renderBarcodeSVG(barcodeValue)}
+    </div>
+    <div class="doc-footer-meta">
+      <span>Document ID: ${meta.docId}</span>
+      <span>Verification Code: ${meta.verifyCode}</span>
+      <span>Issued: ${new Date().toISOString()}</span>
+      <span>Rev. 1 · Page 1 of 1</span>
+    </div>
+    <div class="doc-terms">
+      <h5>Terms &amp; Conditions (Training Reference Copy)</h5>
+      <ol>
+        <li>This document is a specimen produced for educational purposes within a training simulation and carries no legal or commercial validity.</li>
+        <li>In practice, the issuer's full liability terms, jurisdiction, and governing conventions would be printed in full on the reverse of an original document.</li>
+        <li>The party who supplied these particulars warrants their accuracy; the simulator does not verify them against any real-world registry.</li>
+        <li>This training document should be used strictly for classroom, assessment, and simulation purposes.</li>
+      </ol>
+    </div>
+  </div>`;
+}
+
+/* ===================== SHIPPING BILL — SPECIMEN PRINT LAYOUT =====================
+   The Shipping Bill (and only the Shipping Bill) reviews / downloads in its own
+   print-style layout instead of the generic letterhead: Government of India
+   header, numbered navy section bars, label/value grids, item + container
+   tables and a signature block, laid out on two fixed A4 pages (.sb-page).
+   It still renders inside a .doc-letterhead element, so every existing
+   caller (review step, Download Original/Copy, bulk ZIP export) keeps working;
+   the PDF code detects .sb-page and captures one A4 page per .sb-page
+   (see skBuildSbPdf). Every value comes from the student's own formData. */
+function renderShippingBillSpecimen(){
+  const d = formData || {};
+  const esc = s => String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+  const v  = x => { const t = (x==null?"":String(x)).trim(); return t ? esc(t) : "—"; };
+  const vm = x => v(x).replace(/\n/g,"<br>");
+  const MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const dt = x => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(x||"").trim()); return m ? `${m[3]}-${MON[+m[2]-1]}-${m[1]}` : v(x); };
+  const nf = (x,dp) => { const n = parseFloat(x); return isFinite(n) ? n.toLocaleString("en-US",{minimumFractionDigits:dp,maximumFractionDigits:dp}) : v(x); };
+  const now = new Date();
+  const today = `${String(now.getDate()).padStart(2,"0")}-${MON[now.getMonth()]}-${now.getFullYear()}`;
+  const nowTime = `${today} ${String(now.getHours()).padStart(2,"0")}:${String(now.getMinutes()).padStart(2,"0")}`;
+
+  const kv = (rows, cols) => {
+    cols = cols || 2;
+    const pairW = 100 / cols, lab = pairW * 0.27, val = pairW - lab;
+    let colgroup = "<colgroup>"; for(let c=0;c<cols;c++) colgroup += `<col style="width:${lab}%"><col style="width:${val}%">`; colgroup += "</colgroup>";
+    let body = "";
+    for(let i=0;i<rows.length;i+=cols){
+      body += "<tr>";
+      for(let c=0;c<cols;c++){ const r = rows[i+c]; body += r ? `<td class="l">${r[0]}</td><td class="v">${r[1]}</td>` : `<td class="l"></td><td class="v"></td>`; }
+      body += "</tr>";
+    }
+    return `<table class="sb-kv">${colgroup}${body}</table>`;
+  };
+  const kv1 = (label, html) => `<table class="sb-kv"><colgroup><col style="width:15%"><col style="width:85%"></colgroup><tr><td class="l">${label}</td><td class="v">${html}</td></tr></table>`;
+  const bar = t => `<div class="sb-bar">${t}</div>`;
+  const grid = (head, rows, widths) => `<table class="sb-grid"><colgroup>${widths.map(w=>`<col style="width:${w}">`).join("")}</colgroup><tr>${head.map(h=>`<th>${h}</th>`).join("")}</tr>${rows.map(r=>`<tr>${r.map(c=>`<td>${c}</td>`).join("")}</tr>`).join("")}</table>`;
+
+  const items = Array.isArray(d.itemDetails) ? d.itemDetails : [];
+  const cur = (d.invoiceCurrency || "").trim() || "—";
+  const fobOf = r => (parseFloat(r.quantity)||0) * (parseFloat(r.unitPrice)||0);
+  const totalFob = items.reduce((s,r)=>s+fobOf(r),0);
+  const conts = (Array.isArray(d.containerDetails) ? d.containerDetails : []).filter(r=>r && r.containerNo);
+  const submitted = !!d.submitToIcegate;
+  // sbNumberGenerated is a display-only computed field (never stored in formData),
+  // so recompute it from the field's own rule once the filing is submitted.
+  let genSbNo = d.sbNumberGenerated;
+  if(!genSbNo && submitted && typeof findFieldByName === "function"){
+    try{ const gf = findFieldByName("sbNumberGenerated"); if(gf && typeof gf.compute === "function") genSbNo = gf.compute(d); }catch(e){}
+  }
+  const sbNo = (genSbNo && submitted) ? esc(genSbNo) : "Pending Submission";
+  const PORTS = {INCOK1:"Cochin Sea", INNSA1:"Nhava Sheva Sea", INMUN1:"Mundra Sea", INMAA1:"Chennai Sea", INTUT1:"Tuticorin Sea"};
+  const chc = String(d.customsHouseCode||"").trim();
+  const portOfExport = chc ? (PORTS[chc.toUpperCase()] ? `${PORTS[chc.toUpperCase()]} (Customs House Code <b>${esc(chc)}</b>)` : `Customs House Code <b>${esc(chc)}</b>`) : "—";
+  const isAir = !!((d.mawbNumber||"").trim() && !/^(n\/?a|nil|none|-|—)$/i.test((d.mawbNumber||"").trim()));
+  const mode = isAir ? "Air Cargo" : (conts.length ? "Sea - Containerized" : "Sea / Surface");
+
+  const header = `
+    <div class="sb-h1">GOVERNMENT OF INDIA</div>
+    <div class="sb-c">Ministry of Finance - Department of Revenue</div>
+    <div class="sb-c">Central Board of Indirect Taxes &amp; Customs (CBIC)</div>
+    <div class="sb-title">SHIPPING BILL FOR EXPORT</div>
+    <div class="sb-sub">Filed electronically through ICEGATE - Indian Customs EDI Gateway</div>
+    ${kv([["Shipping Bill No.",`<b>${sbNo}</b>`],["Shipping Bill Date",submitted ? today : "—"],["Port of Export",portOfExport],["Mode",mode]],2)}`;
+
+  const s1 = bar("1. CUSTOMS &amp; EXPORTER REFERENCE") + kv([
+    ["Customs House Code",v(d.customsHouseCode)],["Job Number",v(d.jobNumber)],["Job Date",dt(d.jobDate)],["CHA License No.",v(d.chaLicenseNo)],
+    ["IEC",v(d.iecNumber)],["Branch Serial No.",v(d.branchSerialNo)],["Exporter Type",v(d.exporterType)],["Exporter Class",v(d.exporterClass)],
+    ["GSTIN",v(d.gstin)],["Exporter Name",v(d.exporterName)]],2) + kv1("Exporter Address",vm(d.exporterAddress));
+
+  const s2 = bar("2. CARGO &amp; SHIPMENT PARTICULARS") + kv([
+    ["Country of Destination",v(d.countryDestination)],["Port of Discharge",v(d.portDischarge)],
+    ["Nature of Cargo",v(d.natureOfCargo)],["Unit of Measurement",v(d.uom)],
+    ["Gross Weight (KG)",nf(d.grossWeight,3)],["Net Weight (KG)",nf(d.netWeight,3)],
+    ["Number of Packages",v(d.noOfPackages)],["Number of Containers",v(d.noOfContainers)],
+    ["Marks &amp; Numbers",v(d.marksNumbers)],["Seal Type",v(d.sealType)],
+    ["MAWB No. (Air)",v(d.mawbNumber)],["HAWB No. (Air)",v(d.hawbNumber)]],2);
+
+  const s3 = bar("3. INVOICE DETAILS") + kv([
+    ["Commercial Invoice No.",v(d.commInvoiceNo)],["Invoice Date",dt(d.invoiceDate)],["Invoice Currency",v(d.invoiceCurrency)],["Nature of Contract",v(d.natureOfContract)],
+    ["Freight Currency / Amount",`${v(d.freightCurrency)} / ${nf(d.freightAmount,2)}`],["Insurance Amount",nf(d.insuranceAmount,2)]],2)
+    + kv1("Buyer Name",v(d.buyerName)) + kv1("Buyer Address",vm(d.buyerAddress));
+
+  const itemRows = items.map((r,i)=>[String(i+1), v(r.hsCode), vm(r.description), nf(r.quantity,3), v(r.unit), nf(r.unitPrice,2), nf(fobOf(r),2)]);
+  if(items.length > 1) itemRows.push(["","","<b>Total FOB ("+esc(cur)+")</b>","","","",`<b>${nf(totalFob,2)}</b>`]);
+  const itemDetailArr = items.map((r,i)=>{
+    const rows = [["Country of Manufacture",v(r.countryMfg)],["Source State",v(r.sourceState)],["End Use",v(r.endUse)],["Present Market Value (INR)",nf(r.presentMarketValue,2)],["IGST Details",vm(r.igstDetails)]];
+    [["Drawback Details",r.drawbackDetails],["Cess Details",r.cessDetails],["Third Party Details",r.thirdPartyDetails],["Raw Material Details",r.rawMaterialDetails],["Accessories Details",r.accessoriesDetails]]
+      .forEach(([l,x])=>{ if(String(x||"").trim()) rows.push([l,vm(x)]); });
+    rows.push(["Supporting Documents",vm(r.supportingDocuments)],["Manufacturer Details",vm(r.manufacturerDetails)]);
+    return (items.length>1 ? `<div class="sb-mini">Item ${i+1} particulars</div>` : "") + kv(rows,2);
+  });
+  const itemDetailBlocks = itemDetailArr.join("");
+  const s4 = bar("4. ITEM-WISE DECLARATION") + (items.length
+    ? grid(["Item","ITC HS Code","Description of Goods","Qty","Unit",`Unit Price (${esc(cur)})`,`FOB Value (${esc(cur)})`], itemRows, ["5.5%","11%","auto","10%","6%","14.5%","15%"]) + itemDetailBlocks
+    : kv1("Items","No items declared"));
+
+  const rate = parseFloat(d.exchangeRate);
+  const inr = (isFinite(rate) && items.length) ? nf(totalFob*rate,2) : v(d.inrConversion);
+  const s5 = bar("5. EXCHANGE RATE DETAILS") + ((d.invoiceCurrency||"").trim()==="INR"
+    ? kv1("Exchange rate","Not applicable - the invoice currency is INR.")
+    : kv([["Currency Code",v(d.currencyCode)],["Exchange Rate (INR per "+esc(cur)+")",v(d.exchangeRate)],["Total FOB ("+esc(cur)+")",nf(totalFob,2)],["Total FOB (INR) - computed",`<b>${inr}</b>`],["Effective Date",dt(d.effectiveDate)]],2));
+
+  const noScheme = !d.schemeType || /^none$/i.test(String(d.schemeType).trim());
+  const s6 = bar("6. LICENCE / DFIA / JOB WORK DETAILS") + (noScheme
+    ? kv1("Scheme","No - not exporting under any scheme")
+    : kv([["Exporting under a scheme?",v(d.schemeType)],["Advance Authorization No.",v(d.advanceAuthNo)],["DFIA No.",v(d.dfiaNo)],["SION Number",v(d.sionNumber)],["Licence Number",v(d.licenceNumber)],["Quantity Used",v(d.quantityUsed)],["Bill of Entry No.",v(d.boeNumber)],["Port Code",v(d.portCode)]],2)
+      + (String(d.jobWorkDetails||"").trim() ? kv1("Job Work Details",vm(d.jobWorkDetails)) : ""));
+
+  const s7 = bar("7. PACKAGING / ROTATION / CONTAINER DETAILS") + (conts.length
+    ? grid(["Container Number","Size","Seal Number","Seal Type","RFID Seal"], conts.map(r=>[v(r.containerNo),v(r.containerSize),v(r.sealNumber),v(r.sealTypeDetail),v(r.rfidSeal)]), ["22%","10%","22%","22%","24%"])
+    : kv1("Containers","Non-containerized (LCL) cargo - no container details declared"))
+    + kv([["Rotation Number",v(d.rotationNumber)],["Rotation Date",dt(d.rotationDate)],["Packaging Number",v(d.packagingNumber)],["Movement Document No.",v(d.movementDocNo)],["Excise Seal No.",v(d.exciseSealNo)]],2);
+
+  const preparedBy = (typeof CURRENT_USER !== "undefined" && CURRENT_USER && CURRENT_USER.name) ? esc(CURRENT_USER.name) : "—";
+  const s8 = bar("8. DIGITAL SIGNATURE &amp; SUBMISSION") + `<table class="sb-sign"><tr>
+    <td style="width:55%">${d.validateInfo?"&#9745;":"&#9744;"} I validate that all information entered above is accurate and complete.<br>${d.submitToIcegate?"&#9745;":"&#9744;"} I authorize submission of this Shipping Bill to ICEGATE.<br><br>
+      <b>Signatory:</b> ${v(d.signatoryName)}<br><b>Designation:</b> ${v(d.signatoryDesignation)}</td>
+    <td><b>Digital signature:</b> ${d.digitalSignatureApplied ? "Class 3 DSC applied (simulated - no real signature)" : "Not applied"}<br><br>
+      <b>Submitted:</b> ${submitted ? nowTime : "—"}<br><b>Status:</b> ${submitted ? "Filed - awaiting Let Export Order" : "Draft - not submitted"}<br><b>Prepared by:</b> ${preparedBy} (training exercise)${(typeof skAutoSignatureHtml === "function" && typeof CURRENT_USER !== "undefined" && CURRENT_USER && skAutoSignatureHtml(CURRENT_USER.name)) ? `<div class="sb-autosig">${skAutoSignatureHtml(CURRENT_USER.name)}</div>` : ""}</td></tr></table>`;
+
+  const FOOT = "SPECIMEN FOR TRAINING USE ONLY - simulated document with no legal or commercial validity (Skelora Institute Logistics Simulator). Not a valid Government of India document.";
+  const ref = `SB ${sbNo}`;
+  const page = (inner, n, total) => `<div class="sb-page"><div class="sb-wm"><div class="a">SPECIMEN</div><div class="b">TRAINING COPY - NOT A VALID DOCUMENT</div></div><div class="sb-body">${inner}</div><div class="sb-pref">${ref} &nbsp;|&nbsp; Page ${n}</div><div class="sb-foot">${FOOT}</div></div>`;
+
+  /* ---- Measured pagination -------------------------------------------------
+     The old layout hard-coded "sections 1-4 on page 1, 5-8 on page 2", so a Lot
+     with several items overflowed page 2 and the PDF scaled it down to unreadable
+     text. Now every block is measured in a hidden host (same width / CSS as a real
+     page) and packed onto as many A4 pages as needed; the item table splits by row
+     (header + "continued" bar repeated) and nothing is ever cut mid-block. If a
+     single block is taller than a page it still gets its own page (PDF code scales
+     that one down as before). Any failure falls back to the original 2-page split. */
+  const itemHead = ["Item","ITC HS Code","Description of Goods","Qty","Unit",`Unit Price (${esc(cur)})`,`FOB Value (${esc(cur)})`];
+  const itemW = ["5.5%","11%","auto","10%","6%","14.5%","15%"];
+  const compact = items.length <= 1;
+  const fallback = () => `<div class="sb-scroll"><div class="doc-letterhead sb-letterhead">${page(header + s1 + s2 + s3 + (compact ? s4 : ""),1,2)}${page((compact ? "" : s4) + s5 + s6 + s7 + s8,2,2)}</div></div>`;
+  try{
+    if(typeof document === "undefined" || !document.body) return fallback();
+    const CAP = 1123 - 45 - 78;                       // A4 @96dpi minus .sb-page padding
+    const host = document.createElement("div");
+    host.className = "sb-letterhead-measure";
+    host.style.cssText = "position:absolute;left:-10000px;top:0;width:688px;visibility:hidden;pointer-events:none;font-family:Helvetica,Arial,sans-serif;";
+    document.body.appendChild(host);
+    // +9: every block starts with a bar whose 8px top margin collapses out of the measured box
+    const hOf = html => { host.innerHTML = `<div class="sb-body" style="width:688px">${html}</div>`; return host.firstChild.offsetHeight + 9; };
+    // table row heights measured from one real render of the full item grid
+    let rowH = [], headH = 0, barH = 0;
+    if(items.length){
+      host.innerHTML = `<div class="sb-body" style="width:688px">${bar("4. ITEM-WISE DECLARATION")}${grid(itemHead, itemRows, itemW)}</div>`;
+      const trs = host.querySelectorAll("table.sb-grid tr"); headH = trs[0].offsetHeight; rowH = Array.from(trs).slice(1).map(t=>t.offsetHeight);
+      barH = host.querySelector(".sb-bar").offsetHeight + 8;
+    }
+    const blocks = [{h:hOf(header), html:header}, {h:hOf(s1), html:s1}, {h:hOf(s2), html:s2}, {h:hOf(s3), html:s3}];
+    const pages = [{html:"", used:0}];
+    const place = b => { let pg = pages[pages.length-1]; if(pg.used && pg.used + b.h > CAP){ pg = {html:"", used:0}; pages.push(pg); } pg.html += b.html; pg.used += b.h; };
+    blocks.forEach(place);
+    // --- item table, split by rows
+    if(items.length){
+      let i = 0, first = true;
+      while(i < itemRows.length){
+        let pg = pages[pages.length-1];
+        let room = CAP - pg.used - (first ? barH : barH) - headH - 6;
+        if(room < (rowH[i] || 30) && pg.used){ pages.push({html:"", used:0}); pg = pages[pages.length-1]; room = CAP - barH - headH - 6; }
+        const chunk = []; let used = 0;
+        while(i < itemRows.length && (chunk.length === 0 || used + rowH[i] <= room)){ chunk.push(itemRows[i]); used += rowH[i]; i++; }
+        const title = first ? "4. ITEM-WISE DECLARATION" : "4. ITEM-WISE DECLARATION (continued)";
+        const html = bar(title) + grid(itemHead, chunk, itemW);
+        pg.html += html; pg.used += barH + headH + used + 6; first = false;
+      }
+      itemDetailArr.forEach(html => place({h:hOf(html)+6, html}));
+    } else { place({h:hOf(s4), html:s4}); }
+    [s5,s6,s7,s8].forEach(h => place({h:hOf(h), html:h}));
+    host.remove();
+    const total = pages.length;
+    return `<div class="sb-scroll"><div class="doc-letterhead sb-letterhead">${pages.map((pg,idx)=>page(pg.html, idx+1, total)).join("")}</div></div>`;
+  }catch(e){
+    try{ document.querySelectorAll(".sb-letterhead-measure").forEach(n=>n.remove()); }catch(e2){}
+    console.warn("Shipping Bill pagination fell back to the 2-page split:", e);
+    return fallback();
+  }
+}
+
+/* Page-break-aware PDF paging for the generic letterhead.
+   The old code placed one tall image and let each A4 page show the next slice,
+   so a page boundary could land in the middle of a line of text or through a
+   bordered box (the BL's "Remarks" line was sliced in half). This measures the
+   rendered DOM, treats every text leaf / table cell / image / stamp as
+   indivisible, and ends each page at the lowest gap that is not inside one
+   (searching back at most half a page). If no clean gap exists (an element
+   taller than half a page) it falls back to the old hard cut for that page.
+   Any error -> caller falls back to the original slicing. */
+function skAddCanvasToPdfPaged(pdf, canvas, letterheadEl){
+  const pageWidth = pdf.internal.pageSize.getWidth(), pageHeight = pdf.internal.pageSize.getHeight();
+  const mmPerPx = pageWidth / canvas.width;
+  const totalPx = canvas.height, pagePx = Math.floor(pageHeight / mmPerPx);
+  if(totalPx <= pagePx + 2){
+    pdf.addImage(canvas.toDataURL("image/jpeg", 0.92), "JPEG", 0, 0, pageWidth, totalPx * mmPerPx);
+    return;
+  }
+  const lh = letterheadEl.getBoundingClientRect();
+  const sc = canvas.width / lh.width;
+  const halfPageCss = (pagePx / sc) * 0.5;
+  const ATOMIC_TAGS = {IMG:1, SVG:1, CANVAS:1, TD:1, TH:1, BUTTON:1, INPUT:1, SELECT:1, TEXTAREA:1};
+  const zones = [];
+  letterheadEl.querySelectorAll("*").forEach(el=>{
+    if(el.closest(".pdf-variant-watermark")) return;
+    const tag = el.tagName.toUpperCase();
+    if(el.closest("svg") && tag !== "SVG") return;
+    const r = el.getBoundingClientRect();
+    if(r.height < 1 || r.width < 1) return;
+    if(r.height > halfPageCss) return;                       // too tall to be indivisible
+    const cs = getComputedStyle(el);
+    if(cs.position === "absolute" && r.height > 120) return; // big decorative layers
+    let atomic = !!ATOMIC_TAGS[tag];
+    if(!atomic && el.children.length === 0 && (el.textContent || "").trim() !== "") atomic = true;
+    if(!atomic && /(^|[\s_-])(box|cell|stamp|seal|barcode|sig)/i.test(String(el.className && el.className.baseVal !== undefined ? el.className.baseVal : el.className))) atomic = true;
+    if(!atomic) return;
+    zones.push({t:(r.top - lh.top) * sc, b:(r.bottom - lh.top) * sc});
+  });
+  let start = 0, first = true;
+  while(start < totalPx - 1){
+    let end = Math.min(start + pagePx, totalPx);
+    if(end < totalPx){
+      const minEnd = start + Math.floor(pagePx * 0.5);
+      const cands = zones.map(z=>z.b).filter(y=>y <= end && y >= minEnd).sort((a,b)=>b-a);
+      for(let i=0;i<cands.length;i++){
+        const y = cands[i];
+        if(!zones.some(z=> y > z.t + 2 && y < z.b - 2)){ end = Math.ceil(y); break; }
+      }
+    }
+    const h = end - start;
+    const seg = document.createElement("canvas"); seg.width = canvas.width; seg.height = h;
+    const ctx = seg.getContext("2d"); ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, seg.width, h);
+    ctx.drawImage(canvas, 0, start, canvas.width, h, 0, 0, canvas.width, h);
+    if(!first) pdf.addPage();
+    first = false;
+    pdf.addImage(seg.toDataURL("image/jpeg", 0.92), "JPEG", 0, 0, pageWidth, h * mmPerPx);
+    start = end;
+  }
+}
+
+/* PDF capture for the Shipping Bill layout: one A4 PDF page per .sb-page (the
+   generic code below slices one tall image instead). If a page's content ever
+   outgrows A4 it is scaled down to fit rather than cut. variantLabel ("ORIGINAL"/
+   "COPY") is stamped on each page for just this capture. */
+async function skBuildSbPdf(letterheadEl, variantLabel){
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF({orientation:"portrait", unit:"mm", format:"a4"});
+  const pageWidth = pdf.internal.pageSize.getWidth(), pageHeight = pdf.internal.pageSize.getHeight();
+  const pages = letterheadEl.querySelectorAll(".sb-page");
+  const wrap = letterheadEl.closest(".sb-scroll");
+  const prevOverflow = wrap ? wrap.style.overflow : "";
+  if(wrap) wrap.style.overflow = "visible"; // narrow screens: don't let the scroll box crop the capture
+  try{
+    for(let i=0;i<pages.length;i++){
+      const pg = pages[i];
+      let wm = null;
+      if(variantLabel){ wm = document.createElement("div"); wm.className = "pdf-variant-watermark"; wm.textContent = variantLabel; pg.appendChild(wm); }
+      let canvas;
+      try{ canvas = await html2canvas(pg, {scale:2, useCORS:true, backgroundColor:"#ffffff", windowWidth:Math.max(window.innerWidth, 1000)}); }
+      finally{ if(wm) wm.remove(); }
+      let w = pageWidth, h = (canvas.height * w) / canvas.width;
+      if(h > pageHeight){ const k = pageHeight / h; w *= k; h = pageHeight; }
+      if(i > 0) pdf.addPage();
+      pdf.addImage(canvas.toDataURL("image/jpeg", 0.92), "JPEG", (pageWidth - w) / 2, 0, w, h);
+    }
+  } finally { if(wrap) wrap.style.overflow = prevOverflow; }
+  return pdf;
+}
+
+function renderComplete(){
+  clearInterval(timerInterval);
+  const secs = Math.floor((Date.now()-startTime)/1000);
+  const mm = String(Math.floor(secs/60)).padStart(2,"0"), ss=String(secs%60).padStart(2,"0");
+  saveProgressSnapshot("completed");
+
+  // PHASE 9b: if this document belongs to the student's active Job, offer
+  // a one-click path straight into the NEXT document that Job still
+  // needs — in prerequisite-safe order (skGetNextJobDocument, job-engine.js)
+  // — instead of sending them back to the Document Library to find it
+  // themselves. Once every document in the Job is done, point at the
+  // dashboard instead, where the completed scenario + ZIP download live.
+  let jobNextHtml = "";
+  if(CURRENT_USER && typeof skGetActiveJob === "function" && typeof skGetNextJobDocument === "function"){
+    const activeJob = skGetActiveJob(CURRENT_USER.id);
+    if(activeJob){
+      const nextSlug = skGetNextJobDocument(CURRENT_USER.id, activeJob);
+      if(nextSlug){
+        const nextTitle = (typeof DOCUMENT_CONFIGS !== "undefined" && DOCUMENT_CONFIGS[nextSlug]) ? DOCUMENT_CONFIGS[nextSlug].title : nextSlug;
+        jobNextHtml = `<a class="btn-primary" id="nextJobDocBtn" href="workstation.html?doc=${encodeURIComponent(nextSlug)}">${ic("chevRight")} Continue — Next: ${nextTitle}</a>`;
+      } else if(typeof skGetJobDocScope === "function" && skGetJobDocScope(activeJob).length > 0){
+        jobNextHtml = `<a class="btn-primary" id="jobDoneBtn" href="skelora-institute-dashboard.html">${ic("check")} Every document in this Shipment Lot is done — Back to Dashboard</a>`;
+      }
+    }
+  }
+
+  return `<div class="cert">
+    <div class="cert-ic">${ic("check")}</div>
+    <h2>Exercise Completed</h2>
+    <p>${CONFIG.completionMessage}</p>
+    <div class="cert-stats">
+      <div class="cert-stat"><div class="v">${CONFIG.docCodeExample}</div><div class="l">Document Number Assigned</div></div>
+      <div class="cert-stat"><div class="v">${mm}:${ss}</div><div class="l">Time Taken</div></div>
+      <div class="cert-stat"><div class="v">${CONFIG.steps.length} / ${CONFIG.steps.length}</div><div class="l">Sections Completed</div></div>
+    </div>
+    <div class="cert-actions">
+      ${jobNextHtml}
+      <button class="btn-secondary" id="restartBtn">${ic("refresh")} Restart Exercise</button>
+      <button class="btn-secondary" id="reviewAgainBtn">Review Document Again</button>
+      <a class="btn-secondary" href="skelora-institute-dashboard.html">Back to Document Library</a>
+    </div>
+  </div>`;
+}
+
+/* ===================== REAL PDF DOWNLOAD (Original / Copy, with watermark) =====================
+   Uses html2canvas + jsPDF (loaded via CDN in workstation.html) to produce a genuine, real PDF
+   file download - not the browser's print dialog. Captures the actual letterhead exactly as
+   rendered (barcode, hologram seal, tables, all included), adds a real "ORIGINAL" or "COPY"
+   watermark for this specific download, and supports multi-page output for long documents. */
+/* The review document sits in a horizontally scrollable box (.review-scroll). html2canvas must
+   see it unclipped or a narrow screen would crop the right-hand side out of the PDF. */
+async function skWithUnclippedReview(letterheadEl, fn){
+  const w = letterheadEl && letterheadEl.closest ? letterheadEl.closest(".review-scroll") : null;
+  const prev = w ? w.style.overflow : "";
+  if(w) w.style.overflow = "visible";
+  try{ return await fn(); } finally { if(w) w.style.overflow = prev; }
+}
+
+async function generateDocumentPDF(variant){
+  const statusEl = document.getElementById("pdfGenStatus");
+  const shipWrap = document.getElementById("pdfGenShipWrap");
+  const letterheadEl = document.querySelector(".doc-letterhead");
+  if(!letterheadEl){ showToast("Could not find the document to export."); return; }
+  const isSbLayout = !!letterheadEl.querySelector(".sb-page");
+  if(typeof html2canvas === "undefined" || typeof window.jspdf === "undefined"){
+    showToast("PDF tools didn't load — check your internet connection and try again.");
+    return;
+  }
+  if(statusEl) statusEl.textContent = "Generating " + variant + " PDF…";
+  if(shipWrap) shipWrap.style.display = "block";
+  const shipShownAt = Date.now();
+  const MIN_SHIP_MS = 3000;
+  async function waitOutMinShipTime(){
+    const elapsed = Date.now() - shipShownAt;
+    if(elapsed < MIN_SHIP_MS) await new Promise(r=>setTimeout(r, MIN_SHIP_MS - elapsed));
+  }
+  document.getElementById("downloadOriginalBtn").disabled = true;
+  document.getElementById("downloadCopyBtn").disabled = true;
+
+  /* Temporary watermark overlay - added just for this capture, then removed */
+  const watermark = document.createElement("div");
+  watermark.className = "pdf-variant-watermark";
+  watermark.textContent = variant;
+  if(!isSbLayout) letterheadEl.appendChild(watermark);
+
+  try {
+    let pdf;
+    if(isSbLayout){
+      pdf = await skBuildSbPdf(letterheadEl, variant);
+    } else {
+    const canvas = await skWithUnclippedReview(letterheadEl, () => html2canvas(letterheadEl, {scale:2, useCORS:true, backgroundColor:"#ffffff"}));
+    watermark.remove();
+
+    const { jsPDF } = window.jspdf;
+    pdf = new jsPDF({orientation:"portrait", unit:"mm", format:"a4"});
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    const imgWidth = pageWidth;
+    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+    let pagedOk = false;
+    try{ skAddCanvasToPdfPaged(pdf, canvas, letterheadEl); pagedOk = true; }
+    catch(pe){ console.warn("Smart paging failed, using plain slicing:", pe); try{ while(pdf.getNumberOfPages() > 1) pdf.deletePage(pdf.getNumberOfPages()); }catch(e2){} }
+    if(!pagedOk){
+    const imgData = canvas.toDataURL("image/jpeg", 0.92);
+    let heightLeft = imgHeight;
+    let position = 0;
+    pdf.addImage(imgData, "JPEG", 0, position, imgWidth, imgHeight);
+    heightLeft -= pageHeight;
+    while(heightLeft > 0){
+      position = heightLeft - imgHeight;
+      pdf.addPage();
+      pdf.addImage(imgData, "JPEG", 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+    }
+    }
+    }
+
+    const meta = getLetterheadMeta();
+    const docNumber = (firstNonEmpty(DOC_NUMBER_FIELDS, formData) || CONFIG.docCodeExample).toString().replace(/[^a-zA-Z0-9_-]+/g, "-");
+    const filename = `${CONFIG.title.replace(/[^a-zA-Z0-9_-]+/g,"-")}-${docNumber}-${variant}.pdf`;
+    pdf.save(filename);
+    if(statusEl) statusEl.textContent = variant + " PDF downloaded.";
+    await waitOutMinShipTime();
+    if(shipWrap) shipWrap.style.display = "none";
+    if(CURRENT_USER && CURRENT_SLUG && typeof skAppendAudit === "function"){
+      skAppendAudit(CURRENT_USER.id, CURRENT_SLUG, "saved", {note:variant + " PDF exported", docTitle:CONFIG.title});
+    }
+  } catch(err){
+    watermark.remove();
+    showToast("Couldn't generate the PDF. Please try again.");
+    if(statusEl) statusEl.textContent = "";
+    await waitOutMinShipTime();
+    if(shipWrap) shipWrap.style.display = "none";
+  } finally {
+    document.getElementById("downloadOriginalBtn").disabled = false;
+    document.getElementById("downloadCopyBtn").disabled = false;
+  }
+}
+
+/* Fills any field marked autoGenerate:{digits:N} with a fresh sequential
+   reference number the first time a document is opened with nothing
+   there yet (never overwrites a value that's already present, whether
+   that's the student's own edit or something autofilled from context).
+   Called right alongside skApplyContextAutofill at every "fresh formData"
+   point below, so a generated number survives the same way a normal
+   autofilled value does. */
+function skApplyAutoGenerate(cfg, data, userId){
+  if(!cfg || !userId) return data;
+  (cfg.steps||[]).forEach(step=>{
+    (step.fields||[]).forEach(f=>{
+      if(f.autoGenerate && (data[f.name]===undefined || data[f.name]===null || data[f.name]==="")){
+        if(typeof skGenerateFormattedRefNumber === "function"){
+          data[f.name] = skGenerateFormattedRefNumber(userId, cfg.title+":"+f.name, f.pattern||null, (typeof CURRENT_SLUG !== "undefined" && CURRENT_SLUG) || cfg.title);
+        } else if(typeof skGenerateRefNumber === "function"){
+          const digits = (f.autoGenerate && f.autoGenerate.digits) || 6;
+          data[f.name] = skGenerateRefNumber(userId, cfg.title+":"+f.name, digits);
+        }
+      }
+    });
+  });
+  return data;
+}
+
+function bindStepButtons(step){
+  const downloadOriginalBtn = document.getElementById("downloadOriginalBtn");
+  if(downloadOriginalBtn) downloadOriginalBtn.addEventListener("click", ()=>generateDocumentPDF("ORIGINAL"));
+  const downloadCopyBtn = document.getElementById("downloadCopyBtn");
+  if(downloadCopyBtn) downloadCopyBtn.addEventListener("click", ()=>generateDocumentPDF("COPY"));
+  const restartBtn = document.getElementById("restartBtn");
+  if(restartBtn) restartBtn.addEventListener("click", ()=>{
+    formData = {};
+    if(typeof skGetTransactionContext === "function" && typeof skApplyContextAutofill === "function" && CURRENT_USER){
+      formData = skApplyContextAutofill(CONFIG, formData, skGetTransactionContext(CURRENT_USER.id));
+      formData = skApplyAutoGenerate(CONFIG, formData, CURRENT_USER.id);
+    }
+    currentStep = 0; maxReached = 0; fieldErrors.clear();
+    startTime = Date.now();
+    letterheadMeta = null;
+    clearInterval(timerInterval); timerInterval = setInterval(updateTimer,1000);
+    if(CURRENT_USER && CURRENT_SLUG) skSaveDocProgress(CURRENT_USER.id, CURRENT_SLUG, {status:'in-progress', currentStep:0, maxReached:0, formData, docTitle:CONFIG.title});
+    if(CURRENT_USER && CURRENT_SLUG && typeof skAppendAudit === "function") skAppendAudit(CURRENT_USER.id, CURRENT_SLUG, "restarted", {docTitle:CONFIG.title});
+    renderStep(0);
+  });
+  const reviewAgainBtn = document.getElementById("reviewAgainBtn");
+  if(reviewAgainBtn) reviewAgainBtn.addEventListener("click", ()=>{
+    const reviewIdx = CONFIG.steps.findIndex(s=>s.custom==="review");
+    currentStep = reviewIdx; renderStep(currentStep);
+  });
+}
+
+/* ---------------------------------------------------------------------
+   PHASE OVERVIEW (at-a-glance panel for documents with phase-grouped steps)
+   --------------------------------------------------------------------- */
+function renderPhaseOverview(){
+  const el = document.getElementById("bannerPhaseOverview");
+  if(!el) return;
+  const phaseNames = [...new Set(CONFIG.steps.map(s=>s.phase).filter(Boolean))];
+  if(phaseNames.length === 0){ el.innerHTML = ""; el.style.display = "none"; return; }
+
+  el.style.display = "";
+  const firstIndexOfPhase = {};
+  CONFIG.steps.forEach((s,i)=>{ if(s.phase && !(s.phase in firstIndexOfPhase)) firstIndexOfPhase[s.phase] = i; });
+  const stepCountOfPhase = {};
+  CONFIG.steps.forEach(s=>{ if(s.phase) stepCountOfPhase[s.phase] = (stepCountOfPhase[s.phase]||0)+1; });
+
+  el.innerHTML = `<div class="phase-overview-title">${phaseNames.length} Phases · ${CONFIG.steps.filter(s=>s.phase).length} Steps — Full Lifecycle Overview</div>
+    <div class="phase-overview-grid">
+      ${phaseNames.map((name,i)=>{
+        const idx = firstIndexOfPhase[name];
+        const reachable = idx <= maxReached || idx === currentStep;
+        const done = idx < maxReached;
+        return `<div class="phase-chip${done?" done":""}${!reachable?" locked":""}" data-jump="${idx}">
+          <span class="phase-chip-num">${i+1}</span>
+          <span class="phase-chip-text"><span class="phase-chip-name">${name}</span><span class="phase-chip-count">${stepCountOfPhase[name]} steps</span></span>
+        </div>`;
+      }).join("")}
+    </div>`;
+
+  el.querySelectorAll(".phase-chip").forEach(chip=>{
+    chip.addEventListener("click", ()=>{
+      const idx = +chip.dataset.jump;
+      if(idx<=maxReached || idx===currentStep){ currentStep=idx; renderStep(idx); window.scrollTo({top:0,behavior:"smooth"}); }
+      else showToast("Complete the current phase first.");
+    });
+  });
+}
+
+/* ---------------------------------------------------------------------
+   TRACKER
+   --------------------------------------------------------------------- */
+function renderTracker(){
+  renderPhaseOverview();
+  const t = document.getElementById("tracker");
+  const steps = CONFIG.steps;
+  const hasPhases = steps.some(s=>s.phase);
+
+  if(!hasPhases){
+    /* Unchanged behavior for every document without phases - flat step list, exactly as before */
+    t.innerHTML = steps.map((s,i)=>{
+      let cls = "track-item";
+      if(i===currentStep) cls+=" current";
+      else if(i<=maxReached) cls+=" done";
+      const showCheck = (i<maxReached || i<currentStep);
+      const num = showCheck ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px;"><polyline points="20,6 9,17 4,12"/></svg>` : (i+1);
+      return `<div class="${cls}" data-step="${i}">
+        <div class="track-num">${num}</div>
+        <div class="track-text"><div class="track-title">${s.title}</div><div class="track-time">~${s.est} min</div></div>
+      </div>`;
+    }).join("");
+    t.querySelectorAll(".track-item").forEach(el=>{
+      el.addEventListener("click", ()=>{
+        const idx = +el.dataset.step;
+        if(idx<=maxReached || idx===currentStep){ currentStep=idx; renderStep(idx); window.scrollTo({top:0,behavior:"smooth"}); }
+        else showToast("Complete the current section first.");
+      });
+    });
+    return;
+  }
+
+  /* Phase-grouped documents (currently: Bill of Lading) - collapsible phase headers.
+     Sidebar shows 19 phase rows by default; expanding one reveals its 10 steps.
+     Total step count is unchanged (192) - this only changes how the tracker displays them. */
+  const currentPhase = steps[currentStep] ? steps[currentStep].phase : null;
+  if(currentPhase) expandedPhases.add(currentPhase); /* always keep the phase you're in visible */
+
+  const phaseOrder = [];
+  const phaseSteps = {};
+  steps.forEach((s,i)=>{
+    if(!s.phase) return;
+    if(!phaseSteps[s.phase]){ phaseSteps[s.phase] = []; phaseOrder.push(s.phase); }
+    phaseSteps[s.phase].push(i);
+  });
+
+  let html = "";
+  phaseOrder.forEach((phaseName, pIdx)=>{
+    const indices = phaseSteps[phaseName];
+    const doneCount = indices.filter(i => i<=maxReached && i!==currentStep).length;
+    const isExpanded = expandedPhases.has(phaseName);
+    const isCurrentPhase = phaseName===currentPhase;
+    const chevron = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="track-phase-chevron ${isExpanded?'open':''}"><polyline points="9,6 15,12 9,18"/></svg>`;
+    html += `<div class="track-phase-header ${isCurrentPhase?'active-phase':''}" data-phase="${encodeURIComponent(phaseName)}">
+      <span class="track-phase-num">${pIdx+1}.</span>
+      <span class="track-phase-name">${phaseName}</span>
+      <span class="track-phase-count">${doneCount}/${indices.length}</span>
+      ${chevron}
+    </div>`;
+    if(isExpanded){
+      indices.forEach(i=>{
+        const s = steps[i];
+        let cls = "track-item track-item-sub";
+        if(i===currentStep) cls+=" current";
+        else if(i<=maxReached) cls+=" done";
+        const showCheck = (i<maxReached || i<currentStep);
+        const num = showCheck ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px;"><polyline points="20,6 9,17 4,12"/></svg>` : (i+1);
+        html += `<div class="${cls}" data-step="${i}">
+          <div class="track-num">${num}</div>
+          <div class="track-text"><div class="track-title">${s.title}</div><div class="track-time">~${s.est} min</div></div>
+        </div>`;
+      });
+    }
+  });
+
+  /* Non-phase steps at the end (Review Document, Completion) always show, ungrouped */
+  steps.forEach((s,i)=>{
+    if(s.phase) return;
+    let cls = "track-item";
+    if(i===currentStep) cls+=" current";
+    else if(i<=maxReached) cls+=" done";
+    const showCheck = (i<maxReached || i<currentStep);
+    const num = showCheck ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px;"><polyline points="20,6 9,17 4,12"/></svg>` : (i+1);
+    html += `<div class="${cls}" data-step="${i}">
+      <div class="track-num">${num}</div>
+      <div class="track-text"><div class="track-title">${s.title}</div><div class="track-time">~${s.est} min</div></div>
+    </div>`;
+  });
+
+  t.innerHTML = html;
+
+  t.querySelectorAll(".track-phase-header").forEach(el=>{
+    el.addEventListener("click", ()=>{
+      const phaseName = decodeURIComponent(el.dataset.phase);
+      if(expandedPhases.has(phaseName)) expandedPhases.delete(phaseName);
+      else expandedPhases.add(phaseName);
+      renderTracker();
+    });
+  });
+  t.querySelectorAll(".track-item").forEach(el=>{
+    el.addEventListener("click", ()=>{
+      const idx = +el.dataset.step;
+      if(idx<=maxReached || idx===currentStep){ currentStep=idx; renderStep(idx); window.scrollTo({top:0,behavior:"smooth"}); }
+      else showToast("Complete the current section first.");
+    });
+  });
+}
+
+/* ---------------------------------------------------------------------
+   VALIDATION
+   --------------------------------------------------------------------- */
+/* Turn a cellPatterns regex into a plain-English hint, so a rejected cell tells the
+   student what's actually wrong instead of a generic "add at least one item" message. */
+function describeCellPattern(pattern){
+  if(pattern === "^\\d{6,10}$") return "must be 6–10 digits only — no spaces, dots or letters.";
+  if(pattern.indexOf("\\.\\d{1,2}") !== -1 || pattern.indexOf("\\.\\d{1,3}") !== -1) return "must be a plain number (no commas or currency symbols), with only a few decimal places.";
+  if(pattern === "^\\d+$") return "must be a whole number, digits only.";
+  if(pattern.indexOf("[A-Z0-9\\-]") !== -1) return "should only contain capital letters, numbers and hyphens.";
+  if(pattern.indexOf("[A-Za-z0-9") !== -1) return "contains a character that isn't allowed for this field.";
+  return "doesn't match the expected format for this field.";
+}
+
+function validateStep(idx){
+  const step = CONFIG.steps[idx];
+  fieldErrors.clear();
+  fieldErrorMsgs = {};
+  tableCellErrors.clear();
+  tableErrorMsgs = {};
+  let valid = true;
+  (step.fields||[]).forEach(f=>{
+    if(f.type==="static" || f.type==="computed") return;
+    if(f.showIf && !f.showIf(formData)) return;
+    if(f.type==="table"){
+      const rows = formData[f.name]||[];
+      let tableOk = true;
+      const msgs = [];
+
+      // Strict per-cell pattern checks (e.g. container numbers, HS codes) on any filled cell,
+      // tracked per-cell so we can point at exactly which row/column is wrong and why.
+      if(f.cellPatterns){
+        rows.forEach((r,ri)=>{
+          Object.keys(f.cellPatterns).forEach(colKey=>{
+            const cv = r[colKey];
+            if(cv && String(cv).trim()!==""){
+              const patDef = f.cellPatterns[colKey];
+              const re = new RegExp(patDef.pattern);
+              if(!re.test(String(cv).trim())){
+                tableCellErrors.add(`${f.name}:${ri}:${colKey}`);
+                tableOk = false;
+                const col = (f.columns||[]).find(c=>c.key===colKey);
+                const colLabel = col ? col.label : colKey;
+                msgs.push(`Row ${ri+1}: "${colLabel}" ${patDef.msg || describeCellPattern(patDef.pattern)}`);
+              }
+            }
+          });
+        });
+      }
+
+      if(f.required){
+        const hasCleanRow = rows.some((r,ri) => (f.requiredCols||[]).every(c=>{
+          const v = r[c];
+          const filled = v!==undefined && v!==null && String(v).trim()!=="";
+          return filled && !tableCellErrors.has(`${f.name}:${ri}:${c}`);
+        }));
+        if(!hasCleanRow){
+          tableOk = false;
+          // Only fall back to the generic "add an item" message when nothing more specific applies —
+          // otherwise a student who DID fill the row correctly but mistyped one cell sees a message
+          // that tells them to add a row that's already there.
+          if(msgs.length===0) msgs.push(f.errorMsg || "Please complete at least one row.");
+        }
+      }
+
+      if(!tableOk){ fieldErrors.add(f.name); tableErrorMsgs[f.name] = msgs; valid=false; }
+      return;
+    }
+    const v = formData[f.name];
+    if(f.type==="checkbox"){
+      if(f.required && !v){ fieldErrors.add(f.name); valid=false; }
+      return;
+    }
+    const has = v!==undefined && v!==null && String(v).trim()!=="";
+    if(f.required && !has){ fieldErrors.add(f.name); fieldErrorMsgs[f.name]=f.requiredMsg||"This field is required."; valid=false; return; }
+    if(has && f.pattern){
+      const re = new RegExp(f.pattern);
+      if(!re.test(String(v).trim())){ fieldErrors.add(f.name); fieldErrorMsgs[f.name]=f.patternMsg||"Invalid format."; valid=false; }
+    }
+  });
+  return valid;
+}
+
+/* ---------------------------------------------------------------------
+   NAVIGATION
+   --------------------------------------------------------------------- */
+let skStepTransitionInProgress = false;
+function goNext(){
+  if(skStepTransitionInProgress) return; // guard against double-click firing two transitions
+  if(!validateStep(currentStep)){
+    renderStep(currentStep); showToast("Please complete the required fields before continuing.");
+    // Lyra (assistant.js) explains what each red box means and how to fix it. Optional and fail-safe.
+    if(typeof skAssistantOnInvalid === "function"){ try{ skAssistantOnInvalid(); }catch(e){} }
+    return;
+  }
+  // Lyra (assistant.js): if she spotted a mismatch she asks first; "Continue anyway" calls goNext() again.
+  if(typeof skAssistantGate === "function"){ let held = false; try{ held = (skAssistantGate() === false); }catch(e){} if(held) return; }
+  skStepTransitionInProgress = true;
+  const nextBtnEl = document.getElementById("nextBtn");
+  if(nextBtnEl) nextBtnEl.disabled = true;
+  skPlayStepWave(()=>{
+    maxReached = Math.max(maxReached, currentStep+1);
+    currentStep = Math.min(currentStep+1, CONFIG.steps.length-1);
+    saveProgressSnapshot('in-progress');
+    renderStep(currentStep);
+    window.scrollTo({top:0,behavior:"smooth"});
+    skStepTransitionInProgress = false;
+    if(nextBtnEl) nextBtnEl.disabled = false;
+  });
+}
+/* Brief ~1s wave overlay shown over the step body while advancing — just
+   enough motion to register that something happened between steps,
+   never a multi-second forced wait. Purely cosmetic: the actual step
+   change (the callback) always runs, wave or no wave. */
+function skPlayStepWave(then){
+  const body = stepBody();
+  const host = body ? body.closest(".content") : null;
+  if(!host){ then(); return; }
+  const overlay = document.createElement("div");
+  overlay.className = "sk-step-wave";
+  overlay.innerHTML = `<div class="sk-step-wave-inner">
+    <div class="sk-wave-sweep"></div>
+    <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M6 40c4-6 10-6 14 0s10 6 14 0 10-6 14 0 10 6 14 0" stroke="var(--accent)" stroke-width="3" stroke-linecap="round"/>
+      <path d="M6 48c4-6 10-6 14 0s10 6 14 0 10-6 14 0 10 6 14 0" stroke="var(--accent)" stroke-width="3" stroke-linecap="round" opacity=".5"/>
+      <rect x="28" y="10" width="8" height="20" rx="2" fill="var(--accent)" opacity=".85"/>
+    </svg>
+  </div>`;
+  host.appendChild(overlay);
+  setTimeout(()=>{ overlay.remove(); then(); }, 1000);
+}
+function goBack(){
+  if(currentStep>0){ currentStep--; renderStep(currentStep); window.scrollTo({top:0,behavior:"smooth"}); }
+}
+
+/* ---------------------------------------------------------------------
+   EVENT DELEGATION (bound once, works for every step since content is
+   swapped inside #stepBody)
+   --------------------------------------------------------------------- */
+function attachDelegation(){
+  const body = stepBody();
+  body.addEventListener("input", e=>{
+    const t = e.target;
+    if(t.dataset.field){
+      const f = findFieldByName(t.dataset.field);
+      let val = t.value;
+      if(f && f.uppercase){ val = val.toUpperCase(); t.value = val; }
+      formData[t.dataset.field] = val;
+      fieldErrors.delete(t.dataset.field);
+      t.classList.remove("field-error");
+      refreshDependentComputed(t.dataset.field);
+    } else if(t.dataset.table!==undefined){
+      const tableName = t.dataset.table, rowIdx = +t.dataset.row, col = t.dataset.col;
+      formData[tableName][rowIdx][col] = t.value;
+      tableCellErrors.delete(`${tableName}:${rowIdx}:${col}`);
+      t.classList.remove("field-error");
+      refreshTableRow(tableName, rowIdx);
+    }
+  });
+  body.addEventListener("change", e=>{
+    const t = e.target;
+    if(t.type==="checkbox" && t.dataset.field){
+      formData[t.dataset.field] = t.checked;
+      fieldErrors.delete(t.dataset.field);
+      const f = findFieldByName(t.dataset.field);
+      if(f && f.reRenderOnChange) renderStep(currentStep);
+    } else if(t.tagName==="SELECT" && t.dataset.field){
+      formData[t.dataset.field] = t.value;
+      fieldErrors.delete(t.dataset.field);
+      const f = findFieldByName(t.dataset.field);
+      if(f && f.reRenderOnChange) renderStep(currentStep);
+    }
+  });
+  body.addEventListener("click", e=>{
+    const addBtn = e.target.closest("[data-table-add]");
+    if(addBtn){
+      const name = addBtn.dataset.tableAdd;
+      const f = findFieldByName(name);
+      formData[name].push(emptyRow(f));
+      renderStep(currentStep);
+      return;
+    }
+    const remBtn = e.target.closest("[data-table-remove]");
+    if(remBtn){
+      const name = remBtn.dataset.tableRemove, row = +remBtn.dataset.row;
+      formData[name].splice(row,1);
+      // Row indices shifted — any per-cell error keys for this table are now unreliable.
+      Array.from(tableCellErrors).forEach(key=>{ if(key.indexOf(name+":")===0) tableCellErrors.delete(key); });
+      renderStep(currentStep);
+    }
+  });
+  document.getElementById("nextBtn").addEventListener("click", goNext);
+  document.getElementById("backBtn").addEventListener("click", goBack);
+}
+
+/* ---------------------------------------------------------------------
+   TIMER + TOAST
+   --------------------------------------------------------------------- */
+function updateTimer(){
+  const secs = Math.floor((Date.now()-startTime)/1000);
+  const m = String(Math.floor(secs/60)).padStart(2,"0");
+  const s = String(secs%60).padStart(2,"0");
+  const el = document.getElementById("timerDisplay");
+  if(el) el.textContent = `${m}:${s}`;
+}
+let toastTimer;
+function showToast(msg){
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.style.opacity = "1"; t.style.transform = "translateX(-50%) translateY(0)";
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>{ t.style.opacity="0"; t.style.transform="translateX(-50%) translateY(20px)"; }, 3200);
+}
+
+/* ---------------------------------------------------------------------
+   TCOS BRIDGE — pre-exercise choice popup
+   Shown before Shipping Bill / Bill of Entry / any Freight Booking
+   document starts as a fill-in exercise, offering the real thing in
+   TCOS's Customs Portal / Freight Booking module instead.
+   --------------------------------------------------------------------- */
+function showTcosBridgeChoice(slug, filingType, onContinueHere, consignaDocType){
+  const docLabel = CONFIG.title;
+  const portalLabel = filingType === "freight" ? "Freight Booking module" : filingType === "brc" ? "Export Incentives & Realisation Centre" : filingType === "consignia" ? "Consignia Desk" : "Customs Portal";
+  const workflowLabel = filingType === "export" ? "the Shipping Bill" : filingType === "import" ? "the Bill of Entry" : filingType === "brc" ? "the Bank Realisation Certificate" : filingType === "consignia" ? ("the " + docLabel) : "this stage of the freight booking";
+  const workflowVerb = filingType === "freight" ? "Take this booking through" : filingType === "brc" ? "Upload" : filingType === "consignia" ? "Prepare" : "File";
+  const closesWhen = filingType === "export" ? "genuinely filed and cleared" : filingType === "import" ? "genuinely assessed and cleared" : filingType === "brc" ? "genuinely uploaded and proceeds marked realized" : filingType === "consignia" ? "genuinely marked Ready in Consignia Desk" : "genuinely reached in TCOS";
+  const bg = document.createElement("div");
+  bg.id = "tcosBridgeOverlay";
+  bg.style.cssText = "position:fixed;inset:0;background:rgba(11,20,35,.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;";
+  bg.innerHTML = `
+    <div style="background:var(--surface,#fff);color:var(--text-1,#101828);border-radius:14px;max-width:520px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.35);overflow:hidden;font-family:var(--sans,sans-serif);">
+      <div style="padding:22px 26px 16px;border-bottom:1px solid var(--border,#E3E8EF);">
+        <h2 style="margin:0 0 6px;font-size:18px;">Two ways to do this one</h2>
+        <p style="margin:0;font-size:13px;color:var(--text-2,#5B6472);"><b>${docLabel}</b> is one of the documents that also exists as a real, complete workflow inside TCOS — the Trade &amp; Customs Operations Simulator.</p>
+      </div>
+      <div style="padding:18px 26px;display:flex;flex-direction:column;gap:12px;">
+        <button id="bridgeOptHere" type="button" style="text-align:left;border:1px solid var(--border,#E3E8EF);background:var(--surface-alt,#FAFBFC);border-radius:10px;padding:14px 16px;cursor:pointer;">
+          <div style="font-weight:700;font-size:13.5px;margin-bottom:3px;">Do it here — the ${docLabel} exercise</div>
+          <div style="font-size:12px;color:var(--text-2,#5B6472);">Fill in the same ${docLabel} exercise you'd get for any other document — one page at a time, in the Logistics Document Simulator.</div>
+        </button>
+        <button id="bridgeOptTcos" type="button" style="text-align:left;border:1px solid var(--accent,#1F6FEB);background:var(--accent-soft,#EAF1FF);border-radius:10px;padding:14px 16px;cursor:pointer;">
+          <div style="font-weight:700;font-size:13.5px;margin-bottom:3px;">Do it for real, in TCOS's ${portalLabel}</div>
+          <div style="font-size:12px;color:var(--text-2,#5B6472);">${workflowVerb} ${workflowLabel} through TCOS's actual workflow — signed in as you, automatically. Come back here the moment it's ${closesWhen}, and this document is marked complete.</div>
+        </button>
+        <div id="bridgePwPanel" style="display:none;border:1px solid var(--border,#E3E8EF);border-radius:10px;padding:14px 16px;background:var(--surface-alt,#FAFBFC);">
+          <label style="display:block;font-size:12px;font-weight:600;margin-bottom:6px;">Confirm your password to continue into TCOS as ${esc_sk(CURRENT_USER.name)}</label>
+          <input id="bridgePwInput" type="password" autocomplete="current-password" style="width:100%;box-sizing:border-box;padding:9px 11px;border-radius:8px;border:1px solid var(--border-strong,#D2D9E3);font-size:13px;margin-bottom:10px;">
+          <label style="display:block;font-size:12px;font-weight:600;margin-bottom:6px;">TCOS Access ID <span style="font-weight:400;color:var(--text-2,#5B6472);">— the same one used to unlock TCOS on the Simulator Hub</span></label>
+          <input id="bridgeAccessIdInput" type="text" inputmode="numeric" autocomplete="off" placeholder="Enter access ID" style="width:100%;box-sizing:border-box;padding:9px 11px;border-radius:8px;border:1px solid var(--border-strong,#D2D9E3);font-size:13px;font-family:monospace;margin-bottom:6px;">
+          <div id="bridgePwError" style="color:var(--red,#C6362F);font-size:12px;min-height:16px;margin-bottom:8px;"></div>
+          <button id="bridgePwSubmit" type="button" style="width:100%;background:var(--accent,#1F6FEB);color:#fff;border:none;border-radius:8px;padding:10px;font-weight:700;font-size:13px;cursor:pointer;">Continue to TCOS →</button>
+        </div>
+      </div>
+    </div>`;
+  document.body.appendChild(bg);
+
+  document.getElementById("bridgeOptHere").addEventListener("click", ()=>{
+    sessionStorage.setItem("skelora_bridge_dismissed_" + slug, "1");
+    bg.remove();
+    onContinueHere();
+  });
+  document.getElementById("bridgeOptTcos").addEventListener("click", ()=>{
+    document.getElementById("bridgePwPanel").style.display = "block";
+    document.getElementById("bridgePwInput").focus();
+  });
+  // Same 9-digit code the Simulator Hub itself asks for before opening TCOS,
+  // Cadence, or the Cadence-suite TCOS copy — restricted-access simulators
+  // require it there, so the bridge holds to the same rule rather than
+  // quietly slipping past a check TCOS's other entry points enforce.
+  // The access ID itself lives (hashed) in shared/access-id.js -> DotAccess.check(); no plain-text copy here.
+  // Section: Logistics ⇄ TCOS bridge — pass the active Shipment Lot's
+  // already-typed details along so TCOS's New Filing wizard can start
+  // pre-filled instead of asking the student to re-type the same
+  // shipment a second time. Best-effort only: TCOS constrains several
+  // fields (Port, Country, Currency, Incoterm) to its own dropdown
+  // lists, which don't share a vocabulary with the Logistics
+  // simulator's free-text/curated fields — skTcosPrefillFilingFromJobData
+  // (tcos/js/filingForm.js) fuzzy-matches what it safely can and leaves
+  // the rest blank for the student to pick themselves, rather than risk
+  // silently filing a wrong port/country. Returns null (no jobData —
+  // bridge falls back to its normal scenario-picker flow) if there's no
+  // active Job or no fields on it yet.
+  function skBuildBridgeJobData(){
+    if(typeof skGetActiveJob !== "function") return null;
+    const job = skGetActiveJob(CURRENT_USER.id);
+    if(!job || !job.fields) return null;
+    // One shared builder (shared/tcos-bridge.js) so this and the dashboard's
+    // "Continue in TCOS" button always send the same, complete snapshot.
+    if(typeof DotBridge !== "undefined" && typeof DotBridge.buildJobSnapshot === "function") return DotBridge.buildJobSnapshot(job);
+    const f = job.fields;
+    return {
+      mode: f.mode||"", sellerName: f.sellerName||"", sellerAddress: f.sellerAddress||"", sellerCountry: f.sellerCountry||"",
+      sellerGSTIN: f.sellerGSTIN||"", sellerIEC: f.sellerIEC||"", sellerPhone: f.sellerPhone||"",
+      buyerName: f.buyerName||"", buyerAddress: f.buyerAddress||"", buyerGSTIN: f.buyerGSTIN||"", buyerPhone: f.buyerPhone||"",
+      destination: f.destination||"", portOfLoading: f.portOfLoading||"", portOfDischarge: f.portOfDischarge||"",
+      portOfDischargeCountry: f.portOfDischargeCountry||"", vesselName: f.vesselName||"", voyageNo: f.voyageNo||"",
+      incoterm: f.incoterm||"", currency: f.currency||"", paymentTerms: f.paymentTerms||"",
+      quantity: f.quantity||"", grossWeight: f.grossWeight||"",
+      items: Array.isArray(f.items) ? f.items.filter(it=>it && (it.description||it.product)).map(it=>({
+        description: it.description||it.product||"", hsCode: it.hsCode||"", quantity: it.quantity||"",
+        unit: it.unit||"", unitPrice: it.unitPrice||"", countryOfManufacture: it.countryOfManufacture||"",
+        weight: it.weight||"", netWeight: it.netWeight||"", packageType: it.packageType||""
+      })) : []
+    };
+  }
+  function submitPw(){
+    const pw = document.getElementById("bridgePwInput").value;
+    const accessId = document.getElementById("bridgeAccessIdInput").value.trim();
+    const errEl = document.getElementById("bridgePwError");
+    if(!pw){ errEl.textContent = "Enter your password to continue."; return; }
+    if(typeof _sk_hash !== "function" || _sk_hash(pw) !== CURRENT_USER.passHash){
+      errEl.textContent = "Incorrect password. Try again.";
+      return;
+    }
+    if(!accessId){ errEl.textContent = "Enter the TCOS access ID to continue."; return; }
+    if(!(window.DotAccess && window.DotAccess.check(accessId))){
+      errEl.textContent = "Incorrect access ID. Try again.";
+      return;
+    }
+    DotBridge.startHandoff({
+      filingType: filingType,
+      userId: CURRENT_USER.email,
+      password: pw,
+      name: CURRENT_USER.name,
+      returnSlug: slug,
+      jobData: (filingType === "export" || filingType === "import" || filingType === "consignia" || filingType === "freight") ? skBuildBridgeJobData() : null,
+      consignaDocType: filingType === "consignia" ? consignaDocType : null
+    });
+  }
+  document.getElementById("bridgePwSubmit").addEventListener("click", submitPw);
+  document.getElementById("bridgePwInput").addEventListener("keydown", (e)=>{ if(e.key==="Enter") submitPw(); });
+  document.getElementById("bridgeAccessIdInput").addEventListener("keydown", (e)=>{ if(e.key==="Enter") submitPw(); });
+}
+function esc_sk(s){ const d=document.createElement("div"); d.textContent = s||""; return d.innerHTML; }
+
+/* ---------------------------------------------------------------------
+   TCOS BRIDGE — return screen
+   Shown instead of the normal exercise when the student comes back
+   here having genuinely finished this filing/stage in TCOS.
+   --------------------------------------------------------------------- */
+function renderTcosBridgeCompletion(ret, slug){
+  clearInterval(timerInterval);
+  skSaveDocProgress(CURRENT_USER.id, slug, {
+    status: "completed",
+    viaTcos: true,
+    tcosRef: ret.refNo,
+    currentStep: CONFIG.steps.length - 1,
+    maxReached: CONFIG.steps.length - 1,
+    docTitle: CONFIG.title
+  });
+  if(typeof skAppendAudit === "function"){
+    skAppendAudit(CURRENT_USER.id, slug, "completed", {docTitle: CONFIG.title, viaTcos: true, tcosRef: ret.refNo});
+  }
+  document.title = `${CONFIG.title} — Completed via TCOS | Skelora Institute Logistics Simulator`;
+
+  let jobNextHtml = "";
+  if(CURRENT_USER && typeof skGetActiveJob === "function" && typeof skGetNextJobDocument === "function"){
+    const activeJob = skGetActiveJob(CURRENT_USER.id);
+    if(activeJob){
+      const nextSlug = skGetNextJobDocument(CURRENT_USER.id, activeJob);
+      if(nextSlug){
+        const nextTitle = (typeof DOCUMENT_CONFIGS !== "undefined" && DOCUMENT_CONFIGS[nextSlug]) ? DOCUMENT_CONFIGS[nextSlug].title : nextSlug;
+        jobNextHtml = `<a class="btn-primary" href="workstation.html?doc=${encodeURIComponent(nextSlug)}">${ic("chevRight")} Continue — Next: ${nextTitle}</a>`;
+      } else if(typeof skGetJobDocScope === "function" && skGetJobDocScope(activeJob).length > 0){
+        jobNextHtml = `<a class="btn-primary" href="skelora-institute-dashboard.html">${ic("check")} Every document in this Shipment Lot is done — Back to Dashboard</a>`;
+      }
+    }
+  }
+
+  document.body.innerHTML = `<div style="max-width:640px;margin:70px auto;text-align:center;font-family:var(--sans,sans-serif);color:var(--text-2,#5B6472);padding:0 20px;">
+    <div style="width:64px;height:64px;border-radius:50%;background:var(--green-soft,#E7F6ED);color:var(--green,#15803D);display:flex;align-items:center;justify-content:center;margin:0 auto 18px;">${ic("check")}</div>
+    <h2 style="color:var(--text-1,#101828);margin-bottom:8px;">${CONFIG.title} — Completed in TCOS</h2>
+    <p style="margin-bottom:6px;">This document is marked complete here, filed and cleared through TCOS's actual Customs Portal simulation.</p>
+    <p style="margin-bottom:28px;font-size:13px;">TCOS Reference: <b>${ret.refNo}</b></p>
+    <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+      ${jobNextHtml}
+      <a class="btn-secondary" href="skelora-institute-dashboard.html">Back to Document Library</a>
+    </div>
+  </div>`;
+}
+
+/* ---------------------------------------------------------------------
+   BOOT
+   --------------------------------------------------------------------- */
+function boot(){
+  CURRENT_USER = skRequireAuth();
+  if(!CURRENT_USER) return; // skRequireAuth already redirects to login.html
+
+  const params = new URLSearchParams(window.location.search);
+  const slug = params.get("doc") || Object.keys(DOCUMENT_CONFIGS)[0];
+  CURRENT_SLUG = slug;
+  CONFIG = DOCUMENT_CONFIGS[slug];
+  if(!CONFIG){
+    document.body.innerHTML = `<div style="max-width:560px;margin:80px auto;text-align:center;font-family:sans-serif;color:#5B6472;">
+      <h2 style="color:#101828;">Exercise not found</h2>
+      <p>No fill-in exercise is configured for "<b>${slug}</b>" yet.</p>
+      <a href="skelora-institute-dashboard.html" style="color:#1F6FEB;font-weight:700;">← Back to Document Library</a>
+    </div>`;
+    return;
+  }
+
+  // ---------------------------------------------------------------------
+  // TCOS BRIDGE — Shipping Bill (export), Bill of Entry (import), and the
+  // Freight Booking module's documents are real filing workflows inside
+  // TCOS, not just fill-in forms. A student opening any of these gets
+  // offered a choice before the exercise starts: do it here, or do the
+  // real thing in TCOS — signed in automatically, and sent back the
+  // moment it's genuinely finished there.
+  // ---------------------------------------------------------------------
+  const TCOS_BRIDGE_SLUGS = {
+    "shipping-bill": "export",
+    "bill-of-entry": "import",
+    "booking-confirmation": "freight",
+    "vgm-certificate": "freight",
+    "bill-of-lading-sea": "freight",
+    "air-waybill": "freight",
+    "arrival-notice": "freight",
+    "delivery-order": "freight",
+    "equipment-interchange-receipt": "freight",
+    "proof-of-delivery": "freight",
+    "bank-realization-certificate": "brc",
+    /* ---- Consignia Desk bridge (added): documents that exist as shallow
+       fill-in exercises here AND as real, deep, cross-checked document
+       workstations inside TCOS's Consignia Desk module. Object form
+       {ft, doc} instead of a plain string — normalized right below. */
+    "commercial-invoice": { ft: "consignia", doc: "COMMERCIAL_INVOICE" },
+    "packing-list": { ft: "consignia", doc: "PACKING_LIST" },
+    "certificate-of-origin": { ft: "consignia", doc: "CERTIFICATE_OF_ORIGIN" },
+    "insurance-certificate": { ft: "consignia", doc: "INSURANCE_CERTIFICATE" },
+    "letter-of-credit": { ft: "consignia", doc: "LETTER_OF_CREDIT" },
+    "bill-of-exchange": { ft: "consignia", doc: "BILL_OF_EXCHANGE" },
+    "export-license": { ft: "consignia", doc: "EXPORT_LICENSE" },
+    "phytosanitary-certificate": { ft: "consignia", doc: "PHYTOSANITARY_CERTIFICATE" },
+    "health-certificate": { ft: "consignia", doc: "HEALTH_CERTIFICATE" },
+    "fumigation-certificate": { ft: "consignia", doc: "FUMIGATION_CERTIFICATE" },
+    "catch-certificate": { ft: "consignia", doc: "CATCH_CERTIFICATE" },
+    "haccp-certificate": { ft: "consignia", doc: "HACCP_CERTIFICATE" },
+    "dangerous-goods-declaration": { ft: "consignia", doc: "DG_DECLARATION" }
+  };
+  /* Normalize: every entry above resolves to a plain filingType string for
+     everything that already worked (export/import/freight/brc), plus an
+     optional consignaDocType for the new Consignia Desk entries. */
+  /* Export vs Import separation: TCOS's Consignia Desk / Shipping Bill / BRC are
+     export-side only and the Bill of Entry is import-side only (freight docs work
+     both ways). A Lot whose Shipment Mode says Import must never be offered the
+     Export Desk for its Commercial Invoice etc. (and vice versa for the Bill of
+     Entry) — those just run as the normal exercise here. Jobs with no
+     Import/Export mode (Road / Warehouse) are not gated, exactly as before. */
+  const TCOS_EXPORT_SIDE_ONLY = new Set(["shipping-bill","bank-realization-certificate","commercial-invoice","packing-list","certificate-of-origin","insurance-certificate","letter-of-credit","bill-of-exchange","export-license","phytosanitary-certificate","health-certificate","fumigation-certificate","catch-certificate","haccp-certificate","dangerous-goods-declaration"]);
+  const TCOS_IMPORT_SIDE_ONLY = new Set(["bill-of-entry"]);
+  function bridgeAllowedForJobDirection(){
+    try{
+      const j = (typeof skGetActiveJob === "function" && CURRENT_USER && CURRENT_USER.id) ? skGetActiveJob(CURRENT_USER.id) : null;
+      const m = (j && j.fields && j.fields.mode) || "";
+      if(/import/i.test(m) && TCOS_EXPORT_SIDE_ONLY.has(slug)) return false;
+      if(/export/i.test(m) && TCOS_IMPORT_SIDE_ONLY.has(slug)) return false;
+    }catch(e){}
+    return true;
+  }
+  const bridgeSpecRaw = TCOS_BRIDGE_SLUGS[slug];
+  const bridgeFilingType = bridgeSpecRaw && typeof bridgeSpecRaw === "object" ? bridgeSpecRaw.ft : bridgeSpecRaw;
+  const bridgeConsignaDocType = bridgeSpecRaw && typeof bridgeSpecRaw === "object" ? bridgeSpecRaw.doc : null;
+  if(typeof DotBridge !== "undefined" && bridgeSpecRaw){
+    if(params.get("bridgeReturn") === "1"){
+      const ret = DotBridge.consumeReturn(slug);
+      if(ret){
+        renderTcosBridgeCompletion(ret, slug);
+        return;
+      }
+    }
+    const already = skGetDocProgress(CURRENT_USER.id, slug);
+    const alreadyDone = already && already.status === "completed";
+    const dismissedKey = "skelora_bridge_dismissed_" + slug;
+    if(!alreadyDone && !sessionStorage.getItem(dismissedKey) && bridgeAllowedForJobDirection()){
+      showTcosBridgeChoice(slug, bridgeFilingType, continueBoot, bridgeConsignaDocType);
+      return;
+    }
+  }
+  continueBoot();
+
+  function continueBoot(){
+  // ---- Job scope rule: if this student's active Job is following a
+  // faculty-created assignment, only documents on that assignment's list
+  // are reachable; otherwise, only the documents the student themselves
+  // picked when creating the Shipment Lot are — including by typing the URL
+  // directly, not just via the dashboard's Document Library UI. ----
+  if(typeof skGetActiveJob === "function" && typeof skIsDocumentAllowedForJob === "function"){
+    const activeJob = skGetActiveJob(CURRENT_USER.id);
+    if(activeJob && !skIsDocumentAllowedForJob(slug, activeJob)){
+      const assignment = (activeJob.assignmentId && typeof skGetAssignment === "function") ? skGetAssignment(activeJob.assignmentId) : null;
+      const heading = assignment ? "Not part of your assignment" : "Not part of your current Shipment Lot";
+      const body = assignment
+        ? `Your active Shipment Lot is following the assignment "<b>${assignment.title}</b>", which doesn't include this document. Ask your instructor if this looks wrong, or open the Shipment Lot panel on the dashboard to change or remove the assignment.`
+        : `Your active Shipment Lot only unlocks the documents you picked when you created it, and this one isn't in that list. Open the Shipment Lot panel on the dashboard to edit the Shipment Lot and add it, or finish this Shipment Lot and start a new one that includes it.`;
+      document.body.innerHTML = `<div style="max-width:560px;margin:80px auto;text-align:center;font-family:sans-serif;color:#5B6472;padding:0 20px;">
+        <h2 style="color:#101828;">${heading}</h2>
+        <p>${body}</p>
+        <a href="skelora-institute-dashboard.html" style="color:#1F6FEB;font-weight:700;">← Back to Document Library</a>
+      </div>`;
+      return;
+    }
+  }
+
+  // ---- Strict workflow rule: block this document if a real prerequisite isn't done yet ----
+  if(typeof skCheckPrerequisites === "function"){
+    const gate = skCheckPrerequisites(CURRENT_USER.id, slug);
+    if(!gate.ok){
+      const missingList = gate.missing.map(m=>{
+        const missingUrl = (typeof EXERCISES!=="undefined") ? Object.values(EXERCISES).find(u=>u.includes("doc="+m.slug)) : null;
+        return `<li style="margin-bottom:8px;">
+          <b>${m.title}</b> — not completed yet
+          ${missingUrl ? `<a href="${missingUrl}" style="margin-left:8px;color:#1F6FEB;font-weight:600;">Start this first →</a>` : ""}
+        </li>`;
+      }).join("");
+      document.body.innerHTML = `<div style="max-width:620px;margin:80px auto;text-align:center;font-family:sans-serif;color:#5B6472;padding:0 20px;">
+        <h2 style="color:#101828;">This document isn't available yet</h2>
+        <p>In a real logistics transaction, <b>${CONFIG.title}</b> can't exist before the documents it depends on. Complete the following first:</p>
+        <ul style="text-align:left;list-style:none;padding:0;margin:24px 0;background:#F8F9FB;border-radius:10px;padding:18px 22px;">${missingList}</ul>
+        <a href="skelora-institute-dashboard.html" style="color:#1F6FEB;font-weight:700;">← Back to Document Library</a>
+      </div>`;
+      return;
+    }
+  }
+  document.title = `${CONFIG.title} — Fill & Learn Exercise | Skelora Institute Logistics Simulator`;
+  document.getElementById("tbTitle1").textContent = CONFIG.title;
+  document.getElementById("tbTitle2").textContent = CONFIG.subtitle;
+  document.getElementById("bannerEyebrow").textContent = CONFIG.moduleLabel;
+  document.getElementById("bannerTitle").textContent = CONFIG.heroTitle;
+  document.getElementById("bannerDesc").textContent = CONFIG.heroDesc;
+  document.getElementById("bannerObjectives").innerHTML = CONFIG.objectives.map(o=>
+    `<li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20,6 9,17 4,12"/></svg>${o}</li>`
+  ).join("");
+  renderPhaseOverview();
+
+  // Resume saved progress for this student, if any exists on this computer.
+  const saved = skGetDocProgress(CURRENT_USER.id, slug);
+  const alreadyCompleted = saved && saved.status === 'completed';
+  if(saved && saved.formData && !alreadyCompleted){
+    formData = saved.formData || {};
+    currentStep = Math.min(saved.currentStep || 0, CONFIG.steps.length-1);
+    maxReached = saved.maxReached || 0;
+  } else {
+    formData = {};
+    currentStep = 0; maxReached = 0;
+    // ---- Data consistency rule: carry forward shared transaction fields from
+    // already-completed documents, without ever overwriting anything the
+    // student has already typed (formData is empty here, so this only fills). ----
+    if(typeof skGetTransactionContext === "function" && typeof skApplyContextAutofill === "function"){
+      const context = skGetTransactionContext(CURRENT_USER.id);
+      formData = skApplyContextAutofill(CONFIG, formData, context);
+      formData = skApplyAutoGenerate(CONFIG, formData, CURRENT_USER.id);
+    }
+    if(!saved && CURRENT_USER && CURRENT_USER.id && typeof skAppendAudit === "function"){
+      skAppendAudit(CURRENT_USER.id, slug, "started", {docTitle: CONFIG.title});
+    }
+  }
+  fieldErrors.clear();
+  startTime = Date.now();
+  letterheadMeta = null;
+  timerInterval = setInterval(updateTimer, 1000);
+
+  attachDelegation();
+
+  // ---- Bulk export mode: used only by the dashboard's "Download All Completed
+  // Documents (ZIP)" feature, via a hidden iframe with ?bulkExport=1. Completely
+  // separate code path from normal boot — normal single-document use is untouched. ----
+  const bulkExportMode = params.get("bulkExport") === "1";
+  if(bulkExportMode && alreadyCompleted && saved && saved.formData){
+    formData = saved.formData;
+    const reviewIdx = CONFIG.steps.findIndex(s=>s.custom==="review");
+    if(reviewIdx === -1){
+      window.parent.postMessage({type:"skelora-bulk-pdf-error", slug: CURRENT_SLUG, reason:"no review step"}, "*");
+      return;
+    }
+    currentStep = reviewIdx; maxReached = reviewIdx;
+    renderStep(reviewIdx);
+    setTimeout(async ()=>{
+      try{
+        if(typeof html2canvas === "undefined" || typeof window.jspdf === "undefined") throw new Error("PDF libs unavailable");
+        const letterheadEl = document.querySelector(".doc-letterhead");
+        if(!letterheadEl) throw new Error("letterhead not found");
+        let pdf;
+        if(letterheadEl.querySelector(".sb-page")){
+          pdf = await skBuildSbPdf(letterheadEl, null);
+        } else {
+        const canvas = await skWithUnclippedReview(letterheadEl, () => html2canvas(letterheadEl, {scale:2, useCORS:true, backgroundColor:"#ffffff"}));
+        const { jsPDF } = window.jspdf;
+        pdf = new jsPDF({orientation:"portrait", unit:"mm", format:"a4"});
+        const pageWidth = pdf.internal.pageSize.getWidth(), pageHeight = pdf.internal.pageSize.getHeight();
+        const imgWidth = pageWidth, imgHeight = (canvas.height*imgWidth)/canvas.width;
+        let pagedOk = false;
+        try{ skAddCanvasToPdfPaged(pdf, canvas, letterheadEl); pagedOk = true; }
+        catch(pe){ console.warn("Smart paging failed, using plain slicing:", pe); try{ while(pdf.getNumberOfPages() > 1) pdf.deletePage(pdf.getNumberOfPages()); }catch(e2){} }
+        if(!pagedOk){
+        const imgData = canvas.toDataURL("image/jpeg", 0.92);
+        let heightLeft = imgHeight, position = 0;
+        pdf.addImage(imgData, "JPEG", 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+        while(heightLeft > 0){ position = heightLeft - imgHeight; pdf.addPage(); pdf.addImage(imgData,"JPEG",0,position,imgWidth,imgHeight); heightLeft -= pageHeight; }
+        }
+        }
+        const docNumber = (firstNonEmpty(DOC_NUMBER_FIELDS, formData) || CONFIG.docCodeExample).toString().replace(/[^a-zA-Z0-9_-]+/g,"-");
+        const filename = `${CONFIG.title.replace(/[^a-zA-Z0-9_-]+/g,"-")}-${docNumber}.pdf`;
+        const base64 = pdf.output("datauristring");
+        window.parent.postMessage({type:"skelora-bulk-pdf-result", slug: CURRENT_SLUG, filename, dataUri: base64}, "*");
+      } catch(e){
+        window.parent.postMessage({type:"skelora-bulk-pdf-error", slug: CURRENT_SLUG, reason: e.message}, "*");
+      }
+    }, 500); // small delay lets the review step's DOM/fonts/hologram settle before capture
+    return; // skip all normal-mode logic below entirely
+  }
+
+  renderStep(currentStep);
+  if(saved && saved.formData && !alreadyCompleted && currentStep>0){
+    showToast(`Resuming your saved progress on ${CONFIG.title}.`);
+  } else if(alreadyCompleted){
+    showToast(`You already completed this exercise — starting a fresh attempt.`);
+    formData = {};
+    if(typeof skGetTransactionContext === "function" && typeof skApplyContextAutofill === "function"){
+      formData = skApplyContextAutofill(CONFIG, formData, skGetTransactionContext(CURRENT_USER.id));
+      formData = skApplyAutoGenerate(CONFIG, formData, CURRENT_USER.id);
+    }
+    currentStep = 0; maxReached = 0;
+    renderStep(0);
+  }
+  } /* end continueBoot */
+}
+document.addEventListener("DOMContentLoaded", boot);
