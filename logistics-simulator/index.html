@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Skelora Institute Logistics Simulator</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<meta name="theme-color" content="#0a1630">
+<link rel="stylesheet" href="ship-loader.css">
+<link rel="stylesheet" href="boot-loader/boot-loader.css">
+</head>
+<body>
+<!-- ======================================================================
+     ENTRY POINT of the whole app (GitHub Pages / a bare folder double-click
+     open this file). It shows a loader, then replace()s to the dashboard (a
+     signed-in student) or intro.html. replace() so this page is never an
+     extra back-button stop.
+
+     Two loaders live here, and exactly one is shown (body.mode-3d / .mode-fb):
+       1. 3D night-ship scene  (boot-loader/)   - the normal case
+       2. light SVG ship       (ship-loader.css) - fallback when the 3D scene
+          can't or shouldn't run: no WebGL, prefers-reduced-motion, Save-Data,
+          a script that failed to load, a runtime error, WebGL context lost.
+     Whatever happens, the student always ends up at the next screen.
+     ====================================================================== -->
+
+<!-- 3D loader (markup/ids are what boot-loader/night-ship-scene.js expects) -->
+<canvas id="c" class="boot3d"></canvas><div class="vig boot3d"></div>
+<div class="ui boot3d" role="status" aria-live="polite"><h1 id="t">Loading...</h1><p id="s">Preparing your documents</p>
+<svg class="ring" viewBox="0 0 100 100" width="88" height="88" aria-hidden="true"><defs><linearGradient id="og" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff6a1f"/><stop offset="1" stop-color="#ffb04a"/></linearGradient></defs><circle cx="50" cy="50" r="40" fill="none" stroke="rgba(255,255,255,.2)" stroke-width="5"/><circle id="rg" cx="50" cy="50" r="40" fill="none" stroke="url(#og)" stroke-width="5" stroke-linecap="round" stroke-dasharray="251.33" stroke-dashoffset="251.33" transform="rotate(-90 50 50)"/><circle class="o" cx="50" cy="50" r="47" fill="none" stroke="rgba(255,255,255,.75)" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="26 270"/><text id="pc" x="50" y="56" text-anchor="middle" fill="#fff" font-size="19" font-weight="500" font-family="Montserrat,Arial,sans-serif">0%</text></svg></div>
+<div id="fd" class="boot3d" style="z-index:4;position:fixed;inset:0;background:#000;opacity:0;pointer-events:none;transition:opacity .45s"></div>
+<button class="mode boot3d" id="snd" style="right:12px;width:auto;padding:0 14px;border-radius:19px;font-size:11px;letter-spacing:.12em" aria-label="Toggle sound">&#128263; SOUND OFF</button>
+
+<!-- Fallback loader (the original light ship animation) -->
+<div class="bootfb" id="fallback">
+    <div class="ship-loader" aria-hidden="true">
+    <svg viewBox="0 0 300 80" preserveAspectRatio="xMidYMid meet">
+    <clipPath id="shipWaterClip"><rect x="0" y="0" width="300" height="80"/></clipPath>
+    <g clip-path="url(#shipWaterClip)">
+    <path class="sl-wave sl-wave1" d="M-50,55 Q-25,45 0,55 T50,55 T100,55 T150,55 T200,55 T250,55 T300,55 T350,55 V80 H-50 Z" fill="#1F6FEB" opacity=".5"/>
+    <path class="sl-wave sl-wave2" d="M-50,60 Q-25,52 0,60 T50,60 T100,60 T150,60 T200,60 T250,60 T300,60 T350,60 V80 H-50 Z" fill="#12467D" opacity=".85"/>
+    <g class="sl-ship">
+    <path d="M-20,44 L46,44 L38,56 L-12,56 Z" fill="#F5820A" stroke="#111318" stroke-width="2" stroke-linejoin="round"/>
+    <rect x="0" y="27" width="22" height="17" rx="2" fill="#111318"/>
+    <rect x="16" y="17" width="6" height="11" rx="1" fill="#F5820A" stroke="#111318" stroke-width="1"/>
+    <text x="11" y="39" font-size="8.5" font-weight="800" fill="#F5820A" text-anchor="middle" font-family="Arial,sans-serif">AS</text>
+    </g>
+    </g>
+    </svg>
+    </div>
+  <div>Loading Skelora Institute Logistics Simulator&hellip;</div>
+</div>
+
+<noscript>
+  <div class="boot-noscript"><div>This app requires JavaScript. Please enable it, or open
+  <a href="intro.html">intro.html</a> directly.</div></div>
+</noscript>
+
+<script src="auth.js"></script>
+<script>
+(function(){
+  "use strict";
+
+  /* ---- tunables: the only values you normally need to touch ---- */
+  var LOADER_SECONDS = 12;    // length of the sail + berth run. 10-20 looks right; below ~11 the ship hits the scene's speed limit and visibly lags its own path.
+  var HOLD_SECONDS   = 2.2;   // berthed ship / "All set" stays on screen this long before the fade-out
+  var MIN_FPS        = 10;    // if the device can't hold this even at pixel-ratio 1, skip the rest of the animation
+  var MAX_WAIT_MS    = 45000; // absolute safety net: never keep a student on this screen longer than this
+  var FALLBACK_MS    = 3000;  // how long the light loader shows
+  var REDUCED_MS     = 1200;  // ...and for prefers-reduced-motion users
+  var PREFETCH_MAX_MS= 8000;  // the loader waits at 99% for the next screen to be fetched, but never longer than this
+
+  var DASHBOARD = "skelora-institute-dashboard.html", INTRO = "intro.html";
+  var VENDOR = ["three.min.js","CopyShader.js","LuminosityHighPassShader.js","EffectComposer.js","RenderPass.js","ShaderPass.js","UnrealBloomPass.js"]
+                 .map(function(f){ return "boot-loader/vendor/" + f; });
+  var SCENE  = "boot-loader/night-ship-scene.js";
+
+  /* ---- where to go next (same rule as before: signed-in -> dashboard, else intro) ---- */
+  var dest = INTRO;
+  try { if (typeof skGetCurrentUser === "function" && skGetCurrentUser()) dest = DASHBOARD; } catch(e) { /* corrupted localStorage -> intro */ }
+
+  var left = false, t0 = Date.now();
+  function go(){
+    if (left) return; left = true;
+    try { window.location.replace(dest); } catch(e) { window.location.href = dest; }
+  }
+
+  // Staff shortcut, same idea as the hub's ?skipinstall=1
+  if (/[?&]skiploader=1/.test(window.location.search)) { go(); return; }
+
+  /* ---- fallback path ---- */
+  function showFallback(ms){
+    document.body.className = "mode-fb";
+    setTimeout(go, ms);
+  }
+  // used when the 3D loader fails part-way: don't make someone who already waited wait again
+  function failSoft(){
+    var waited = Date.now() - t0;
+    if (waited > 4000) go(); else showFallback(Math.max(800, FALLBACK_MS - waited));
+  }
+
+  /* ---- should the 3D scene run at all? ---- */
+  var reduce = false;
+  try { reduce = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches); } catch(e) {}
+  if (reduce) { showFallback(REDUCED_MS); return; }
+
+  var saveData = false;
+  try { saveData = !!(navigator.connection && navigator.connection.saveData); } catch(e) {}
+  var webgl = false;
+  try {
+    var probe = document.createElement("canvas");
+    var gl = probe.getContext("webgl2") || probe.getContext("webgl");
+    if (gl) { webgl = true; var lose = gl.getExtension("WEBGL_lose_context"); if (lose) lose.loseContext(); }
+  } catch(e) {}
+  if (!webgl || saveData) { showFallback(FALLBACK_MS); return; }
+
+  document.body.className = "mode-3d";
+
+  /* ---- hold the ship at 99% until the next screen has actually been fetched (warms the cache too) ---- */
+  var destReady = false;
+  function markReady(){ destReady = true; }
+  setTimeout(markReady, PREFETCH_MAX_MS);
+  if (window.location.protocol === "file:") { markReady(); }   // fetch() can't read file:// - nothing to wait for
+  else {
+    try { fetch(dest, { credentials: "same-origin" }).then(function(r){ return r.text(); }).then(markReady, markReady); }
+    catch(e) { markReady(); }
+  }
+
+  /* ---- contract with boot-loader/night-ship-scene.js ---- */
+  window.SHIP_LOADER_CONFIG = {
+    seconds: LOADER_SECONDS,
+    holdSeconds: HOLD_SECONDS,
+    minFps: MIN_FPS,
+    ready: function(){ return destReady; },
+    onComplete: go,
+    onError: failSoft
+  };
+
+  /* ---- load three.js (+ post-processing), the bundled fonts, then the scene ---- */
+  function loadAll(list){
+    return new Promise(function(resolve, reject){
+      var pending = list.length;
+      list.forEach(function(src){
+        var s = document.createElement("script");
+        s.async = false;                    // download in parallel, execute in order
+        s.src = src;
+        s.onload = function(){ if (--pending === 0) resolve(); };
+        s.onerror = function(){ reject(new Error("failed to load " + src)); };
+        document.head.appendChild(s);
+      });
+    });
+  }
+  function fontsReady(){
+    // The container labels on the ship are painted onto canvases once, at start-up, so the
+    // fonts must be ready first. Never wait more than 2.5 s - the scene falls back to Arial.
+    if (!document.fonts || !document.fonts.load) return Promise.resolve();
+    var all = Promise.all([300,500,600,800].map(function(w){ return document.fonts.load(w + " 16px Montserrat", "Aa"); }));
+    return Promise.race([all, new Promise(function(r){ setTimeout(r, 2500); })]).catch(function(){});
+  }
+
+  // three.js first, then its post-processing add-ons (they need the THREE global), fonts in parallel
+  Promise.all([loadAll(VENDOR.slice(0, 1)).then(function(){ return loadAll(VENDOR.slice(1)); }), fontsReady()])
+    .then(function(){
+      // Guards against a half-served file (e.g. an HTML error page executed as a script)
+      if (!window.THREE || window.THREE.REVISION !== "128" || !THREE.EffectComposer || !THREE.UnrealBloomPass) throw new Error("three.js not available");
+      return loadAll([SCENE]);
+    })
+    .then(function(){ if (!window.__shipLoaderStarted) throw new Error("scene did not start"); })
+    .catch(function(e){ try { console.error("[boot-loader]", e); } catch(_) {} failSoft(); });
+
+  setTimeout(go, MAX_WAIT_MS);
+})();
+</script>
+</body>
+</html>

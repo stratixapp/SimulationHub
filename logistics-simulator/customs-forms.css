@@ -1,0 +1,116 @@
+/* =========================================================================
+   ICEGATE-FORMAT CUSTOMS FORMS (Shipping Bill + Bill of Entry)
+   Fixed A4 pages (794 x 1123 px @96dpi) that mimic the layout of the real
+   ICEGATE printouts. They reuse the .sb-page / .sb-scroll / .sb-letterhead
+   hooks so the existing review box and PDF capture (skBuildSbPdf) work
+   unchanged. Everything is scoped under .ic-page.
+   ========================================================================= */
+.sb-page.ic-page{
+  padding:26px 30px 18px;height:1123px;min-height:1123px;display:flex;flex-direction:column;
+  font-family:Arial,Helvetica,sans-serif;color:#000;font-size:9px;line-height:1.2;overflow:hidden;
+}
+.ic-page .sb-credit{position:absolute;left:0;right:0;top:7px;text-align:center;font-size:8px;color:#666;z-index:3;}
+.ic-page .sb-wm{z-index:4;color:rgba(110,110,125,.16);}
+.ic-page .sb-wm .a{font-size:64px;}
+.ic-page .sb-wm .b{font-size:20px;}
+.ic-frame{position:relative;z-index:1;flex:1;min-height:0;display:flex;flex-direction:column;border:1.5px solid #000;background:transparent;}
+.ic-body{flex:1;min-height:0;overflow:hidden;position:relative;}
+
+/* ---------- running page header ---------- */
+.ic-hdr{display:flex;border-bottom:1px solid #000;height:108px;flex:none;}
+.ic-hdr-l{flex:1;min-width:0;display:flex;flex-direction:column;}
+.ic-hdr-brand{flex:1;display:flex;align-items:center;gap:14px;padding:6px 10px 2px 18px;}
+.ic-hdr-brand svg{flex:none;}
+.ic-hdr-brand .t1{font-size:15px;font-weight:700;letter-spacing:.3px;line-height:1.15;}
+.ic-hdr-brand .t2{font-size:8px;font-weight:700;line-height:1.3;}
+.ic-hdr-port{flex:none;height:17px;line-height:17px;padding:0 10px;font-size:9.5px;font-weight:700;border-top:1px solid #000;white-space:nowrap;overflow:hidden;}
+.ic-hdr-r{flex:none;width:312px;display:flex;border-left:1px solid #000;}
+.ic-hdr-tbl{flex:1;border-collapse:collapse;table-layout:fixed;}
+.ic-hdr-tbl td{border:1px solid #000;padding:0 3px;font-size:8.6px;height:12px;line-height:12px;text-align:center;white-space:nowrap;overflow:hidden;}
+.ic-hdr-tbl td.k{font-weight:700;text-align:left;background:#fff;}
+.ic-hdr-tbl tr:first-child td{border-top:none;}
+.ic-hdr-tbl td:first-child{border-left:none;}
+.ic-hdr-qr{flex:none;width:86px;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:3px 2px 0;border-left:1px solid #000;}
+.ic-hdr-qr svg{width:80px;height:80px;display:block;}
+.ic-hdr-qr .ref{margin-top:auto;font-size:6.6px;letter-spacing:0;white-space:nowrap;padding-bottom:2px;}
+.ic-title{flex:none;text-align:center;font-weight:700;font-size:11.5px;padding:7px 0 7px;border-bottom:1px solid #000;}
+
+/* ---------- body tables ---------- */
+.ic-t{width:100%;border-collapse:collapse;table-layout:fixed;}
+.ic-t td,.ic-t th{border:1px solid #000;padding:1px 3px;vertical-align:middle;font-size:9px;line-height:11px;font-weight:400;overflow:hidden;word-wrap:break-word;overflow-wrap:anywhere;}
+.ic-t th,.ic-t td.hd{background:#d9d9d9;font-weight:700;font-size:8.3px;text-align:center;}
+.ic-t td.lb{font-weight:700;font-size:8.6px;}
+.ic-t td.c{text-align:center;}
+.ic-t td.r{text-align:right;}
+.ic-t td.sl{width:26px;padding:0;text-align:center;font-weight:700;font-size:8.6px;}
+.ic-t td.nb{border:none;}
+.ic-t tr.blank td{height:11px;}
+.ic-row{display:flex;align-items:stretch;}
+.ic-row > *{min-width:0;}
+.ic-sl{flex:none;width:25px;border:1px solid #000;border-top:none;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:7.8px;text-align:center;line-height:9.5px;overflow:hidden;position:relative;}
+.ic-sl span{display:block;position:absolute;left:50%;top:50%;width:max-content;white-space:nowrap;transform:translate(-50%,-50%) rotate(-90deg);}
+.ic-sec{border-bottom:1px solid #000;}
+.ic-bar{background:#d9d9d9;font-weight:700;font-size:8.8px;text-align:center;border:1px solid #000;border-left:none;border-right:none;padding:1px 0;margin:0;}
+.ic-txt{padding:2px 4px;font-size:9px;line-height:11px;}
+.ic-lines > div{border-bottom:1px solid #000;padding:0 4px;min-height:11px;line-height:11px;font-size:9px;overflow:hidden;white-space:nowrap;text-overflow:clip;}
+.ic-lines > div:last-child{border-bottom:none;}
+.ic-kv{display:flex;border-bottom:1px solid #000;font-size:9px;line-height:11px;}
+.ic-kv:last-child{border-bottom:none;}
+.ic-kv .k{font-weight:700;padding:0 4px;flex:none;}
+.ic-kv .v{padding:0 4px;flex:1;min-width:0;overflow:hidden;white-space:nowrap;}
+
+/* ---------- footer of each page ---------- */
+.ic-glossary{flex:none;border-top:1px solid #000;font-size:8.3px;line-height:10.5px;}
+.ic-glossary .g{background:#d9d9d9;font-weight:700;text-align:center;font-size:8.6px;padding:1px 0;border-bottom:1px solid #000;}
+.ic-glossary .gt{padding:1px 3px;border-bottom:1px solid #000;}
+.ic-glossary .gt:last-child{border-bottom:none;}
+.ic-foot{position:relative;z-index:1;flex:none;text-align:center;padding-top:6px;}
+.ic-foot .scan{color:#d40000;font-weight:700;font-size:8.6px;line-height:11px;}
+.ic-foot .pg{font-size:9px;margin-top:2px;}
+
+/* ---------- theme colours ---------- */
+.ic-sb .ic-hdr-l{background:#ccffcc;}
+.ic-sb .ic-title,.ic-sb .ic-sl,.ic-sb .ic-t td.sl{background:#ccffcc;}
+.ic-sb .ic-hdr-brand .t1,.ic-sb .ic-hdr-brand .t2{color:#00008b;}
+.ic-boe .ic-hdr-l{background:#fff;}
+.ic-boe .ic-hdr-brand{background:#fff;flex:none;height:46px;justify-content:center;padding:3px 10px 0;}
+.ic-boe .ic-hdr-brand .t1{font-family:"Courier New",monospace;font-size:17px;letter-spacing:2px;}
+.ic-boe .ic-hdr-banner{background:#ffc000;border-top:1px solid #000;border-bottom:1px solid #000;text-align:center;font-family:"Courier New",monospace;font-weight:700;font-size:15px;letter-spacing:3px;padding:1px 0;}
+.ic-boe .ic-hdr-port{text-align:center;font-weight:700;font-size:9.4px;border-top:none;height:auto;line-height:11px;padding:1px 4px 0;white-space:normal;}
+.ic-boe .ic-title,.ic-boe .ic-sl,.ic-boe .ic-t td.sl{background:#99ccff;}
+.ic-boe .ic-hdr{height:118px;}
+.ic-boe .ic-bar{background:#99ccff;}
+.ic-boe .ic-t th,.ic-boe .ic-t td.hd{background:#d9d9d9;}
+.ic-boe .ic-glossary .g{background:#d9d9d9;}
+
+.ic-sig{position:absolute;right:26px;bottom:6px;width:220px;font-size:8.4px;line-height:10.5px;color:#222;z-index:2;}
+.ic-sig .big{font-size:15px;line-height:17px;}
+.ic-sig .mk{display:inline-block;width:22px;height:22px;border-radius:50%;background:#2ec4d6;color:#fff;font-weight:700;text-align:center;line-height:22px;font-size:15px;margin:0 0 0 2px;vertical-align:middle;}
+
+@media print{ .sb-page.ic-page{outline:none;margin:0;page-break-after:always;} }
+
+.ic-tight .ic-t td,.ic-tight .ic-t th{padding-top:0;padding-bottom:0;line-height:10px;font-size:8.6px;}
+.ic-tight .ic-bar{padding:0;line-height:11px;}
+.ic-tight .ic-t tr.blank td{height:9px;}
+
+/* ---------- ocean Bill of Lading ---------- */
+.ic-bl .ic-hdr{height:80px;}
+.ic-bl .ic-hdr-l{background:#eef2f8;}
+.ic-bl .ic-hdr-brand{padding:6px 16px;}
+.ic-bl .ic-hdr-brand .t1{font-size:21px;color:#14284b;font-family:Georgia,"Times New Roman",serif;letter-spacing:.5px;}
+.ic-bl .ic-hdr-brand .t2{font-size:9.5px;color:#14284b;letter-spacing:.9px;}
+.ic-bl .ic-hdr-tbl td{height:19px;line-height:19px;font-size:8.8px;}
+.ic-bl .ic-hdr-qr{width:66px;padding-top:6px;}
+.ic-bl .ic-hdr-qr svg{width:56px;height:56px;}
+.ic-bl .ic-title{background:#14284b;color:#fff;font-size:10.5px;letter-spacing:1.2px;padding:5px 0;}
+.ic-bl .ic-bar{background:#d9d9d9;}
+.bl-t td.bl-box{vertical-align:top;padding:2px 5px 3px;}
+.bl-l{font-size:7px;font-weight:700;text-transform:uppercase;color:#444;letter-spacing:.2px;line-height:8px;}
+.bl-l i{text-transform:none;font-weight:400;}
+.bl-v{font-size:9.6px;line-height:11.6px;margin-top:2px;}
+.bl-t tr.bl-cargo td{vertical-align:top;font-size:9.2px;line-height:11.2px;padding:3px 5px;}
+.bl-cont{font-size:8px;text-align:right;padding:1px 4px;}
+.bl-terms-note{font-size:8px;font-weight:700;text-align:center;padding:5px 8px;border-bottom:1px solid #000;}
+.bl-terms{display:flex;gap:12px;padding:6px 9px;}
+.bl-terms > div{flex:1;min-width:0;}
+.bl-term{font-size:8.5px;line-height:10.6px;text-align:justify;margin-bottom:6px;}

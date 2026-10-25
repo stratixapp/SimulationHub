@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Employee Expenses (from 1 Oct 2026) — VAT Return Filing Simulator</title>
+<link rel="stylesheet" href="../css/style.css" />
+<link rel="icon" href="../favicon.ico" />
+<link rel="apple-touch-icon" href="../icons/icon-180.png" />
+<link rel="manifest" href="../manifest.json" />
+<meta name="theme-color" content="#0c1f38" />
+</head>
+<body>
+
+<div class="topbar">
+  <button class="icon-btn" title="Notifications">🔔</button>
+  <div class="text-size"><button data-textsize="down">-A</button><button data-textsize="reset">A</button><button data-textsize="up">+A</button></div>
+  <span class="lang-toggle">عربي</span>
+</div>
+
+<header class="app-header">
+  <div class="brand">
+    <div class="brand-emblem">FTA</div>
+    <div class="brand-text">
+      <div class="ar">الهيئة الاتحادية للضرائب</div>
+      <div class="en">FEDERAL TAX AUTHORITY</div>
+      <div class="sub">VAT Return Filing Simulator</div>
+    </div>
+  </div>
+  <div class="header-spacer"></div>
+  <span class="training-badge">🎓 Training Mode</span>
+  <div class="uae-emblem-mini">UAE</div>
+  <div class="user-menu">
+    <span class="avatar" data-user-initial>?</span><span data-user-email>—</span> ▾
+    <div class="user-menu-dropdown">
+      <a href="profile.html">👤 Profile</a>
+      <a href="filings.html">📁 My Filings</a>
+      <a href="liabilities.html">💰 My Liabilities</a>
+      <a href="settings.html">⚙️ Settings &amp; About</a>
+      <button data-action="reset-sim">↺ Reset Simulator</button>
+      <button data-action="logout">↪ Logout</button>
+    </div>
+  </div>
+</header>
+
+<div class="breadcrumb"><a href="dashboard.html">Home</a><span class="sep">›</span><span class="current">Employee Expenses</span></div>
+
+<div class="app-shell">
+  <main class="content" style="padding-top:18px">
+    <h1 style="font-size:16px;margin-bottom:4px">Input VAT on Employee Expenses - from 1 October 2026</h1>
+    <p style="font-size:12.5px;color:var(--text-muted);margin-bottom:10px">Is the input VAT recoverable for periods from 1 October 2026? Choose for each case, then check.</p>
+    <details style="margin-bottom:14px;font-size:12.5px" open><summary style="cursor:pointer;font-weight:600">Rules used and how far they are verified</summary>
+      <ul style="margin:8px 0 0 18px;line-height:1.6">
+        <li>Entertainment is blocked (FTA VATP005, read in full). Free goods and services for employees are blocked unless a case in FTA Decision No. 17 of 2026 applies (Executive Regulation Art. 53(1)(c) as amended by Cabinet Decision 149 of 2026).</li>
+        <li>Decision 17 (issued 9 Sep 2026, effective 1 Oct 2026) lists six cases, each with conditions that must all be met and a contract or documented policy: employee transport; food and drink in remote areas; work-required accommodation; new-hire temporary accommodation up to 30 days; phones, data and home internet with a use policy and monitoring; parking for business use.</li>
+        <li>Verification status: the Ministry of Finance announcement confirms Cabinet Decision 149 of 2026. The text of Decision 17 and of Decision 149 could not be opened; the six cases come from firm notes (Naqood, Alvarez and Marsal, fame.ae and others agree). Check tax.gov.ae before teaching.</li>
+      </ul></details>
+    <div style="overflow-x:auto"><table class="data-table" id="empBody"></table></div>
+    <div style="display:flex;gap:10px;align-items:center;margin:16px 0;flex-wrap:wrap">
+      <button class="btn btn-primary" id="btnCheck">Check my work</button>
+      <button class="btn btn-outline" id="btnReset">Clear answers</button>
+      <b id="scoreOut"></b>
+    </div>
+    <p style="font-size:11.5px;color:var(--text-faint)">Training exercise only, not tax advice.</p>
+  </main>
+</div>
+<script src="../shared/nav-back.js"></script>
+<script src="../js/storage.js"></script>
+<script src="../js/employee-expenses.js"></script>
+</body>
+</html>

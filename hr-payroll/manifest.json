@@ -1,0 +1,18 @@
+{
+  "name": "SKELORA \u2014 HR & Payroll ERP Training Simulator",
+  "short_name": "SKELORA",
+  "description": "Industry-grade HR & Payroll ERP training simulator covering the full employee lifecycle \u2014 recruitment through Full & Final Settlement \u2014 for HR, MBA, BBA, BCom and payroll students.",
+  "id": "./index.html",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0f1b2d",
+  "theme_color": "#0f1b2d",
+  "lang": "en",
+  "icons": [
+    { "src": "assets/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
