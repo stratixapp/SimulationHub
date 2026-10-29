@@ -184,6 +184,7 @@ function tcosDocumentLetterheadHTML(doc){
 async function downloadDocumentPDF(docId){
   const doc = STATE.documentsGenerated.find(d => d.id === docId);
   if (!doc) { toast('That document could not be found — it may belong to a different profile.', 'error'); return; }
+  if(typeof tcosIsIcegateDoc === "function" && tcosIsIcegateDoc(doc)){ return tcosDownloadIcegatePdf(docId); }
   if(typeof html2canvas === "undefined" || typeof window.jspdf === "undefined"){
     toast("PDF tools didn't load — check your internet connection and try again.", "error");
     return;

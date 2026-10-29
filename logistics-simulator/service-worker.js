@@ -5,7 +5,7 @@
    the new version instead of a stale cached copy.
    ========================================================================= */
 
-const CACHE_VERSION = "skelora-v79";
+const CACHE_VERSION = "skelora-v84";
 const APP_SHELL = [
   "./index.html",
   "./intro.html",
@@ -18,6 +18,8 @@ const APP_SHELL = [
   "./customs-forms-boe.js",
   "./bill-of-lading-forms-config.js",
   "./bill-of-lading-forms.js",
+  "./multi-consistency.js",
+  "./field-references.js",
   "./customs-forms.css",
   "./job-engine.js",
   "./documents-data.js",
@@ -62,7 +64,8 @@ const APP_SHELL = [
   "../shared/vendor/jszip.min.js",
   "../shared/vendor/chart.umd.min.js",
   "../shared/tcos-bridge.js",
-  "../shared/access-id.js"
+  "../shared/access-id.js",
+  "../shared/file-origin-guard.js"
 ];
 
 self.addEventListener("install", (event) => {

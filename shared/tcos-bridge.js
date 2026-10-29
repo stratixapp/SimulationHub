@@ -76,18 +76,19 @@
     const userId = String(opts.userId || "").trim().toUpperCase();
     const password = opts.password;
     const name = opts.name || userId;
+    const workRole = String(opts.workRole || "").trim(); // role picked on the Skelora sign-in screen; printed beside the name on PDFs
     const returnSlug = opts.returnSlug; // logistics doc slug to return to, e.g. 'shipping-bill'
     if (!userId || !password || !filingType || !returnSlug) {
       console.error("DotBridge.startHandoff: missing required fields", opts);
       return false;
     }
-    const role = filingType === "export" ? "IEC Holder (Exporter)" : "IEC Holder (Importer)";
+    const role = (filingType === "export" || filingType === "consignia" || filingType === "brc") ? "IEC Holder (Exporter)" : "IEC Holder (Importer)";
     // 1) Mirror this student into TCOS's registered-user credential store,
     //    so the same ID + password also works as a normal TCOS login later
     //    (not just for this one bridged session).
     const registered = readJSON(TCOS_REGISTERED_USERS_KEY) || [];
     const idx = registered.findIndex((c) => (c.userId || "").toUpperCase() === userId);
-    const cred = { userId, password, role, name, iec: "—", gstin: "—", pan: "—", isTrainerAccount: false };
+    const cred = { userId, password, role, name, workRole, iec: "—", gstin: "—", pan: "—", isTrainerAccount: false };
     if (idx >= 0) registered[idx] = Object.assign({}, registered[idx], cred);
     else registered.push(cred);
     writeJSON(TCOS_REGISTERED_USERS_KEY, registered);
@@ -127,6 +128,7 @@
       filingType: filingType,
       returnSlug: returnSlug,
       userId: userId,
+      workRole: workRole,
       jobData: opts.jobData || null,
       consignaDocType: opts.consignaDocType || null,
       startedAt: Date.now(),
@@ -152,6 +154,17 @@
     b.completed = true;
     b.refNo = refNo;
     b.completedAt = Date.now();
+    writeJSON(BRIDGE_KEY, b);
+    return true;
+  }
+
+  /* Re-aim an in-progress bridge at a different closing event (e.g. the Export Brief of the general
+     "consignia" bridge turns into the Shipping Bill filing -> return to the Shipping Bill document). */
+  function retarget(filingType, returnSlug) {
+    const b = getBridge();
+    if (!b || !b.active || b.completed) return false;
+    b.filingType = filingType;
+    b.returnSlug = returnSlug;
     writeJSON(BRIDGE_KEY, b);
     return true;
   }
@@ -287,6 +300,7 @@
     startHandoff: startHandoff,
     markCompleted: markCompleted,
     setBookingId: setBookingId,
+    retarget: retarget,
     consumeReturn: consumeReturn,
     silentCompleteLogisticsDoc: silentCompleteLogisticsDoc,
   };

@@ -574,6 +574,9 @@ function skBuildTransactionContextFromData(all, jobContextSeed){
   context.__tables = tableStore;
   if(context["txn.awbNo"] && !context["txn.blNo"]) context["txn.blNo"] = Object.assign({}, context["txn.awbNo"]);
   if(context["txn.blNo"] && !context["txn.blNumber"]) context["txn.blNumber"] = Object.assign({}, context["txn.blNo"]);
+  /* Export General Manifest: its first column is "Shipping Bill No. / IEC No." - the Shipping Bill number once it exists,
+     otherwise the exporter's IEC number, so the EGM can be filled before the Shipping Bill has been issued. */
+  { const sbOrIec = context["txn.shippingBillNo"] || context["txn.sellerIEC"]; if(sbOrIec && !context["txn.shippingBillOrIEC"]) context["txn.shippingBillOrIEC"] = Object.assign({}, sbOrIec); }
   return context;
 }
 
@@ -638,7 +641,12 @@ function skBuildRowsFromAutofillSpecs(f, context){
         if(any) rows.push(row);
       });
     } else if(s.from==="jobItems" || s.from==="jobContainers"){
-      const src = s.from==="jobItems" ? context.__jobItems : context.__jobContainers;
+      let src = s.from==="jobItems" ? context.__jobItems : context.__jobContainers;
+      if(Array.isArray(src) && s.distinct && s.map[s.distinct]){
+        // keep only the first occurrence of each value (e.g. one row per DISTINCT HS code, however many items share it)
+        const seen = new Set();
+        src = src.filter(r=>{ const v = String(r[s.map[s.distinct]]==null?"":r[s.map[s.distinct]]).trim(); if(!v || seen.has(v)) return false; seen.add(v); return true; });
+      }
       if(Array.isArray(src)) src.slice(s.skip||0).forEach(ctxRow=>{
         const row = blank(); let any = false;
         Object.keys(s.map).forEach(col=>{
@@ -759,6 +767,17 @@ function _sk_valuesMatch(key, a, b){
    against a canonical context, for every field/table-column that opts in
    via contextKey. Only flags where BOTH values are actually present and
    non-empty — an unfilled field is incomplete, not a mismatch. */
+/* A Job can carry several containers and several HS codes. A document that restates ONE of them (the "Container No." box,
+   the "HS Code" box) is correct if it matches ANY of the Job's values, not only the first one.  Returns the list of
+   acceptable canonical values for a contextKey, or null when the key is single-valued. */
+function _sk_multiAccepted(context, key){
+  if(key === "txn.containerNo" && Array.isArray(context.__jobContainers) && context.__jobContainers.length > 1)
+    return context.__jobContainers.map(c=>c["txn.containerNo"]).filter(v=>v!==undefined && v!==null && v!=="");
+  if(key === "txn.hsCode" && Array.isArray(context.__jobItems) && context.__jobItems.length > 1)
+    return context.__jobItems.map(c=>c["txn.hsCode"]).filter(v=>v!==undefined && v!==null && v!=="");
+  return null;
+}
+
 function skFindDocumentMismatches(cfg, formData, context){
   const mismatches = [];
   if(!cfg || !formData || !context) return mismatches;
@@ -767,7 +786,9 @@ function skFindDocumentMismatches(cfg, formData, context){
       if(f.contextKey && context[f.contextKey]){
         const thisVal = formData[f.name];
         const canon = context[f.contextKey];
-        if(thisVal!==undefined && thisVal!==null && thisVal!=="" && !_sk_valuesMatch(f.contextKey, thisVal, canon.value)){
+        const accepted = _sk_multiAccepted(context, f.contextKey);
+        if(thisVal!==undefined && thisVal!==null && thisVal!=="" && !_sk_valuesMatch(f.contextKey, thisVal, canon.value)
+           && !(accepted && accepted.some(v=>_sk_valuesMatch(f.contextKey, thisVal, v)))){
           mismatches.push({contextKey:f.contextKey, label:f.label, thisValue:thisVal, canonicalValue:canon.value, canonicalSource:canon.sourceTitle});
         }
       }
@@ -804,9 +825,11 @@ function skFindDocumentMismatches(cfg, formData, context){
             }
             return;
           }
+          const acceptedCol = _sk_multiAccepted(context, col.contextKey);
           formData[f.name].forEach((row,i)=>{
             const val = row[col.key];
-            if(val!==undefined && val!==null && val!=="" && !_sk_valuesMatch(col.contextKey, val, canon.value)){
+            if(val!==undefined && val!==null && val!=="" && !_sk_valuesMatch(col.contextKey, val, canon.value)
+               && !(acceptedCol && acceptedCol.some(v=>_sk_valuesMatch(col.contextKey, val, v)))){
               mismatches.push({contextKey:col.contextKey, label:`${f.label} — ${col.label} (row ${i+1})`, thisValue:val, canonicalValue:canon.value, canonicalSource:canon.sourceTitle});
             }
           });

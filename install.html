@@ -302,7 +302,7 @@ h1{font-size:25px;font-weight:600;letter-spacing:-.5px;margin:0 0 6px}
 <script>
 const $ = id => document.getElementById(id);
 /* ---- hub integration (first-run install -> Launch opens the hub) ---- */
-const HUB_URL = "./index.html";                 // what "Launch" opens
+const HUB_URL = "./index.html?installed=1";                 // what "Launch" opens
 const INSTALLED_KEY = "dot_hub_installed_v1";   // index.html shows this wizard until this key exists
 let deferredPrompt = null;                      // Chromium's native "install app" prompt, if offered
 window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); deferredPrompt = e; });

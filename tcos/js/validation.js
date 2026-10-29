@@ -178,6 +178,7 @@ function validateAll(filing) {
   errs = errs.concat(validateContainersStep(filing));
   errs = errs.concat(validateAssessmentStep(filing));
   errs = errs.concat(validateDocumentsStep(filing));
+  if (typeof tcosDeepErrors === 'function') errs = errs.concat(tcosDeepErrors(filing));
   return errs;
 }
 

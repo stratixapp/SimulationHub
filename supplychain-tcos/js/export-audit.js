@@ -15,6 +15,7 @@ function ensureJobInAuditableState(job) {
 function computeExportAudit(jobId) {
   const job = getExportJob(jobId);
   const docRows = job.documentPlan.filter(d => d.status !== 'NOT_APPLICABLE').map(d => {
+    if (d.doc === 'SHIPPING_BILL') { const st = exportJobDocStatus(job, 'SHIPPING_BILL').status; return { label: d.label, planStatus: d.status, docStatus: st, ready: st === 'READY' }; }
     const doc = currentDocOfType(jobId, d.doc);
     return { label: d.label, planStatus: d.status, docStatus: doc ? doc.status : 'NOT_STARTED', ready: !!doc && doc.status === 'READY' };
   });

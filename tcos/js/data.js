@@ -398,7 +398,7 @@ const SCENARIOS = [
       counterparty: { consigneeName: 'Wagner Textilhandel GmbH', address: 'Industriestrasse 8, Hamburg', country: 'Germany', port: 'DEHAM - Hamburg, Germany', contact: '+49 40 5551 2200' },
       shipment: { portOfLoading: 'INMUN1 - Mundra Port, Gujarat', portOfDischarge: 'DEHAM - Hamburg, Germany', countryOfDestination: 'Germany', modeOfTransport: 'Sea', vesselFlight: 'CMA CGM RHONE', voyageFlight: 'V.077N', shipmentRef: 'SHP-EXP-1003' },
       invoice: { invoiceNo: 'INV-EXP-8803', invoiceDate: '', currency: 'EUR', invoiceValue: 19500, fobValue: 19500, freight: 900, insurance: 180, incoterm: 'FOB', paymentTerms: 'Advance Payment' },
-      items: [{ description: 'Cotton woven fabric, unbleached, roll packed', hsCode: '52081100', qty: 12000, unit: 'MTR', unitPrice: 1.6, origin: 'India', packages: 60, grossWeight: 8400, netWeight: 8100 }]
+      items: [{ description: 'Cotton woven fabric, unbleached, roll packed', hsCode: '52081100', qty: 12000, unit: 'MTR', unitPrice: 1.625, origin: 'India', packages: 60, grossWeight: 8400, netWeight: 8100 }]
     }
   },
   {
@@ -450,7 +450,7 @@ const SCENARIOS = [
       counterparty: { consigneeName: 'Van Dijk Textiles B.V.', address: 'Havenstraat 12, Rotterdam', country: 'Netherlands', port: 'NLRTM - Rotterdam, Netherlands', contact: '+31 10 445 8890' },
       shipment: { portOfLoading: 'INNSA1 - Nhava Sheva (JNPT), Mumbai', portOfDischarge: 'NLRTM - Rotterdam, Netherlands', countryOfDestination: 'Netherlands', modeOfTransport: 'Sea', vesselFlight: 'MAERSK SEVILLE', voyageFlight: 'V.309N', shipmentRef: 'SHP-EXP-1007' },
       invoice: { invoiceNo: 'INV-EXP-8807', invoiceDate: '', currency: 'EUR', invoiceValue: 22000, fobValue: 22000, freight: 750, insurance: 160, incoterm: 'FOB', paymentTerms: 'Advance Payment' },
-      items: [{ description: 'Cotton woven fabric, dyed, roll packed', hsCode: '52081100', qty: 9000, unit: 'MTR', unitPrice: 2.4, origin: 'India', packages: 45, grossWeight: 6100, netWeight: 5900 }]
+      items: [{ description: 'Cotton woven fabric, dyed, roll packed', hsCode: '52081100', qty: 8800, unit: 'MTR', unitPrice: 2.5, origin: 'India', packages: 45, grossWeight: 6100, netWeight: 5900 }]
     }
   },
   {
@@ -489,7 +489,7 @@ const SCENARIOS = [
       counterparty: { supplierName: 'Shenzhen Xinwei Electronics Co.', address: "Bao'an District, Shenzhen", country: 'China', contact: '+86 755 8822 1190' },
       shipment: { portOfLoading: 'CNSHA - Shanghai, China', portOfDischarge: 'INDEL4 - Delhi (IGI) Air Cargo', countryOfOrigin: 'China', modeOfTransport: 'Air', vesselFlight: 'AI 349', voyageFlight: 'AWB-7729004', blAwbNo: '772-90044567' },
       invoice: { invoiceNo: 'INV-IMP-5510', invoiceDate: '', currency: 'USD', invoiceValue: 45000, fobValue: 44000, freight: 700, insurance: 150, incoterm: 'CIF', paymentTerms: 'Letter of Credit' },
-      items: [{ description: 'Smartphones, dual-SIM, assorted models', hsCode: '85171200', qty: 1000, unit: 'PCS', unitPrice: 44, origin: 'China', packages: 20, grossWeight: 500, netWeight: 460 }]
+      items: [{ description: 'Smartphones, dual-SIM, assorted models', hsCode: '85171200', qty: 1000, unit: 'PCS', unitPrice: 45, origin: 'China', packages: 20, grossWeight: 500, netWeight: 460 }]
     }
   },
   {
@@ -640,6 +640,7 @@ function newId(prefix) {
 /* Document registry. category groups drive the Document Planner's sectioning;
    'core' documents show REQUIRED unless a rule below says otherwise. */
 const EXPORT_DOC_CATALOG = {
+  SHIPPING_BILL: { label: 'Shipping Bill (ICEGATE e-filing)', category: 'CUSTOMS' },
   COMMERCIAL_INVOICE: { label: 'Commercial Invoice', category: 'CORE' },
   PACKING_LIST: { label: 'Packing List', category: 'CORE' },
   BILL_OF_LADING: { label: 'Bill of Lading', category: 'TRANSPORT', modes: ['Sea'] },
@@ -661,6 +662,7 @@ const EXPORT_DOC_CATALOG = {
    Each rule inspects the Export Job's brief and returns an applicability +
    a human-readable reason — never a bare "required", always WHY. */
 const DOCUMENT_PLANNER_RULES = [
+  { doc: 'SHIPPING_BILL', test: () => ({ status: 'REQUIRED', reason: 'Mandatory customs declaration for every export - filed on ICEGATE; Let Export Order and EGM follow. Prepared from this job\'s consignee, products, containers and consignment details.' }) },
   { doc: 'COMMERCIAL_INVOICE', test: () => ({ status: 'REQUIRED', reason: 'Mandatory for every export shipment — establishes the transaction value and terms.' }) },
   { doc: 'PACKING_LIST', test: () => ({ status: 'REQUIRED', reason: 'Mandatory for every export shipment — itemizes physical packages against the invoice.' }) },
   { doc: 'BILL_OF_LADING', test: (brief) => brief.mode === 'Sea'

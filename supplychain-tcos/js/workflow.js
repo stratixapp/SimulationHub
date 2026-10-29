@@ -24,7 +24,9 @@ function submitFiling(filing) {
   setFilingStatus(filing, 'ACKNOWLEDGED');
   pushTimeline(filing, 'ACKNOWLEDGED', `Acknowledgement generated: ${ackNo}`);
   addDocument('Acknowledgement', filing.id, (filing.type === 'export' ? 'Shipping Bill' : 'Bill of Entry') + ' Acknowledgement');
+  if (typeof tcosEnsureIcegateDoc === 'function') tcosEnsureIcegateDoc(filing);   // the Shipping Bill / Bill of Entry itself, in ICEGATE print format
   initializePGAForFiling(filing);
+  if (typeof tcosScrutinize === 'function') filing.scrutiny = { findings: tcosScrutinize(filing), open: [] };   // Customs checks the declaration against the source documents
   addNotification(`${filing.type === 'export' ? 'Shipping Bill' : 'Bill of Entry'} ${filing.id} submitted successfully — TRAINING ENVIRONMENT. Ack: ${ackNo}`, filing.id);
   saveState();
   navToFiling(filing.id);
@@ -78,6 +80,7 @@ function determineProcessingOutcome(filing) {
     needsQuery = Math.random() < queryProb;
     discrepancy = needsExam && Math.random() < 0.35;
   }
+  if (filing.scrutiny && filing.scrutiny.findings && filing.scrutiny.findings.length) needsQuery = true;   // a real mismatch with the documents always draws a query
   /* First Check: examination is mandatory before assessment, regardless of RMS selection */
   if (filing.type === 'import' && filing.checkType && filing.checkType.indexOf('First Check') === 0) {
     needsExam = true;
@@ -122,7 +125,10 @@ function raiseQuery(filing) {
   const descs = filing.type === 'export'
     ? ['Clarification required regarding declared HS classification of the goods.', 'Discrepancy noted between declared FOB value and market indicative value — please clarify.', 'Please confirm the country of origin declaration for the exported items.']
     : ['Clarification required regarding declared assessable value.', 'Please clarify the classification (HS Code) declared for the imported goods.', 'Discrepancy noted in declared quantity vis-à-vis packing list — please clarify.'];
+  const scrText = (typeof tcosQueryTextFor === 'function') ? tcosQueryTextFor(filing) : null;
+  if (scrText) { filing.scrutiny.open = filing.scrutiny.findings.slice(); descs.length = 0; descs.push(scrText); }
   filing.query = {
+    round: 1,
     number: uniqueId('QRY', () => 'QRY-' + Math.floor(100000 + Math.random() * 900000)),
     date: Date.now(),
     officer: officers[Math.floor(Math.random() * officers.length)],
@@ -137,6 +143,7 @@ function raiseQuery(filing) {
 function submitQueryReply(filingId, replyText, attachedDocName) {
   const filing = getFiling(filingId);
   if (!filing || !filing.query) return;
+  if (typeof tcosSubmitScrutinyReply === 'function' && tcosSubmitScrutinyReply(filingId, replyText)) return;
   if (!replyText || replyText.trim().length < 15) { toast('Reply must be at least 15 characters and address the query.', 'error'); return; }
   filing.query.reply = replyText.trim();
   filing.query.replyAttachment = attachedDocName || null;
@@ -212,12 +219,19 @@ function submitCorrectiveAction(filingId, note) {
 }
 
 /* ---------------- DUTY CALCULATION (import only) ---------------- */
-function runAssessment(filing) {
-  setFilingStatus(filing, 'ASSESSED');
-  const inv = filing.invoice;
+/* Customs valuation + duty for a Bill of Entry. CIF value (Rule 10): CIF terms already include freight and
+   insurance; CFR adds insurance; FOB / FCA / EXW add freight and insurance. Rule 10(2): 1% notional landing
+   charge on the CIF value. Shared by runAssessment() and the self-assessment scrutiny (scrutiny.js). */
+function tcosComputeDuty(filing) {
+  const inv = filing.invoice || {};
   const fx = FX_TO_INR[inv.currency] || 1;
-  const assessableValue = Math.max(0, (num(inv.invoiceValue) + num(inv.freight) + num(inv.insurance)) * fx);
-  const firstItem = filing.items[0];
+  const term = String(inv.incoterm || '').toUpperCase();
+  let cif = num(inv.invoiceValue);
+  if (term === 'CIF' || term === 'CIP') { /* already CIF */ }
+  else if (term === 'CFR' || term === 'CNF' || term === 'CPT') cif += num(inv.insurance);
+  else cif += num(inv.freight) + num(inv.insurance);
+  const assessableValue = Math.max(0, cif * fx * 1.01);
+  const firstItem = (filing.items || [])[0];
   const meta = firstItem && HS_CODE_TABLE[firstItem.hsCode];
   let bcdRate = clampRate(meta ? meta.bcdRate : 0.10);
   let cessRate = clampRate(meta ? (meta.cessRate || 0) : 0);
@@ -232,9 +246,14 @@ function runAssessment(filing) {
   const sws = bcd * SWS_RATE;
   const cess = assessableValue * cessRate;
   const add = assessableValue * addRate;
-  const igstBase = assessableValue + bcd + sws + cess + add;
-  const igst = igstBase * IGST_RATE_DEFAULT;
-  const total = bcd + sws + cess + add + igst;
+  const igst = (assessableValue + bcd + sws + cess + add) * IGST_RATE_DEFAULT;
+  return { assessableValue, bcdRate, bcd, sws, cessRate, cess, addRate, add, igstRate: IGST_RATE_DEFAULT, igst, total: bcd + sws + cess + add + igst, ftaApplied };
+}
+
+function runAssessment(filing) {
+  setFilingStatus(filing, 'ASSESSED');
+  const c = tcosComputeDuty(filing);
+  const { assessableValue, bcdRate, cessRate, addRate, bcd, sws, cess, add, igst, total, ftaApplied } = c;
   filing.duty = {
     assessableValue: safeDuty(assessableValue),
     bcdRate, bcd: safeDuty(bcd),

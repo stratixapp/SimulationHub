@@ -117,18 +117,28 @@ function logout() {
 function showBridgeReturnPrompt(refNo, docLabel) {
   const bridge = (typeof DotBridge !== 'undefined') ? DotBridge.getBridge() : null;
   const returnUrl = '../logistics-simulator/workstation.html?doc=' + (bridge ? encodeURIComponent(bridge.returnSlug) : '') + '&bridgeReturn=1';
+  let icDoc = null;
+  try { const fl = getFiling(refNo); if (fl && typeof tcosEnsureIcegateDoc === 'function' && (docLabel === 'Shipping Bill' || docLabel === 'Bill of Entry')) icDoc = tcosEnsureIcegateDoc(fl); } catch (e) { icDoc = null; }
   const bg = el('div', 'modal-bg show');
   bg.innerHTML = '<div class="modal" role="dialog" aria-modal="true" aria-labelledby="bridgeDoneTitle" style="width:min(460px,92vw)">' +
     '<div class="modal-head" id="bridgeDoneTitle">' + esc(docLabel) + ' Complete <span class="close" role="button" tabindex="0" aria-label="Close dialog">×</span></div>' +
     '<div style="padding:22px">' +
     '<p style="margin:0 0 10px">This ' + esc(docLabel) + ' (<b>' + esc(refNo) + '</b>) is fully closed out in TCOS.</p>' +
     '<p style="margin:0 0 18px;color:var(--muted,#667085)">Head back to the Logistics Document Simulator now, marked complete there too — or keep exploring this filing in TCOS first.</p>' +
-    '<div class="actions"><button class="back2" data-x="stay">Stay in TCOS</button><button class="next" data-x="return">← Return to Logistics Simulator</button></div>' +
+    (icDoc ? '<p style="margin:0 0 14px;color:var(--muted,#667085)">Your <b>' + esc(docLabel) + '</b> is ready as a real ICEGATE-format PDF. Download it, and you will be taken back to the Document Simulator automatically.</p>' : '') +
+    '<div class="actions"><button class="back2" data-x="stay">Stay in TCOS</button>' + (icDoc ? '<button class="back2" data-x="return">Return without PDF</button><button class="next" data-x="dlreturn">⬇ Download PDF &amp; return to Document Simulator</button>' : '<button class="next" data-x="return">← Return to Logistics Simulator</button>') + '</div>' +
     '</div></div>';
   document.body.appendChild(bg);
   bg.addEventListener('click', function (e) {
     if (e.target === bg || e.target.classList.contains('close') || e.target.dataset.x === 'stay') { bg.remove(); renderBridgeBanner(); }
     if (e.target.dataset.x === 'return') { window.location.href = returnUrl; }
+    if (e.target.dataset.x === 'dlreturn' && icDoc) {
+      e.target.disabled = true; e.target.textContent = 'Generating PDF…';
+      Promise.resolve(tcosDownloadIcegatePdf(icDoc.id)).catch(function () {}).then(function () {
+        e.target.textContent = 'PDF saved - returning…';
+        setTimeout(function () { window.location.href = returnUrl; }, 1600);
+      });
+    }
   });
 }
 
@@ -192,12 +202,13 @@ function enterApp() {
   document.getElementById('login').classList.remove('active');
   document.getElementById('home').classList.remove('active');
   document.getElementById('app').classList.add('active');
-  document.getElementById('appUserLabel').textContent = STATE.user.profile.name + ' (' + STATE.user.profile.role + ')';
+  { const p0 = STATE.user.profile; let wr = p0.workRole || ''; try { const b0 = (typeof DotBridge !== 'undefined') ? DotBridge.getBridge() : null; if (!wr && b0 && b0.workRole) wr = b0.workRole; } catch (e) { /* ignore */ } document.getElementById('appUserLabel').textContent = p0.name + ' (' + (wr || p0.role) + ')'; }
   applyRoleAccess(STATE.user.profile.role);
   if (typeof resolvePendingAmendments === 'function') resolvePendingAmendments();
   if (typeof resolvePendingDocuments === 'function' && STATE.filings) {
     STATE.filings.forEach(f => resolvePendingDocuments(f));
   }
+  if (typeof tcosBackfillIcegateDocs === 'function') tcosBackfillIcegateDocs();   // older filings get their ICEGATE-format Shipping Bill / Bill of Entry
   renderBridgeBanner();
   // Section: Logistics ⇄ TCOS bridge — a student who came from the
   // Logistics Document Simulator (Shipping Bill / Bill of Entry) lands
@@ -253,7 +264,7 @@ function renderBridgeBanner() {
   const bridge = (typeof DotBridge !== 'undefined') ? DotBridge.getBridge() : null;
   if (!bridge || !bridge.active || bridge.completed) return;
   const docLabel = bridge.filingType === 'export' ? 'Shipping Bill' : bridge.filingType === 'import' ? 'Bill of Entry' : bridge.filingType === 'brc' ? 'Bank Realisation Certificate' : bridge.filingType === 'consignia' ? (typeof EXPORT_DOC_CATALOG !== 'undefined' && EXPORT_DOC_CATALOG[bridge.consignaDocType] ? EXPORT_DOC_CATALOG[bridge.consignaDocType].label : 'your full Export Job') : FREIGHT_SLUG_LABELS[bridge.returnSlug] || 'Freight document';
-  const closingNote = bridge.filingType === 'export' ? 'LEO + EGM' : bridge.filingType === 'import' ? 'Out of Charge' : bridge.filingType === 'brc' ? 'the BRC upload' : bridge.filingType === 'consignia' ? (bridge.consignaDocType ? 'marking it Ready in Consignia Desk' : 'your Export Job Document Plan') : 'that stage';
+  const closingNote = bridge.filingType === 'export' ? 'LEO + EGM' : bridge.filingType === 'import' ? 'Out of Charge' : bridge.filingType === 'brc' ? 'the BRC upload' : bridge.filingType === 'consignia' ? (bridge.consignaDocType === 'SHIPPING_BILL' ? 'LEO + EGM' : bridge.consignaDocType ? 'marking it Ready in Consignia Desk' : 'your Export Job Document Plan') : 'that stage';
   const banner = document.createElement('div');
   banner.id = 'bridgeBanner';
   banner.style.cssText = 'background:#123B70;color:#fff;font-size:12.5px;padding:8px 18px;display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap;text-align:center';
@@ -835,6 +846,7 @@ function processingPanelHTML(filing) {
         <tr><td>Status</td><td><span class="badge badge-red">${esc(filing.query.status)}</span></td></tr>
       </table>
       <div class="alert alert-error" style="margin-top:10px"><b>Query:</b> ${esc(filing.query.description)}</div>
+      ${typeof tcosQueryPanelHTML === 'function' ? tcosQueryPanelHTML(filing) : ''}
       <label style="display:block;margin-top:12px;font-weight:700;font-size:13px">Your Reply</label>
       <textarea id="queryReplyText" rows="4" placeholder="Enter your response to the customs query (minimum 15 characters)…"></textarea>
       <div style="margin-top:10px"><button class="next" onclick="submitQueryReply('${filing.id}', document.getElementById('queryReplyText').value)">Submit Reply</button></div>
@@ -891,7 +903,7 @@ function processingPanelHTML(filing) {
       <div style="margin-top:10px"><button class="btn-ghost" onclick="navTo('doccentre')">View Documents</button>
       <button class="btn-ghost" onclick="navTo('assessment')">View Training Assessment</button></div>
       ${amendmentButtonHTML(filing)}
-    </div>`;
+    </div>${typeof tcosScrollPanelHTML === 'function' ? tcosScrollPanelHTML(filing) : ''}`;
   } else if (s === 'DRAFT') {
     panel = `<div class="wz-card"><h3>Draft Filing</h3><p class="hint">This filing has not yet been submitted.</p><button class="next" onclick="resumeWizardFor('${filing.id}')">Continue Filing</button></div>`;
   } else if (s === 'UNDER_PROCESS' || s === 'QUERY_REPLIED') {
@@ -1437,6 +1449,7 @@ function documentPrintableHTML(doc) {
 function viewDocument(docId) {
   const doc = STATE.documentsGenerated.find(d => d.id === docId);
   if (!doc) { toast('That document could not be found — it may belong to a different profile.', 'error'); return; }
+  if (typeof tcosIsIcegateDoc === 'function' && tcosIsIcegateDoc(doc)) { tcosViewIcegateDoc(docId); return; }
   const bg = el('div', 'modal-bg show');
   bg.innerHTML = `<div class="modal" style="width:min(700px,94vw)"><div class="modal-head">${esc(doc.title)} <span class="close">×</span></div>
   <iframe style="width:100%;height:60vh;border:0" srcdoc="${esc(documentPrintableHTML(doc))}"></iframe></div>`;
@@ -1446,6 +1459,7 @@ function viewDocument(docId) {
 function printDocument(docId) {
   const doc = STATE.documentsGenerated.find(d => d.id === docId);
   if (!doc) { toast('That document could not be found — it may belong to a different profile.', 'error'); return; }
+  if (typeof tcosIsIcegateDoc === 'function' && tcosIsIcegateDoc(doc)) { tcosPrintIcegateDoc(docId); return; }
   /* Merged from the parallel FINAL hardening pass: window.open() returns null when the
      browser's popup blocker intercepts it — without this check the code below would throw
      trying to call .document on null, silently going nowhere with no feedback to the trainee. */

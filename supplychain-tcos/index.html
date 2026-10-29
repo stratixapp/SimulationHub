@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>TCOS — India Trade & Customs Operations Simulator</title>
 <link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="../logistics-simulator/customs-forms.css">
 </head>
 <body>
 
@@ -214,42 +215,42 @@
   </div>
   <div class="app-body">
     <div class="app-sidebar">
-      <div class="side-title" data-group="Main">Main</div>
-      <button class="side-link" data-s="dashboard" onclick="navTo('dashboard')">📊 Dashboard</button>
-      <div class="side-title" data-group="Export Documentation Desk">Export Documentation Desk</div>
-      <button class="side-link" data-s="exportDesk" onclick="navTo('exportDesk')">🗃 Consignia Desk</button>
-      <div class="side-title" data-group="Filing">Filing</div>
-      <button class="side-link" onclick="startFilingFlow('export')">🚢 New Export Filing</button>
-      <button class="side-link" onclick="startFilingFlow('import')">📦 New Import Filing</button>
-      <button class="side-link" data-s="filingList" onclick="navToFilingList('all')">📁 All Filings</button>
-      <button class="side-link" data-s="filingListDraft" onclick="navToFilingList('DRAFT')">📝 Drafts</button>
-      <div class="side-title" data-group="Freight Forwarding">Freight Forwarding</div>
-      <button class="side-link" onclick="startFreightBookingFlow()">🚚 New Freight Booking</button>
-      <button class="side-link" data-s="freightList" onclick="navToFreightList()">🧾 Freight Bookings</button>
-      <button class="side-link" data-s="manifest" onclick="navTo('manifest')">📜 IGM / EGM Register</button>
-      <button class="side-link" data-s="containertrack" onclick="navTo('containertrack')">📍 Container Track &amp; Trace</button>
-      <button class="side-link" data-s="ratecompare" onclick="navTo('ratecompare')">📊 Carrier Rate Comparison</button>
-      <div class="side-title" data-group="Processing">Processing</div>
-      <button class="side-link" data-s="queries" onclick="navToFilingList('QUERY')">❓ Queries</button>
-      <button class="side-link" data-s="payments" onclick="navToFilingList('PAYMENT')">💳 Payments</button>
-      <button class="side-link" data-s="amendments" onclick="navTo('amendments')">✏️ Amendments</button>
-      <button class="side-link" data-s="enquiry" onclick="navTo('enquiry')">🔍 Track / Enquiry</button>
-      <button class="side-link" data-s="incentives" onclick="navTo('incentives')">💹 Export Incentives &amp; BRC</button>
-      <button class="side-link" data-s="bonds" onclick="navTo('bonds')">📑 Bonds &amp; Bank Guarantees</button>
-      <div class="side-title" data-group="Records">Records</div>
-      <button class="side-link" data-s="doccentre" onclick="navTo('doccentre')">🗂 Document Centre</button>
-      <button class="side-link" data-s="notifications" onclick="navTo('notifications')">🔔 Notifications</button>
-      <button class="side-link" data-s="assessment" onclick="navTo('assessment')">🎓 Training Assessment</button>
-      <div class="side-title" data-group="Training">Training</div>
-      <button class="side-link" data-s="scenlibrary" onclick="navTo('scenlibrary')">🎯 Scenario Library</button>
-      <button class="side-link" data-s="jobsim" onclick="navTo('jobsim')">💼 Job Simulator</button>
-      <button class="side-link" data-s="knowledge" onclick="navTo('knowledge')">📘 Knowledge Panel</button>
-      <button class="side-link" data-s="errorlab" onclick="navTo('errorlab')">🛠 Error Resolution Lab</button>
-      <button class="side-link" data-s="compliance" onclick="navTo('compliance')">🔎 Compliance Lab</button>
-      <button class="side-link" data-s="certificate" onclick="navTo('certificate')">🏅 Certificate</button>
-      <button class="side-link" data-s="trainer" onclick="navTo('trainer')">🧑‍🏫 Trainer Console</button>
-      <div class="side-title" data-group="Account">Account</div>
-      <button class="side-link" data-s="settings" onclick="navTo('settings')">⚙ Settings</button>
+      <div class="side-title" data-group="Main">ICEGATE Home</div>
+      <button class="side-link" data-s="dashboard" onclick="navTo('dashboard')">Dashboard</button>
+      <div class="side-title" data-group="Export Documentation Desk">Export Documentation</div>
+      <button class="side-link" data-s="exportDesk" onclick="navTo('exportDesk')">Consignia Desk (Doc Planner)</button>
+      <div class="side-title" data-group="Filing">e-Filing</div>
+      <button class="side-link" onclick="startFilingFlow('export')">Shipping Bill – New</button>
+      <button class="side-link" onclick="startFilingFlow('import')">Bill of Entry – New</button>
+      <button class="side-link" data-s="filingList" onclick="navToFilingList('all')">All Filings / Search</button>
+      <button class="side-link" data-s="filingListDraft" onclick="navToFilingList('DRAFT')">Saved Drafts</button>
+      <div class="side-title" data-group="Freight Forwarding">Manifest &amp; Logistics</div>
+      <button class="side-link" onclick="startFreightBookingFlow()">Freight Booking – New</button>
+      <button class="side-link" data-s="freightList" onclick="navToFreightList()">Freight Bookings</button>
+      <button class="side-link" data-s="manifest" onclick="navTo('manifest')">IGM / EGM Register</button>
+      <button class="side-link" data-s="containertrack" onclick="navTo('containertrack')">Container Track &amp; Trace</button>
+      <button class="side-link" data-s="ratecompare" onclick="navTo('ratecompare')">Carrier Rate Comparison</button>
+      <div class="side-title" data-group="Processing">Services</div>
+      <button class="side-link" data-s="queries" onclick="navToFilingList('QUERY')">Queries &amp; Replies</button>
+      <button class="side-link" data-s="payments" onclick="navToFilingList('PAYMENT')">e-Payment (Customs Duty)</button>
+      <button class="side-link" data-s="amendments" onclick="navTo('amendments')">Amendments</button>
+      <button class="side-link" data-s="enquiry" onclick="navTo('enquiry')">Enquiry – Document Status</button>
+      <button class="side-link" data-s="incentives" onclick="navTo('incentives')">Drawback / RoDTEP / BRC</button>
+      <button class="side-link" data-s="bonds" onclick="navTo('bonds')">Financial Services – Bonds &amp; BG</button>
+      <div class="side-title" data-group="Records">e-Sanchit &amp; Records</div>
+      <button class="side-link" data-s="doccentre" onclick="navTo('doccentre')">e-Sanchit – Document Upload</button>
+      <button class="side-link" data-s="notifications" onclick="navTo('notifications')">Messages / Notifications</button>
+      <button class="side-link" data-s="assessment" onclick="navTo('assessment')">Training Assessment</button>
+      <div class="side-title" data-group="Training">Training Tools</div>
+      <button class="side-link" data-s="scenlibrary" onclick="navTo('scenlibrary')">Scenario Library</button>
+      <button class="side-link" data-s="jobsim" onclick="navTo('jobsim')">Job Simulator</button>
+      <button class="side-link" data-s="knowledge" onclick="navTo('knowledge')">Knowledge Panel</button>
+      <button class="side-link" data-s="errorlab" onclick="navTo('errorlab')">Error Resolution Lab</button>
+      <button class="side-link" data-s="compliance" onclick="navTo('compliance')">Compliance Lab</button>
+      <button class="side-link" data-s="certificate" onclick="navTo('certificate')">Certificate</button>
+      <button class="side-link" data-s="trainer" onclick="navTo('trainer')">Trainer Console</button>
+      <div class="side-title" data-group="Account">My Account</div>
+      <button class="side-link" data-s="settings" onclick="navTo('settings')">Profile &amp; Registration</button>
     </div>
     <div class="app-main">
       <div class="app-screen" id="screen-dashboard"></div>
@@ -312,6 +313,12 @@
 <script src="js/validation.js"></script>
 <script src="js/manifest.js"></script>
 <script src="js/pga.js"></script>
+<script src="../logistics-simulator/customs-forms.js"></script>
+<script src="../logistics-simulator/customs-forms-boe.js"></script>
+<script src="js/icegate-print.js"></script>
+<script src="js/icegate-config.js"></script>
+<script src="js/scrutiny.js"></script>
+<script src="js/icegate-steps.js"></script>
 <script src="js/filingForm.js"></script>
 <script src="js/workflow.js"></script>
 <script src="js/freight-wizard.js"></script>

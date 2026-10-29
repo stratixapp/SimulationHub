@@ -512,3 +512,32 @@ linear-gradient(180deg,#397fa8,#18567f 72%,#103f62);animation:seabase 9s linear 
   .xd-print-sheet{ border:none; max-width:100%; padding:0; }
   body{ background:#fff; }
 }
+
+/* ===== ICEGATE-style filing screen ===== */
+.ig-banner{background:linear-gradient(90deg,#0b2e59,#1b4f8f);color:#fff;padding:9px 16px;border-radius:4px 4px 0 0;display:flex;align-items:center;gap:12px;border-bottom:4px solid #f07c00;font-size:13px}
+.ig-banner b{font-size:17px;letter-spacing:1px}.ig-banner i{margin-left:auto;font-style:normal;background:#f07c00;color:#fff;padding:3px 10px;border-radius:2px;font-weight:700}
+.ig-layout{display:grid;grid-template-columns:240px minmax(0,1fr);gap:14px;align-items:start;margin-bottom:16px}
+.ig-steps.stepper{display:block;padding:0;margin:0;border-top:0;border-radius:0 0 4px 4px;max-height:78vh;overflow:auto}
+.ig-steps .step{display:flex;align-items:center;gap:8px;text-align:left;min-width:0;padding:8px 10px;border-bottom:1px solid #e6ecf3;font-size:12px}
+.ig-steps .step i{width:22px;height:22px;line-height:18px;margin:0;flex:none;font-size:11px}
+.ig-steps .step.on{background:#e8f1fc;border-left:4px solid #f07c00}
+.ig-guide{border:1px solid #cdd9e8;border-left:4px solid #1b4f8f;background:#f6f9fd;border-radius:3px;margin:10px 0 14px;font-size:12.5px}
+.ig-guide-h{display:flex;justify-content:space-between;background:#dfe9f6;color:#0b2e59;font-weight:700;padding:5px 10px}
+.ig-guide-b{display:grid;grid-template-columns:repeat(2,1fr);gap:8px 16px;padding:8px 10px}
+.ig-guide-b b{display:block;color:#7a4a00;font-size:11px;text-transform:uppercase;letter-spacing:.4px}
+.wz-card .field label{color:#17385f;font-weight:700}
+.wz-card .field input,.wz-card .field select,.wz-card .field textarea{border:1px solid #9fb3cc;background:#fbfdff}
+.srcdoc{background:#fff;border:1px solid #b8c4d4;margin:10px 0;padding:10px 14px;font-size:12px}
+.srcdoc-h{font-weight:700;text-align:center;letter-spacing:1px;border-bottom:2px solid #333;padding-bottom:4px;margin-bottom:8px}
+.srcgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:8px}
+.srct{width:100%;border-collapse:collapse;margin:6px 0}.srct th,.srct td{border:1px solid #999;padding:3px 5px;text-align:left}.srct .r,.srcdoc .r{text-align:right}.srct td.r{text-align:right}
+@media(max-width:900px){.ig-layout{grid-template-columns:1fr}.ig-guide-b{grid-template-columns:1fr}.ig-steps.stepper{max-height:none;display:flex;overflow:auto}}
+
+/* ICEGATE-style navigation (v17): navy menu panel, section bars, plain text links */
+.app-sidebar{width:236px;background:#0f2f57;border-right:0;padding:0 0 14px}
+.side-title{font-size:12px;text-transform:none;letter-spacing:.2px;color:#fff;font-weight:700;padding:10px 16px;margin-top:1px;background:#1a4478;border-top:1px solid #2a5a94}
+.side-link{padding:8px 16px 8px 26px;font-size:13px;color:#d5e3f5;border-left:3px solid transparent;border-bottom:1px solid rgba(255,255,255,.06)}
+.side-link:hover{background:#17406f;color:#fff}
+.side-link.active{background:#fff;color:#0f2f57;border-left-color:#f07c00;font-weight:700}
+.side-link:focus-visible{outline:2px solid #f7b267;outline-offset:-2px}
+@media(max-width:760px){.app-sidebar{background:#0f2f57}.side-link{color:#d5e3f5;border-bottom:3px solid transparent}.side-link.active{border-bottom-color:#f07c00}}

@@ -1,4 +1,4 @@
-const CACHE_NAME = "gst-simulator-pwa-v10-github";
+const CACHE_NAME = "gst-simulator-pwa-v11-github";
 const APP_SHELL = [
   "./",
   "./index.html",

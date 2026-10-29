@@ -7,7 +7,7 @@
    ========================================================================= */
 .sb-page.ic-page{
   padding:26px 30px 18px;height:1123px;min-height:1123px;display:flex;flex-direction:column;
-  font-family:Arial,Helvetica,sans-serif;color:#000;font-size:9px;line-height:1.2;overflow:hidden;
+  font-family:Arial,Helvetica,sans-serif;color:#000;font-size:9px;line-height:1.2;overflow:hidden;position:relative;
 }
 .ic-page .sb-credit{position:absolute;left:0;right:0;top:7px;text-align:center;font-size:8px;color:#666;z-index:3;}
 .ic-page .sb-wm{z-index:4;color:rgba(110,110,125,.16);}
@@ -68,20 +68,29 @@
 .ic-foot .scan{color:#d40000;font-weight:700;font-size:8.6px;line-height:11px;}
 .ic-foot .pg{font-size:9px;margin-top:2px;}
 
-/* ---------- theme colours ---------- */
-.ic-sb .ic-hdr-l{background:#ccffcc;}
-.ic-sb .ic-title,.ic-sb .ic-sl,.ic-sb .ic-t td.sl{background:#ccffcc;}
-.ic-sb .ic-hdr-brand .t1,.ic-sb .ic-hdr-brand .t2{color:#00008b;}
+/* ---------- theme colours (sampled from the real ICEGATE printouts) ----------
+   Shipping Bill : header block #bfffbf, title band + side labels #dfffbf, grey cells #d6d6d6, brand text #000080
+   Bill of Entry : orange banner #ffbf00, light blue #bfdfff (port line, header labels, side labels, bars), title band #80bfff */
+.ic-t th,.ic-t td.hd{background:#d6d6d6;}
+.ic-glossary .g{background:#d6d6d6;}
+.ic-sb .ic-hdr-l{background:#bfffbf;}
+.ic-sb .ic-hdr-brand .t1,.ic-sb .ic-hdr-brand .t2{color:#000080;}
+.ic-sb .ic-hdr-tbl td.k{background:#d6d6d6;}
+.ic-sb .ic-title{background:#dfffbf;padding:22px 0 22px;font-size:12px;}
+.ic-sb .ic-sl,.ic-sb .ic-t td.sl{background:#dfffbf;}
+.ic-sb .ic-bar{background:#bfffbf;}
+.ic-sb .ic-glossary .gt{background:#dfffbf;}
 .ic-boe .ic-hdr-l{background:#fff;}
+.ic-boe .ic-hdr{height:118px;}
 .ic-boe .ic-hdr-brand{background:#fff;flex:none;height:46px;justify-content:center;padding:3px 10px 0;}
 .ic-boe .ic-hdr-brand .t1{font-family:"Courier New",monospace;font-size:17px;letter-spacing:2px;}
-.ic-boe .ic-hdr-banner{background:#ffc000;border-top:1px solid #000;border-bottom:1px solid #000;text-align:center;font-family:"Courier New",monospace;font-weight:700;font-size:15px;letter-spacing:3px;padding:1px 0;}
-.ic-boe .ic-hdr-port{text-align:center;font-weight:700;font-size:9.4px;border-top:none;height:auto;line-height:11px;padding:1px 4px 0;white-space:normal;}
-.ic-boe .ic-title,.ic-boe .ic-sl,.ic-boe .ic-t td.sl{background:#99ccff;}
-.ic-boe .ic-hdr{height:118px;}
-.ic-boe .ic-bar{background:#99ccff;}
-.ic-boe .ic-t th,.ic-boe .ic-t td.hd{background:#d9d9d9;}
-.ic-boe .ic-glossary .g{background:#d9d9d9;}
+.ic-boe .ic-hdr-banner{background:#ffbf00;border-top:1px solid #000;border-bottom:1px solid #000;text-align:center;font-family:"Courier New",monospace;font-weight:700;font-size:15px;letter-spacing:3px;padding:1px 0;color:#000080;}
+.ic-boe .ic-hdr-port{background:#bfdfff;text-align:center;font-weight:700;font-size:9.4px;border-top:none;height:auto;line-height:11px;padding:1px 4px 0;white-space:normal;}
+.ic-boe .ic-hdr-tbl td.k{background:#bfdfff;}
+.ic-boe .ic-title{background:#80bfff;padding:16px 0 16px;font-size:12px;}
+.ic-boe .ic-sl,.ic-boe .ic-t td.sl{background:#bfdfff;}
+.ic-boe .ic-bar{background:#bfdfff;}
+.ic-boe .ic-glossary .g{background:#bfdfff;}
 
 .ic-sig{position:absolute;right:26px;bottom:6px;width:220px;font-size:8.4px;line-height:10.5px;color:#222;z-index:2;}
 .ic-sig .big{font-size:15px;line-height:17px;}
@@ -114,3 +123,6 @@
 .bl-terms{display:flex;gap:12px;padding:6px 9px;}
 .bl-terms > div{flex:1;min-width:0;}
 .bl-term{font-size:8.5px;line-height:10.6px;text-align:justify;margin-bottom:6px;}
+
+/* Prepared-by line printed in the bottom margin of every ICEGATE-format page (no layout impact: absolutely positioned) */
+.ic-pb{position:absolute;left:30px;right:30px;bottom:3px;z-index:3;text-align:center;font-size:8px;line-height:10px;color:#333;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}

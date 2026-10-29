@@ -12,7 +12,7 @@
    get the new version instead of a stale cached copy.
    ========================================================================= */
 
-const CACHE_VERSION = "dot-ecosystem-hub-v8";
+const CACHE_VERSION = "dot-ecosystem-hub-v10";
 const APP_SHELL = [
   "./",
   "./index.html",

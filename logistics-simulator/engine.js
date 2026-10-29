@@ -258,12 +258,17 @@ function renderReferenceEntry(f){
   if(f.showIf && !f.showIf(formData)) return "";
   if(f.type==="static" || f.type==="computed") return "";
   if(f.type==="table"){
-    return `<div class="ref-entry"><div class="ref-label">${f.label}</div><div class="ref-value ref-value-muted">${f.help || "See the required columns below for the exact format expected in each row."}</div></div>`;
+    // a worked example row: every column's label with its example value
+    const cols = (f.columns||[]).filter(c=>c && c.label);
+    const example = cols.length ? `<div class="ref-cols">${cols.map(c=>`<div><span class="ref-col-k">${c.label}</span> <span class="ref-col-v">${c.placeholder ? c.placeholder : "—"}</span></div>`).join("")}</div>` : "";
+    return `<div class="ref-entry"><div class="ref-label">${f.label}${f.required ? ' <span class="req">*</span>' : ''}</div><div class="ref-value ref-value-muted">${f.help || "Add one row per line; the columns and a worked example row are listed below."}</div>${example ? `<div class="ref-help" style="margin-top:6px"><b>Example row</b></div>${example}` : ""}</div>`;
   }
   if(f.type==="checkbox"){
     return `<div class="ref-entry"><div class="ref-label">${f.label}</div><div class="ref-value ref-value-muted">${f.help || "Confirm this once it is true for this shipment."}</div></div>`;
   }
-  const example = f.placeholder ? f.placeholder : null;
+  // `example` is a reference-only sample for fields that have no placeholder (dates, numbers, selects)
+  let example = f.example ? f.example : (f.placeholder ? f.placeholder : null);
+  if(!example && f.type==="select" && Array.isArray(f.options) && f.options.length) example = "Choose one: " + f.options.join(" · ");
   return `<div class="ref-entry">
     <div class="ref-label">${f.label}${f.required ? ' <span class="req">*</span>' : ''}</div>
     ${example ? `<div class="ref-value">${example}</div>` : `<div class="ref-value ref-value-muted">No fixed example — enter your own value.</div>`}
@@ -682,7 +687,7 @@ function wrapAsLetterhead(innerHtml){
                in the one shared letterhead wrapper every document
                renders through, instead of in each of the ~75 individual
                document field lists — same effect, one place to maintain. -->
-          <div class="cap">Document Prepared By — ${String((typeof CURRENT_USER !== "undefined" && CURRENT_USER && CURRENT_USER.name) || "—").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;")}</div>
+          <div class="cap">Document Prepared By — ${String((typeof CURRENT_USER !== "undefined" && CURRENT_USER && CURRENT_USER.name) || "—").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;")}${(typeof skGetWorkRole === "function" && skGetWorkRole() && typeof CURRENT_USER !== "undefined" && CURRENT_USER) ? " · " + skEscHtml(skGetWorkRole()) : ""}</div>
         </div>
       </div>
     </div>
@@ -956,6 +961,7 @@ function skApplyAutoGenerate(cfg, data, userId){
   (cfg.steps||[]).forEach(step=>{
     (step.fields||[]).forEach(f=>{
       if(f.autoGenerate && (data[f.name]===undefined || data[f.name]===null || data[f.name]==="")){
+        if(typeof f.autoGenerateWith === "function"){ data[f.name] = f.autoGenerateWith(userId, data, cfg); return; }   // field-specific generator (e.g. Bill of Lading Number)
         if(typeof skGenerateFormattedRefNumber === "function"){
           data[f.name] = skGenerateFormattedRefNumber(userId, cfg.title+":"+f.name, f.pattern||null, (typeof CURRENT_SLUG !== "undefined" && CURRENT_SLUG) || cfg.title);
         } else if(typeof skGenerateRefNumber === "function"){
@@ -1366,6 +1372,12 @@ function showTcosBridgeChoice(slug, filingType, onContinueHere, consignaDocType)
   const workflowLabel = filingType === "export" ? "the Shipping Bill" : filingType === "import" ? "the Bill of Entry" : filingType === "brc" ? "the Bank Realisation Certificate" : filingType === "consignia" ? ("the " + docLabel) : "this stage of the freight booking";
   const workflowVerb = filingType === "freight" ? "Take this booking through" : filingType === "brc" ? "Upload" : filingType === "consignia" ? "Prepare" : "File";
   const closesWhen = filingType === "export" ? "genuinely filed and cleared" : filingType === "import" ? "genuinely assessed and cleared" : filingType === "brc" ? "genuinely uploaded and proceeds marked realized" : filingType === "consignia" ? "genuinely marked Ready in Consignia Desk" : "genuinely reached in TCOS";
+  /* Shipping Bill: Export Job (products / HSN / containers / consignment) first, then the real ICEGATE filing */
+  const sbSpecial = slug === "shipping-bill";
+  const portalLabel2 = sbSpecial ? "Export Desk &amp; Customs Portal" : portalLabel;
+  const workflowLabel2 = sbSpecial ? "the Shipping Bill - from creating the export job (every HSN, container and seal) to the real ICEGATE filing" : workflowLabel;
+  const workflowVerb2 = sbSpecial ? "Prepare and file" : workflowVerb;
+  const closesWhen2 = sbSpecial ? "filed, cleared and the PDF is downloaded - you are brought back automatically" : closesWhen;
   const bg = document.createElement("div");
   bg.id = "tcosBridgeOverlay";
   bg.style.cssText = "position:fixed;inset:0;background:rgba(11,20,35,.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;";
@@ -1381,8 +1393,8 @@ function showTcosBridgeChoice(slug, filingType, onContinueHere, consignaDocType)
           <div style="font-size:12px;color:var(--text-2,#5B6472);">Fill in the same ${docLabel} exercise you'd get for any other document — one page at a time, in the Logistics Document Simulator.</div>
         </button>
         <button id="bridgeOptTcos" type="button" style="text-align:left;border:1px solid var(--accent,#1F6FEB);background:var(--accent-soft,#EAF1FF);border-radius:10px;padding:14px 16px;cursor:pointer;">
-          <div style="font-weight:700;font-size:13.5px;margin-bottom:3px;">Do it for real, in TCOS's ${portalLabel}</div>
-          <div style="font-size:12px;color:var(--text-2,#5B6472);">${workflowVerb} ${workflowLabel} through TCOS's actual workflow — signed in as you, automatically. Come back here the moment it's ${closesWhen}, and this document is marked complete.</div>
+          <div style="font-weight:700;font-size:13.5px;margin-bottom:3px;">Do it for real, in TCOS's ${portalLabel2}</div>
+          <div style="font-size:12px;color:var(--text-2,#5B6472);">${workflowVerb2} ${workflowLabel2} through TCOS's actual workflow — signed in as you, automatically. Come back here the moment it's ${closesWhen2}, and this document is marked complete.</div>
         </button>
         <div id="bridgePwPanel" style="display:none;border:1px solid var(--border,#E3E8EF);border-radius:10px;padding:14px 16px;background:var(--surface-alt,#FAFBFC);">
           <label style="display:block;font-size:12px;font-weight:600;margin-bottom:6px;">Confirm your password to continue into TCOS as ${esc_sk(CURRENT_USER.name)}</label>
@@ -1464,6 +1476,7 @@ function showTcosBridgeChoice(slug, filingType, onContinueHere, consignaDocType)
       userId: CURRENT_USER.email,
       password: pw,
       name: CURRENT_USER.name,
+      workRole: (typeof skGetWorkRole === "function" ? skGetWorkRole() : ""),
       returnSlug: slug,
       jobData: (filingType === "export" || filingType === "import" || filingType === "consignia" || filingType === "freight") ? skBuildBridgeJobData() : null,
       consignaDocType: filingType === "consignia" ? consignaDocType : null
@@ -1555,7 +1568,7 @@ function boot(){
   // moment it's genuinely finished there.
   // ---------------------------------------------------------------------
   const TCOS_BRIDGE_SLUGS = {
-    "shipping-bill": "export",
+    "shipping-bill": { ft: "consignia", doc: "SHIPPING_BILL" },
     "bill-of-entry": "import",
     "booking-confirmation": "freight",
     "vgm-certificate": "freight",

@@ -17078,19 +17078,20 @@ const DOCUMENT_CONFIGS = {
         {name:"filingModeEGM", label:"Filing Mode", type:"select", required:true, options:["Electronic — ICEGATE EDI","Manual (Non-EDI Port)"]}
       ]},
     { title:"Shipping Bill-wise Cargo Listing", est:8, sub:"Every Shipping Bill actually loaded aboard this conveyance — this is the core of the EGM.",
-      intro:"Filing has to be shipping-bill-wise, not container-wise or exporter-wise — this table is literally what Customs matches, line by line, against every Shipping Bill still open in the system.",
+      intro:"Filing has to be shipping-bill-wise, not container-wise or exporter-wise — this table is literally what Customs matches, line by line, against every Shipping Bill still open in the system. In this simulator the EGM can be practised before the Shipping Bill is issued, so the first column accepts the Shipping Bill No. — or, until it exists, the exporter's IEC No.",
       fields:[
         {name:"cargoListingEGM", label:"Cargo Listing (Shipping Bill-wise)", type:"table", required:true, full:true,
           requiredCols:["shippingBillNumberEGM","exporterNameEGM","consigneeNameEGM","grossWeightEGM"],
           columns:[
-            {key:"shippingBillNumberEGM", label:"Shipping Bill No."},
+            {key:"shippingBillNumberEGM", label:"Shipping Bill No. / IEC No.", placeholder:"SB No. - or IEC No. if the Shipping Bill is not issued yet"},
             {key:"shippingBillDateEGM", label:"SB Date"},
             {key:"exporterNameEGM", label:"Exporter"},
             {key:"consigneeNameEGM", label:"Consignee"},
             {key:"packagesDescEGM", label:"Packages & Description"},
             {key:"grossWeightEGM", label:"Gross Weight (kg)", numeric:true}
           ],
-          addLabel:"+ Add Shipping Bill Row"}
+          addLabel:"+ Add Shipping Bill Row",
+          autofillRows:[ {from:"context", map:{shippingBillNumberEGM:"txn.shippingBillOrIEC", exporterNameEGM:"txn.sellerName", consigneeNameEGM:"txn.buyerName", grossWeightEGM:"txn.grossWeight"}} ]}
       ]},
     { title:"Cargo Summary", est:4, sub:"The totals Customs cross-checks against the manifest as a whole.",
       intro:"These totals are a sanity check as much as a summary — a mismatch between the summary and the line-by-line listing above is one of the fastest ways to get an EGM flagged for query.",
@@ -17122,7 +17123,7 @@ const DOCUMENT_CONFIGS = {
             <div class="doc-box"><h4>Date of Departure</h4><div class="dv">${d.departureDateEGM||"—"} · ${d.filingModeEGM||"—"}</div></div>
           </div>
           <h4 style="margin:20px 30px 8px;font-size:12.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--dl-label);">Shipping Bill-wise Cargo Listing</h4>
-          <table class="doc-table"><thead><tr><th>#</th><th>Shipping Bill No.</th><th>SB Date</th><th>Exporter</th><th>Consignee</th><th>Gross Wt (kg)</th></tr></thead><tbody>${rows}</tbody></table>
+          <table class="doc-table"><thead><tr><th>#</th><th>Shipping Bill No. / IEC No.</th><th>SB Date</th><th>Exporter</th><th>Consignee</th><th>Gross Wt (kg)</th></tr></thead><tbody>${rows}</tbody></table>
           <div class="doc-grid3" style="margin-top:16px;">
             <div class="doc-box"><h4>Total Containers</h4><div class="dv">${d.totalContainersEGM||"—"}</div></div>
             <div class="doc-box"><h4>Total Packages</h4><div class="dv">${d.totalPackagesEGM||"—"}</div></div>

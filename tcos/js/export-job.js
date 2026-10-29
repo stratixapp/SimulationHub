@@ -9,25 +9,38 @@
 
 var XD_BRIEF_DRAFT = null; // in-progress Export Brief form state, before a job exists
 
-function startNewExportJob() {
-  if (typeof XD_BRIDGE_SOURCE !== 'undefined') XD_BRIDGE_SOURCE = null; // a manual job must never inherit a stale bridge snapshot
-  XD_BRIEF_DRAFT = {
+function xdBlankItem() { return { description: '', hsCode: '', qty: '', unit: 'PCS', unitPrice: '', origin: 'India', packages: '', grossWeight: '', netWeight: '' }; }
+function xdBlankContainer() { return { containerNo: '', containerType: CONTAINER_TYPES[0], sealNo: '', grossWeight: '' }; }
+function xdBlankConsignment() { return { consigneeAddress: '', portOfLoading: '', portOfDischarge: '', vesselFlight: '', voyageFlight: '', packageType: '', totalPackages: '', grossWeight: '', netWeight: '', marksNumbers: '', instructions: '' }; }
+function xdBlankBrief() {
+  return {
     buyerName: '', commodity: '', commodityCategory: '', hsCode: '', quantity: '', unit: '',
     currency: '', incoterm: '', paymentMethod: '', mode: '', destinationCountry: '',
     ftaClaim: false, dangerousGoods: false, scomet: false, packagingMaterial: '',
-    linkedFilingId: '', linkedBookingId: '', notes: ''
+    linkedFilingId: '', linkedBookingId: '', notes: '',
+    items: [xdBlankItem()], containers: [xdBlankContainer()], consignment: xdBlankConsignment()
   };
+}
+/* briefs created by older code (or the scenario starter) get the multi-product shape */
+function xdEnsureBriefShape(b) {
+  if (!Array.isArray(b.items) || !b.items.length) {
+    b.items = [Object.assign(xdBlankItem(), { description: b.commodity || '', hsCode: b.hsCode || '', qty: b.quantity || '', unit: b.unit || 'PCS' })];
+  }
+  if (!Array.isArray(b.containers) || !b.containers.length) b.containers = [xdBlankContainer()];
+  b.consignment = Object.assign(xdBlankConsignment(), b.consignment || {});
+  return b;
+}
+
+function startNewExportJob() {
+  if (typeof XD_BRIDGE_SOURCE !== 'undefined') XD_BRIDGE_SOURCE = null; // a manual job must never inherit a stale bridge snapshot
+  XD_BRIEF_DRAFT = xdBlankBrief();
   navTo('exportJobBrief');
 }
 
 function exportBriefFieldDefs() {
   return [
-    { key: 'buyerName', label: 'Buyer Name', required: true },
-    { key: 'commodity', label: 'Commodity / Product', required: true },
+    { key: 'buyerName', label: 'Buyer / Consignee Name', required: true },
     { key: 'commodityCategory', label: 'Commodity Category', required: true, type: 'select', options: COMMODITY_CATEGORIES },
-    { key: 'hsCode', label: 'HS Code (8-digit)', required: true, placeholder: 'e.g. 61091000' },
-    { key: 'quantity', label: 'Quantity', required: true, type: 'number', number: true },
-    { key: 'unit', label: 'Unit', required: true, type: 'select', options: UNITS },
     { key: 'currency', label: 'Currency', required: true, type: 'select', options: CURRENCIES },
     { key: 'incoterm', label: 'Incoterm', required: true, type: 'select', options: INCOTERMS },
     { key: 'paymentMethod', label: 'Payment Method', required: true, type: 'select', options: PAYMENT_METHODS },
@@ -37,19 +50,94 @@ function exportBriefFieldDefs() {
     { key: 'notes', label: 'Brief / Notes', full: true, type: 'textarea' }
   ];
 }
+const XD_CONSIGNMENT_FIELDS = [
+  { key: 'consigneeAddress', label: 'Consignee Address', full: true },
+  { key: 'portOfLoading', label: 'Port of Loading', type: 'select', options: INDIAN_PORTS },
+  { key: 'portOfDischarge', label: 'Port of Discharge', type: 'select', options: FOREIGN_PORTS },
+  { key: 'vesselFlight', label: 'Vessel / Flight Name' },
+  { key: 'voyageFlight', label: 'Voyage / Flight No.' },
+  { key: 'packageType', label: 'Package Type', type: 'select', options: PACKAGE_TYPES },
+  { key: 'totalPackages', label: 'Total Number of Packages', type: 'number', number: true },
+  { key: 'grossWeight', label: 'Total Gross Weight (KG)', type: 'number', number: true },
+  { key: 'netWeight', label: 'Total Net Weight (KG)', type: 'number', number: true },
+  { key: 'marksNumbers', label: 'Marks & Numbers', full: true },
+  { key: 'instructions', label: 'Shipping Instructions / Special Handling', full: true, type: 'textarea' }
+];
+
+function xdItemsTableHTML(b) {
+  const hsList = '<datalist id="xdHsList">' + Object.keys(HS_CODE_TABLE).map(c => `<option value="${c}">${esc(HS_CODE_TABLE[c].desc)}</option>`).join('') + '</datalist>';
+  const rows = b.items.map((it, i) => `<tr data-i="${i}">
+    <td>${i + 1}</td>
+    <td><input class="cell" data-xi="description" value="${esc(it.description)}" placeholder="Product description" style="min-width:170px"></td>
+    <td><input class="cell" data-xi="hsCode" list="xdHsList" value="${esc(it.hsCode)}" placeholder="8-digit HSN" maxlength="8" style="width:100px"></td>
+    <td><input class="cell" data-xi="qty" type="number" step="any" value="${esc(it.qty)}" style="width:70px"></td>
+    <td><select class="cell" data-xi="unit">${UNITS.map(u => `<option ${it.unit === u ? 'selected' : ''}>${u}</option>`).join('')}</select></td>
+    <td><input class="cell" data-xi="unitPrice" type="number" step="any" value="${esc(it.unitPrice)}" style="width:80px"></td>
+    <td><input class="cell" data-xi="origin" value="${esc(it.origin)}" style="width:80px"></td>
+    <td><input class="cell" data-xi="packages" type="number" value="${esc(it.packages)}" style="width:60px"></td>
+    <td><input class="cell" data-xi="grossWeight" type="number" step="any" value="${esc(it.grossWeight)}" style="width:75px"></td>
+    <td><input class="cell" data-xi="netWeight" type="number" step="any" value="${esc(it.netWeight)}" style="width:75px"></td>
+    <td>${b.items.length > 1 ? `<button class="row-del" type="button" onclick="xdDelItem(${i})" title="Remove product">✕</button>` : ''}</td></tr>`).join('');
+  return `${hsList}<div class="table-wrap"><table class="data-table items-table"><thead><tr><th>#</th><th>Product / Description</th><th>HSN Code</th><th>Qty</th><th>Unit</th><th>Unit Price</th><th>Origin</th><th>Pkgs</th><th>Gross Wt</th><th>Net Wt</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
+    <button class="btn-ghost" type="button" onclick="xdAddItem()">+ Add HSN / Product</button>
+    <div class="ferr" id="err_xdItems"></div>`;
+}
+function xdContainersTableHTML(b) {
+  const rows = b.containers.map((c, i) => `<tr data-i="${i}">
+    <td>${i + 1}</td>
+    <td><input class="cell" data-xc="containerNo" value="${esc(c.containerNo)}" placeholder="MSCU1234567" style="width:130px"></td>
+    <td><select class="cell" data-xc="containerType">${CONTAINER_TYPES.map(t => `<option ${c.containerType === t ? 'selected' : ''}>${esc(t)}</option>`).join('')}</select></td>
+    <td><input class="cell" data-xc="sealNo" value="${esc(c.sealNo)}" placeholder="Seal no." style="width:110px"></td>
+    <td><input class="cell" data-xc="grossWeight" type="number" step="any" value="${esc(c.grossWeight)}" style="width:90px"></td>
+    <td>${b.containers.length > 1 ? `<button class="row-del" type="button" onclick="xdDelContainer(${i})" title="Remove container">✕</button>` : ''}</td></tr>`).join('');
+  return `<div class="table-wrap"><table class="data-table"><thead><tr><th>#</th><th>Container No.</th><th>Type</th><th>Seal No.</th><th>Gross Wt (KG)</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
+    <button class="btn-ghost" type="button" onclick="xdAddContainer()">+ Add Container / Seal</button>
+    <div class="ferr" id="err_xdContainers"></div>`;
+}
+
+/* read every box of the Export Brief back into XD_BRIEF_DRAFT (used before any re-render and on submit) */
+function xdReadBriefDOM() {
+  const host = $('#screen-exportJobBrief'), b = XD_BRIEF_DRAFT;
+  if (!host || !b) return b;
+  exportBriefFieldDefs().forEach(f => { const n = $('#xdb__' + f.key, host); if (n) b[f.key] = n.value; });
+  XD_CONSIGNMENT_FIELDS.forEach(f => { const n = $('#xdc__' + f.key, host); if (n) b.consignment[f.key] = f.number ? (n.value === '' ? '' : Number(n.value)) : n.value; });
+  ['ftaClaim', 'dangerousGoods', 'scomet'].forEach(k => { const n = $('#xdb__' + k, host); if (n) b[k] = n.checked; });
+  const fl = $('#xdb__linkedFilingId', host), bl = $('#xdb__linkedBookingId', host);
+  if (fl) b.linkedFilingId = fl.value || ''; if (bl) b.linkedBookingId = bl.value || '';
+  $all('[data-xi]', host).forEach(n => { const i = Number(n.closest('tr').dataset.i); if (b.items[i]) b.items[i][n.dataset.xi] = n.value; });
+  $all('[data-xc]', host).forEach(n => { const i = Number(n.closest('tr').dataset.i); if (b.containers[i]) b.containers[i][n.dataset.xc] = n.value; });
+  return b;
+}
+function xdAddItem() { xdReadBriefDOM(); XD_BRIEF_DRAFT.items.push(xdBlankItem()); renderExportJobBrief(); }
+function xdDelItem(i) { xdReadBriefDOM(); XD_BRIEF_DRAFT.items.splice(i, 1); renderExportJobBrief(); }
+function xdAddContainer() { xdReadBriefDOM(); XD_BRIEF_DRAFT.containers.push(xdBlankContainer()); renderExportJobBrief(); }
+function xdDelContainer(i) { xdReadBriefDOM(); XD_BRIEF_DRAFT.containers.splice(i, 1); renderExportJobBrief(); }
 
 function renderExportJobBrief() {
   const host = $('#screen-exportJobBrief');
-  const b = XD_BRIEF_DRAFT;
+  const b = xdEnsureBriefShape(XD_BRIEF_DRAFT);
   const openExportFilings = STATE.filings.filter(f => f.type === 'export');
   const bookings = STATE.bookings;
+  const bridge = (typeof DotBridge !== 'undefined') ? DotBridge.getBridge() : null;
+  const src = (typeof XD_BRIDGE_SOURCE !== 'undefined' && XD_BRIDGE_SOURCE) ? XD_BRIDGE_SOURCE : null;
+  const srcCard = src ? `<div class="xd-card"><h3>From your Document Simulator job</h3>
+    <p class="hint">This is what the Logistics Document Simulator already knows about this shipment. The boxes below are pre-filled from it - check each one and add what the job did not have (more products, more containers, seals).</p>
+    <table class="kv-table">
+      <tr><td>Exporter</td><td>${esc(src.sellerName || '-')} ${src.sellerIEC ? '· IEC ' + esc(src.sellerIEC) : ''}</td></tr>
+      <tr><td>Consignee / Buyer</td><td>${esc(src.buyerName || '-')}</td></tr>
+      <tr><td>Route</td><td>${esc(src.portOfLoading || '-')} → ${esc(src.portOfDischarge || '-')} (${esc(src.mode || '-')})</td></tr>
+      <tr><td>Vessel / Voyage</td><td>${esc(src.vesselName || '-')} ${src.voyageNo ? '/ ' + esc(src.voyageNo) : ''}</td></tr>
+      <tr><td>Products</td><td>${(src.items || []).length} line(s)</td></tr>
+      <tr><td>Working as</td><td>${esc((bridge && bridge.workRole) || (STATE.user.profile && (STATE.user.profile.workRole || STATE.user.profile.role)) || '-')}</td></tr>
+    </table></div>` : '';
   host.innerHTML = `
   <div class="xd-root">
     <div class="page-head">
       <div><div class="crumb">Export Documentation Desk / <b>New Export Job</b></div>
       <h1>Export Brief</h1>
-      <p class="hint">Capture the shipment's commercial facts once. The Document Planner below will use this to work out what your export file actually needs — nothing is force-filled into any document.</p></div>
+      <p class="hint">Capture the shipment's commercial facts once. The Document Planner below will use this to work out what your export file actually needs - including the Shipping Bill, which is prepared from these boxes.</p></div>
     </div>
+    ${srcCard}
     <div class="xd-card">
       <h3>Shipment Facts</h3>
       <div class="grid">${exportBriefFieldDefs().map(f => fieldHTML({ id: 'xdb__' + f.key, label: f.label, required: f.required, full: f.full, type: f.type, options: f.options, placeholder: f.placeholder }, b[f.key])).join('')}</div>
@@ -60,8 +148,23 @@ function renderExportJobBrief() {
       </div>
     </div>
     <div class="xd-card">
+      <h3>Products &amp; HSN Codes</h3>
+      <p class="hint">One row per product line. Add as many HSN codes / products as the consignment has - each becomes its own item in the invoice, packing list and Shipping Bill.</p>
+      ${xdItemsTableHTML(b)}
+    </div>
+    <div class="xd-card">
+      <h3>Consignment Details</h3>
+      <p class="hint">Where the cargo goes and how it is packed - the Shipping Bill's cargo and shipment particulars come from here.</p>
+      <div class="grid">${XD_CONSIGNMENT_FIELDS.map(f => fieldHTML({ id: 'xdc__' + f.key, label: f.label, full: f.full, type: f.type, options: f.options }, b.consignment[f.key])).join('')}</div>
+    </div>
+    <div class="xd-card">
+      <h3>Containers &amp; Seals</h3>
+      <p class="hint">One row per container stuffed. Container number = 4 letters + 7 digits; every container carries its own seal number. Leave blank for air / LCL cargo.</p>
+      ${xdContainersTableHTML(b)}
+    </div>
+    <div class="xd-card">
       <h3>Link to Existing Filing / Booking <span class="hint">(optional)</span></h3>
-      <p class="hint">If a Shipping Bill or freight booking already exists for this shipment, link it here so Duty Drawback, RoDTEP, BRC and the freight lifecycle keep working exactly as before — Consignia Desk documents sit alongside them, not instead of them.</p>
+      <p class="hint">If a Shipping Bill or freight booking already exists for this shipment, link it here so Duty Drawback, RoDTEP, BRC and the freight lifecycle keep working exactly as before - Consignia Desk documents sit alongside them.</p>
       <div class="grid">
         <div class="field"><label>Shipping Bill (Export Filing)</label>
           <select id="xdb__linkedFilingId"><option value="">— None —</option>
@@ -84,17 +187,9 @@ function renderExportJobBrief() {
 function submitExportBrief() {
   const host = $('#screen-exportJobBrief');
   clearFieldErrors(host);
-  const b = XD_BRIEF_DRAFT;
-  exportBriefFieldDefs().forEach(f => {
-    const node = $('#xdb__' + f.key, host);
-    if (!node) return;
-    b[f.key] = f.number ? (node.value === '' ? '' : Number(node.value)) : node.value;
-  });
-  b.ftaClaim = $('#xdb__ftaClaim', host).checked;
-  b.dangerousGoods = $('#xdb__dangerousGoods', host).checked;
-  b.scomet = $('#xdb__scomet', host).checked;
-  b.linkedFilingId = $('#xdb__linkedFilingId', host).value || null;
-  b.linkedBookingId = $('#xdb__linkedBookingId', host).value || null;
+  const b = xdReadBriefDOM();
+  b.linkedFilingId = b.linkedFilingId || null;
+  b.linkedBookingId = b.linkedBookingId || null;
 
   const missing = exportBriefFieldDefs().filter(f => f.required && !b[f.key] && b[f.key] !== 0);
   if (missing.length) {
@@ -102,16 +197,36 @@ function submitExportBrief() {
     showFieldError(host, 'exportBrief', `Please complete: ${missing.map(f => f.label).join(', ')}`);
     return;
   }
-  if (b.hsCode && !/^[0-9]{8}$/.test(String(b.hsCode))) {
-    showFieldError(host, 'xdb__hsCode', 'HS Code must be 8 digits');
-    return;
+  /* products: every started row needs description, 8-digit HSN, qty, unit price */
+  const rows = b.items.filter(it => Object.keys(it).some(k => k !== 'unit' && k !== 'origin' && String(it[k]).trim() !== ''));
+  if (!rows.length) { showFieldError(host, 'xdItems', 'Add at least one product with its HSN code.'); return; }
+  for (let i = 0; i < rows.length; i++) {
+    const it = rows[i], tag = 'Product ' + (i + 1) + ': ';
+    if (!String(it.description).trim()) { showFieldError(host, 'xdItems', tag + 'description is required.'); return; }
+    if (!/^[0-9]{8}$/.test(String(it.hsCode).trim())) { showFieldError(host, 'xdItems', tag + 'HSN / HS code must be 8 digits.'); return; }
+    if (!(Number(it.qty) > 0)) { showFieldError(host, 'xdItems', tag + 'quantity must be greater than zero.'); return; }
+    if (!(Number(it.unitPrice) > 0)) { showFieldError(host, 'xdItems', tag + 'unit price must be greater than zero.'); return; }
+    if (it.grossWeight !== '' && it.netWeight !== '' && Number(it.grossWeight) < Number(it.netWeight)) { showFieldError(host, 'xdItems', tag + 'gross weight cannot be less than net weight.'); return; }
   }
+  b.items = rows;
+  /* containers: if a number is typed it must be well-formed and carry a seal */
+  const conts = b.containers.filter(c => String(c.containerNo).trim() || String(c.sealNo).trim());
+  for (let i = 0; i < conts.length; i++) {
+    const c = conts[i];
+    if (!/^[A-Za-z]{4}[0-9]{7}$/.test(String(c.containerNo).replace(/\s/g, ''))) { showFieldError(host, 'xdContainers', `Container ${i + 1}: number must be 4 letters + 7 digits (e.g. MSCU1234567).`); return; }
+    if (!String(c.sealNo).trim()) { showFieldError(host, 'xdContainers', `Container ${i + 1}: seal number is required.`); return; }
+  }
+  b.containers = conts;
+  /* derived summary fields other Consignia modules still read */
+  const first = b.items[0];
+  b.commodity = b.items.length > 1 ? `${first.description} (+${b.items.length - 1} more)` : first.description;
+  b.hsCode = first.hsCode; b.quantity = Number(first.qty); b.unit = first.unit;
 
   const id = newId('EXJ');
   const job = {
     id, status: 'PLANNING', createdAt: Date.now(), updatedAt: Date.now(),
     linkedFilingId: b.linkedFilingId, linkedBookingId: b.linkedBookingId,
-    brief: { ...b },
+    brief: JSON.parse(JSON.stringify(b)),
     documentPlan: computeDocumentPlan(b),
     documentIds: {}
   };
@@ -141,6 +256,7 @@ const XD_DOC_STATUS_BADGE = { NOT_STARTED: 'badge-grey', DRAFT: 'badge-amber', R
    of the integration plan). Everything else in the catalog shows its planner
    status honestly, with a "not yet built" note instead of a dead link. */
 const XD_DOC_WORKSTATIONS = {
+  SHIPPING_BILL: (jobId) => xdOpenShippingBill(jobId),
   COMMERCIAL_INVOICE: (jobId) => openInvoiceWorkstation(jobId),
   PACKING_LIST: (jobId) => openPackingListWorkstation(jobId),
   BILL_OF_LADING: (jobId) => openTransportDocWorkstation(jobId),
@@ -159,6 +275,11 @@ const XD_DOC_WORKSTATIONS = {
 };
 
 function exportJobDocStatus(job, docType) {
+  if (docType === 'SHIPPING_BILL') {
+    const f = job.linkedFilingId ? getFiling(job.linkedFilingId) : null;
+    if (!f) return { status: 'NOT_STARTED', version: null };
+    return { status: (f.leo || f.status === 'LEO' || f.status === 'COMPLETED') ? 'READY' : 'DRAFT', version: null };
+  }
   const doc = currentDocOfType(job.id, docType);
   if (!doc) return { status: 'NOT_STARTED', version: null };
   return { status: doc.status, version: doc.version };
@@ -168,7 +289,7 @@ function renderExportJobDetail(id) {
   const job = getExportJob(id || CURRENT_EXPORT_JOB_ID);
   const host = $('#screen-exportJobDetail');
   if (!job) { host.innerHTML = '<div class="xd-root"><p class="hint">Export Job not found.</p></div>'; return; }
-  const groups = ['CORE', 'TRANSPORT', 'ORIGIN', 'FINANCIAL', 'REGULATORY', 'COMMODITY'];
+  const groups = ['CUSTOMS', 'CORE', 'TRANSPORT', 'ORIGIN', 'FINANCIAL', 'REGULATORY', 'COMMODITY'];
   const filing = job.linkedFilingId ? getFiling(job.linkedFilingId) : null;
   const booking = job.linkedBookingId ? getBooking(job.linkedBookingId) : null;
   const check = STATE.consistencyChecks.find(c => c.exportJobId === job.id && !c.kind);
@@ -251,6 +372,9 @@ function startExportJobFromScenario(scenarioId) {
   XD_BRIEF_DRAFT = {
     buyerName: p.counterparty.consigneeName || '', commodity: firstItem.description || '', commodityCategory: '',
     hsCode: firstItem.hsCode || '', quantity: firstItem.qty || '', unit: mappedUnit,
+    items: (p.items || []).map(it => Object.assign(xdBlankItem(), { description: it.description, hsCode: it.hsCode, qty: it.qty, unit: UNITS.includes(it.unit) ? it.unit : 'PCS', unitPrice: it.unitPrice, origin: it.origin, packages: it.packages, grossWeight: it.grossWeight, netWeight: it.netWeight })),
+    containers: [xdBlankContainer()],
+    consignment: Object.assign(xdBlankConsignment(), { consigneeAddress: p.counterparty.address || '', vesselFlight: p.shipment.vesselFlight || '', voyageFlight: p.shipment.voyageFlight || '' }),
     currency: p.invoice.currency || '', incoterm: p.invoice.incoterm || '', paymentMethod: mappedPayment,
     mode: mappedMode, destinationCountry: p.shipment.countryOfDestination || '',
     ftaClaim: false, dangerousGoods: false, scomet: false, packagingMaterial: '',

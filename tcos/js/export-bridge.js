@@ -45,11 +45,35 @@ function xdUnmappedUnits(jd) {
   return seen;
 }
 
+function xdSplitList(v) { return String(v || '').split(/[,;\n|]+/).map(x => x.trim()).filter(Boolean); }
+
+/* Doc-Sim items / containers / consignment -> the multi-product Export Brief shape */
+function xdBriefPartsFromJobData(jd) {
+  const items = (jd.items || []).map(it => ({
+    description: it.description || it.product || '', hsCode: it.hsCode || '', qty: it.quantity || '',
+    unit: xdUnit(it.unit) || xdFuzzyMatchFromList(UNITS, it.unit) || 'PCS', unitPrice: it.unitPrice || '',
+    origin: it.countryOfManufacture || 'India', packages: '', grossWeight: it.weight || '', netWeight: it.netWeight || ''
+  }));
+  const nos = xdSplitList(jd.containerNo), seals = xdSplitList(jd.sealNo);
+  const containers = nos.map((n, i) => ({ containerNo: n, containerType: CONTAINER_TYPES[0], sealNo: seals[i] || (nos.length === 1 ? (seals[0] || '') : ''), grossWeight: '' }));
+  const netTotal = items.reduce((s, it) => s + (Number(it.netWeight) || 0), 0);
+  const consignment = {
+    consigneeAddress: jd.buyerAddress || '',
+    portOfLoading: xdPort(jd.portOfLoading, INDIAN_PORTS), portOfDischarge: xdPort(jd.portOfDischarge, FOREIGN_PORTS),
+    vesselFlight: jd.vesselName || '', voyageFlight: jd.voyageNo || '',
+    packageType: xdPkgType((jd.items && jd.items[0] && jd.items[0].packageType) || ''),
+    totalPackages: jd.quantity || '', grossWeight: jd.grossWeight || '', netWeight: netTotal || '',
+    marksNumbers: '', instructions: ''
+  };
+  return { items: items.length ? items : [xdBlankItem()], containers: containers.length ? containers : [xdBlankContainer()], consignment: Object.assign(xdBlankConsignment(), consignment) };
+}
+
 function beginConsigniaFromBridge(jobData, docType) {
   const jd = jobData || {};
   const firstItem = (jd.items && jd.items[0]) || {};
   XD_BRIDGE_TARGET_DOC_TYPE = docType;
   XD_BRIDGE_SOURCE = jd;
+  const parts = xdBriefPartsFromJobData(jd);
   XD_BRIEF_DRAFT = {
     buyerName: jd.buyerName || '',
     commodity: firstItem.description || '',
@@ -64,11 +88,66 @@ function beginConsigniaFromBridge(jobData, docType) {
     destinationCountry: xdFuzzyMatchFromList(COUNTRIES, jd.destination) || xdFuzzyMatchFromList(COUNTRIES, jd.portOfDischargeCountry),
     ftaClaim: false, dangerousGoods: xdAnyDG(jd), scomet: false, packagingMaterial: '',
     linkedFilingId: '', linkedBookingId: '',
-    notes: `Started from the Logistics Document Simulator via the TCOS bridge, for: ${EXPORT_DOC_CATALOG[docType] ? EXPORT_DOC_CATALOG[docType].label : (docType || 'your full Export Job')}. Review every field below — matched values were fuzzy-matched from the Logistics simulator's Job data, unmatched ones were deliberately left blank rather than guessed.` + (xdUnmappedUnits(jd).length ? ` NOTE: unit "${xdUnmappedUnits(jd).join('", "')}" from your Shipment Lot has no TCOS equivalent — choose the right unit (TCOS offers ${UNITS.join(', ')}) on each document line.` : '')
+    items: parts.items, containers: parts.containers, consignment: parts.consignment,
+    notes: `Started from the Logistics Document Simulator via the TCOS bridge, for: ${EXPORT_DOC_CATALOG[docType] ? EXPORT_DOC_CATALOG[docType].label : (docType || 'your full Export Job')}. Review every field below - matched values come from your Shipment Lot; anything it could not match confidently is left blank for you.`
   };
   navTo('exportJobBrief');
 }
 
+/* ============================================================
+   SHIPPING BILL FROM THE EXPORT JOB
+   The job's consignee, products (every HSN row), containers + seals and consignment box
+   become the Shipping Bill filing; exporter identity (IEC / GSTIN / address) comes from the
+   Document Simulator job. The student then files it through the real ICEGATE steps.
+   ============================================================ */
+function xdOpenShippingBill(jobId) {
+  const job = getExportJob(jobId);
+  if (!job) return;
+  let filing = job.linkedFilingId ? getFiling(job.linkedFilingId) : null;
+  if (!filing) {
+    const b = xdEnsureBriefShape(job.brief), jd0 = job.sourceJobData || {};
+    const c = b.consignment || {};
+    const jd = Object.assign({}, jd0, {
+      buyerName: b.buyerName || jd0.buyerName, buyerAddress: c.consigneeAddress || jd0.buyerAddress,
+      mode: b.mode || jd0.mode, destination: b.destinationCountry || jd0.destination,
+      portOfLoading: c.portOfLoading || jd0.portOfLoading, portOfDischarge: c.portOfDischarge || jd0.portOfDischarge,
+      vesselName: c.vesselFlight || jd0.vesselName, voyageNo: c.voyageFlight || jd0.voyageNo,
+      currency: b.currency || jd0.currency, incoterm: b.incoterm || jd0.incoterm, paymentTerms: b.paymentMethod || jd0.paymentTerms,
+      quantity: c.totalPackages || jd0.quantity, grossWeight: c.grossWeight || jd0.grossWeight,
+      items: b.items.map(it => ({ description: it.description, hsCode: it.hsCode, quantity: it.qty, unit: it.unit, unitPrice: it.unitPrice, countryOfManufacture: it.origin, weight: it.grossWeight, netWeight: it.netWeight, packageType: c.packageType }))
+    });
+    filing = startNewFiling('export', null);
+    skTcosPrefillFilingFromJobData(filing, 'export', jd);
+    filing.items = b.items.map(it => ({
+      description: it.description, hsCode: it.hsCode, qty: Number(it.qty) || '', unit: it.unit, unitPrice: Number(it.unitPrice) || '',
+      origin: it.origin || 'India', packages: it.packages === '' ? '' : Number(it.packages), grossWeight: it.grossWeight === '' ? '' : Number(it.grossWeight), netWeight: it.netWeight === '' ? '' : Number(it.netWeight)
+    }));
+    filing.packages = Object.assign({}, filing.packages, {
+      packageType: c.packageType || filing.packages.packageType || '', numberOfPackages: c.totalPackages === '' ? (filing.packages.numberOfPackages || '') : Number(c.totalPackages),
+      grossWeight: c.grossWeight === '' ? (filing.packages.grossWeight || '') : Number(c.grossWeight), netWeight: c.netWeight === '' ? (filing.packages.netWeight || '') : Number(c.netWeight),
+      marksNumbers: c.marksNumbers || ''
+    });
+    filing.containers = (b.containers || []).filter(x => x.containerNo).map(x => ({ containerNo: String(x.containerNo).replace(/\s/g, '').toUpperCase(), containerType: x.containerType || CONTAINER_TYPES[0], sealNo: x.sealNo || '', grossWeight: x.grossWeight === '' ? '' : Number(x.grossWeight) }));
+    if (b.mode && /^(Sea|Air)/i.test(b.mode)) filing.shipment.modeOfTransport = /^Air/i.test(b.mode) ? 'Air' : 'Sea';
+    if (b.destinationCountry) filing.shipment.countryOfDestination = filing.shipment.countryOfDestination || b.destinationCountry;
+    if (b.currency) filing.invoice.currency = filing.invoice.currency || b.currency;
+    if (b.incoterm) filing.invoice.incoterm = filing.invoice.incoterm || b.incoterm;
+    filing.exportJobId = job.id;
+    job.linkedFilingId = filing.id; job.updatedAt = Date.now();
+    saveState();
+    if (typeof toast === 'function') toast('Shipping Bill prepared from your Export Job - check every field before you file.', 'info');
+  }
+  /* the Document Simulator's Shipping Bill is complete when this filing is cleared + EGM filed */
+  if (typeof DotBridge !== 'undefined') {
+    const br = DotBridge.getBridge();
+    if (br && br.active && !br.completed && br.filingType === 'consignia' && (br.consignaDocType === 'SHIPPING_BILL' || br.returnSlug === 'consignia-desk-direct')) {
+      DotBridge.retarget('export', 'shipping-bill');
+      if (typeof renderBridgeBanner === 'function') renderBridgeBanner();
+    }
+  }
+  if (filing.status !== 'DRAFT') { navToFiling(filing.id); return; }
+  openWizard(filing);
+}
 
 /* ============================================================
    FULL AUTO-FILL FROM THE LOGISTICS SHIPMENT LOT

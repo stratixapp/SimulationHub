@@ -4,7 +4,7 @@
    ============================================================ */
 
 function exportStepDefs() {
-  return [
+  return tcosWithIcegateSteps('export', [
     { key: 'party', title: 'Exporter Details', fields: [
       { key: 'exporterName', label: 'Exporter Name', required: true },
       { key: 'iec', label: 'IEC', required: true, placeholder: '10 alphanumeric characters' },
@@ -52,11 +52,11 @@ function exportStepDefs() {
     { key: 'containers', title: 'Container Details', special: 'containers' },
     { key: 'documents', title: 'Supporting Documents', special: 'documents' },
     { key: 'review', title: 'Validation & Review', special: 'review' }
-  ];
+  ]);
 }
 
 function importStepDefs() {
-  return [
+  return tcosWithIcegateSteps('import', [
     { key: 'party', title: 'Importer Details', fields: [
       { key: 'importerName', label: 'Importer Name', required: true },
       { key: 'iec', label: 'IEC', required: true, placeholder: '10 alphanumeric characters' },
@@ -117,7 +117,7 @@ function importStepDefs() {
     ]},
     { key: 'documents', title: 'Supporting Documents', special: 'documents' },
     { key: 'review', title: 'Validation & Review', special: 'review' }
-  ];
+  ]);
 }
 
 var WZ = null; // current wizard state {filing, steps, stepIndex}
@@ -128,6 +128,7 @@ function startNewFiling(type, scenario) {
     id, type, scenarioId: scenario ? scenario.id : null,
     status: 'DRAFT', createdAt: Date.now(), updatedAt: Date.now(),
     party: {}, counterparty: {}, shipment: {}, invoice: {}, items: [], packages: {}, containers: [], assessment: {},
+    icegate: {}, itemScheme: [], itemDuty: [],
     documents: [], validationErrors: [], ack: null,
     examination: { required: false, location: '', date: '', result: '', remarks: '' },
     query: null,
@@ -179,6 +180,7 @@ function toggleScenarioBrief() {
 }
 
 function openWizard(filing) {
+  filing.icegate = filing.icegate || {}; filing.itemScheme = filing.itemScheme || []; filing.itemDuty = filing.itemDuty || [];   // filings saved before the ICEGATE steps existed
   WZ = { filing, steps: filing.type === 'export' ? exportStepDefs() : importStepDefs(), stepIndex: 0 };
   navTo('wizard');
   renderWizard();
@@ -312,10 +314,11 @@ function renderWizard() {
         <div class="crumb">${isExport ? 'Electronic Filing' : 'Electronic Filing'} / ${isExport ? 'Shipping Bill' : 'Bill of Entry'} / <b>${esc(filing.id)}</b></div>
         <h1>${isExport ? 'Shipping Bill Filing' : 'Bill of Entry Filing'} <span class="badge ${STATUS_BADGE_CLASS[filing.status]}">${STATUS_LABELS[filing.status]}</span></h1>
       </div>
-      <button class="btn-ghost" onclick="saveDraftAndExit()">Save Draft &amp; Exit</button>
+      <div style="display:flex;gap:8px">${typeof tcosSrc === 'function' && tcosSrc(filing) ? '<button class="btn-ghost" onclick="tcosShowSourceDocs()">📄 Documents on your desk</button>' : ''}<button class="btn-ghost" onclick="saveDraftAndExit()">Save Draft &amp; Exit</button></div>
     </div>
-    <div class="stepper" id="wzStepper"></div>
-    <div class="wz-pane" id="wzPane"></div>
+    <div class="ig-banner"><b>ICEGATE</b> <span>Indian Customs EDI Gateway - e-Filing</span><i>${isExport ? 'Shipping Bill (Export)' : 'Bill of Entry (Import)'}</i></div>
+    <div class="ig-layout"><div class="stepper ig-steps" id="wzStepper"></div>
+    <div class="wz-pane" id="wzPane"></div></div>
   `;
   const stepper = $('#wzStepper');
   stepper.innerHTML = steps.map((s, i) => `<div class="step ${i === stepIndex ? 'on' : ''} ${i < stepIndex ? 'done' : ''}" data-i="${i}"><i>${i < stepIndex ? '✓' : i + 1}</i>${esc(s.title)}</div>`).join('');
@@ -330,6 +333,7 @@ function renderWizardPane() {
   let bodyHTML = '';
   if (step.special === 'items') bodyHTML = itemsStepHTML(filing);
   else if (step.special === 'containers') bodyHTML = containersStepHTML(filing);
+  else if (step.special === 'igspec') bodyHTML = tcosSpecStepHTML(filing, step);
   else if (step.special === 'documents') bodyHTML = documentsStepHTML(filing);
   else if (step.special === 'manifest') bodyHTML = manifestStepHTML(filing);
   else if (step.special === 'review') bodyHTML = reviewStepHTML(filing);
@@ -349,7 +353,7 @@ function renderWizardPane() {
     bodyHTML = brokerBlock + `<div class="grid">${step.fields.map(f => fieldHTML({ id: (f.id2 || step.key + '__' + f.key), label: f.label, required: f.required, type: f.type, options: f.options, full: f.full, placeholder: f.placeholder }, filing[step.key][f.key])).join('')}</div>`;
   }
 
-  pane.innerHTML = `${scenarioBriefHTML(filing)}<div class="wz-card"><h3>${esc(step.title)}</h3>${bodyHTML}
+  pane.innerHTML = `${scenarioBriefHTML(filing)}<div class="wz-card"><h3>${esc(step.title)}</h3>${typeof tcosStepGuideHTML === 'function' ? tcosStepGuideHTML(filing, step) : ''}${bodyHTML}
     <div class="actions">
       ${stepIndex > 0 ? '<button class="back2" onclick="wzPrev()">Back</button>' : ''}
       <button class="btn-ghost" onclick="wzSaveDraft()">Save Draft</button>
@@ -359,6 +363,7 @@ function renderWizardPane() {
 
   if (step.special === 'items') wireItemsStep(filing);
   if (step.special === 'containers') wireContainersStep(filing);
+  if (step.special === 'igspec') tcosWireSpecStep(filing, step);
   if (step.special === 'documents') wireDocumentsStep(filing);
   if (step.special === 'manifest') wireManifestStep(filing);
   if (step.special === 'review') wireReviewStep(filing);
@@ -381,6 +386,7 @@ function renderWizardPane() {
 function syncCurrentStepFields() {
   const { filing, steps, stepIndex } = WZ;
   const step = steps[stepIndex];
+  if (step.special === 'igspec') { tcosSyncSpecStep(filing, step); filing.updatedAt = Date.now(); return; }
   if (step.fields) {
     step.fields.forEach(f => {
       const id = f.id2 || step.key + '__' + f.key;
@@ -398,6 +404,10 @@ function wzNext() {
   syncCurrentStepFields();
   const { filing, steps, stepIndex } = WZ;
   const step = steps[stepIndex];
+  if (step.special === 'igspec') {
+    const ierrs = tcosValidateSpecStep(filing, step);
+    if (ierrs.length) { toast(ierrs[0].message, 'error'); tcosShowSpecErrors(ierrs); saveState(); return; }
+  }
   const validator = STEP_VALIDATORS[step.key];
   if (validator) {
     const errs = validator(filing);
@@ -679,6 +689,7 @@ function reviewStepHTML(filing) {
   <tbody>${filing.items.map(it => `<tr><td>${esc(it.description)}</td><td>${esc(it.hsCode)}</td><td>${it.qty}</td><td>${esc(it.unit)}</td><td>${fmtMoney(it.unitPrice)}</td><td>${fmtMoney(num(it.qty) * num(it.unitPrice))}</td></tr>`).join('')}</tbody>
   </table></div>
   <h4>Packages</h4>${kv(filing.packages)}
+  ${filing.icegate && Object.keys(filing.icegate).some(k => k !== '__migrated' && typeof filing.icegate[k] !== 'object' && filing.icegate[k] !== '' && filing.icegate[k] != null) ? `<h4>Declarant &amp; ICEGATE particulars</h4>${kv(Object.fromEntries(Object.entries(filing.icegate).filter(([k,v]) => k !== '__migrated' && (typeof v !== 'object'))))}` : ''}
   <h4>Documents</h4>
   <ul class="plain-list">${(filing.documents || []).map(d => `<li>${esc(d.type)} ${ESANCHIT_CODES[d.type] ? `<span class="hint">(Doc Code: ${esc(ESANCHIT_CODES[d.type])})</span>` : ''} — <span class="badge ${STATUS_BADGE_CLASS[d.status] || 'badge-grey'}">${esc(d.status)}</span></li>`).join('') || '<li>No documents attached.</li>'}</ul>
   ${complianceBlockHTML(filing)}

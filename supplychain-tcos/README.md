@@ -162,3 +162,37 @@ Verified in jsdom: initial screen state (`home` active, `login`/`app` not),
 Login/Sign Up → loader → login screen, demo login → app shell with correct
 user label, Register Now → 12-step modal opens/closes, Back to Portal →
 home again — all pass with no thrown exceptions.
+
+## ICEGATE-format Shipping Bill / Bill of Entry (Oct 2026)
+The Shipping Bill and Bill of Entry are now printed with the same renderers as the Logistics Document Simulator
+(`../logistics-simulator/customs-forms.js`, `customs-forms-boe.js`, `customs-forms.css`) - A4 pages, Parts I-V / I-VI.
+- `js/icegate-print.js`: adapter filing -> renderer data (regenerated live, so LEO / OOC / challan / examination show as they happen),
+  on-screen view, print and PDF (one A4 page per `.sb-page`). A Shipping Bill / Bill of Entry document is created at submission.
+- `js/icegate-config.js` (generated from the Doc-Sim configs, same field names) + `js/icegate-steps.js` + `filingForm.js`: the wizard now
+  has the full real ICEGATE field coverage - Shipping Bill = the Doc-Sim's 14 steps (21 wizard steps: TCOS core steps + 11 ICEGATE steps),
+  Bill of Entry = the Doc-Sim's 15 steps (24 wizard steps: core + 12 ICEGATE steps). Fields TCOS already collects (parties, shipment, invoice,
+  items, containers, documents) are not asked twice. Required fields / patterns / conditional (showIf) fields / tables follow the Doc-Sim.
+  Data is in `filing.icegate[name]` (flat value, or an array of rows for tables; item-aligned tables have one row per item).
+  `tcosOverlayIcegate()` in icegate-print.js puts all of it on the print, so the final PDF is the same real-format document.
+- The print footer shows "Prepared by: name - role" (role comes from the Logistics sign-in via the bridge).
+- Mirrored into `supplychain-tcos/` (only the three storage-key lines differ).
+
+## Customs scrutiny, source documents & scroll (Oct 2026)
+- `js/scrutiny.js`: (1) hard ICEGATE-style validation (`tcosDeepErrors`: GSTIN state code, PAN-in-GSTIN, dates, FOB vs incoterm, mode vs port, weight totals);
+  (2) `tcosScrutinize` compares what the student typed with the job's source documents (commercial invoice, packing list, booking / BL, IEC) - mismatches are
+  NOT blocked at filing; Customs raises a specific query naming the particular. Reply with corrections: 2 rounds, a wrong correction sends the goods for
+  examination with a discrepancy and marks the risk profile; (3) "Documents on your desk" viewer; (4) "Where am I" guide on every step (Part, what, read from, checks,
+  common mistake); (5) after EGM: SB-EGM matching + scroll - a mismatch holds the IGST refund until the SB is corrected (Section 149 amendment).
+- ICEGATE-style screen: banner + vertical step list + guide panel (style.css, `.ig-*`). Source-document scrutiny applies to scenario filings.
+- Bill of Entry: self-assessed duty (assessable value, BCD, SWS, IGST, cess, anti-dumping, total) is compared with the duty Customs computes
+  (`tcosComputeDuty` in workflow.js: CIF value per incoterm + 1% landing charge, HS tariff rates). A difference draws a query; correct values in the reply.
+  Fixed: CIF invoices no longer add freight / insurance twice. Scenario data S3 / S7 / S10 made internally consistent so the brief can be filed as given.
+
+## Doc-Sim → TCOS Shipping Bill flow (v16)
+- Top bar shows the role chosen in the Document Simulator (not "Importer").
+- Export Brief now has multiple Product/HSN rows, a Containers & Seals table, a Consignment Details card, and a "From your Document Simulator job" card; consignee/consignment auto-fill from the Doc-Sim job.
+- Document Planner has a separate **Shipping Bill (ICEGATE e-filing)** row that opens the real filing wizard prefilled from the job.
+- On completion (LEO + EGM) the student can download the ICEGATE-format PDF and is returned automatically to the Document Simulator.
+
+## Navigation (v17)
+Sidebar restyled to an ICEGATE-style navy menu with ICEGATE section names (e-Filing, Services, e-Sanchit, Enquiry – Document Status, e-Payment). Exact real-portal menu layout is not copied (site menus not publicly documented); training tools sit in a separate group.

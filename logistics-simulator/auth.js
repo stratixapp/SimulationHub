@@ -64,7 +64,7 @@ function skClearLoginLog(){ localStorage.removeItem(SKELORA_LOGIN_LOG_KEY); }
 /* ---------------------------------------------------------------------
    Accounts
    --------------------------------------------------------------------- */
-function skSignUp({name, email, password, role}){
+function skSignUp({name, email, password, role, position}){
   /* Note: internally this still uses the variable name "email" as the unique
      login key, to avoid touching every call site — but it now accepts any
      Student ID (roll number, admission number, etc.), not just email addresses.
@@ -91,6 +91,9 @@ function skSignUp({name, email, password, role}){
     // auto-fill the sign-in form any more.
     savedPassword: password,
     role: role==='faculty' ? 'faculty' : 'student',
+    // Working position / job role picked on the sign-in screen (e.g. "Customs Clearance Executive").
+    // Printed next to the student's name on every document PDF - see skGetWorkRole().
+    position: (position||'').trim(),
     createdAt: new Date().toISOString()
   };
   users.push(user);
@@ -118,16 +121,69 @@ function skLogOut(){
   const id = skGetSessionId();
   if(id) _sk_pushLoginEvent({userId:id, kind:'logout', ts:new Date().toISOString()});
   localStorage.removeItem(SKELORA_SESSION_KEY);
+  localStorage.removeItem(SKELORA_WORKROLE_KEY);
 }
+
+/* ---------------------------------------------------------------------
+   Working role (asked on every sign-in)
+   The role the student picks on the sign-in screen for THIS session. It is
+   printed next to the student's name on every document PDF ("Document Prepared
+   By - Name - Role"), on the certificate, and is handed to TCOS. It is separate
+   from user.role ('student' | 'faculty'), which controls permissions.
+   --------------------------------------------------------------------- */
+const SKELORA_WORKROLE_KEY = 'skelora_session_workrole_v1';
+function skSetWorkRole(role){
+  role = (role||'').trim();
+  try{
+    if(role) localStorage.setItem(SKELORA_WORKROLE_KEY, role); else localStorage.removeItem(SKELORA_WORKROLE_KEY);
+    const id = skGetSessionId();
+    if(id && role){ const u = _sk_loadUsers().find(x=>x.id===id); if(u && u.position !== role) skUpdateUser(id, {position: role}); }
+  }catch(e){}
+}
+function skGetWorkRole(){
+  try{
+    const r = localStorage.getItem(SKELORA_WORKROLE_KEY);
+    if(r) return r;
+    const u = skGetCurrentUser();
+    if(u && u.position) return u.position;
+    if(u) return u.role==='faculty' ? 'Faculty / Instructor' : 'Student';
+  }catch(e){}
+  return '';
+}
+/* {name, role, id} of whoever is signed in - read by the ICEGATE print renderers (customs-forms.js) */
+function skGetPreparedBy(){
+  const u = skGetCurrentUser();
+  if(!u) return null;
+  return {name:u.name, role:skGetWorkRole(), id:u.email};
+}
+try{ window.skGetPreparedBy = skGetPreparedBy; }catch(e){}
 function skGetCurrentUser(){
   const id = skGetSessionId();
   if(!id) return null;
   return _sk_loadUsers().find(u=>u.id===id) || null;
 }
 // Call at the top of any protected page. Redirects to login if nobody is signed in.
+/* Redirect-loop breaker: if sign-in and the dashboard keep sending each other back (storage not shared between pages),
+   stop after a few bounces instead of flashing until the tab crashes. */
+function skLoopTrip(){
+  try{
+    const now = Date.now(), t = +sessionStorage.getItem('sk_nav_t')||0;
+    let n = +sessionStorage.getItem('sk_nav_n')||0;
+    n = (now - t < 6000) ? n + 1 : 1;
+    sessionStorage.setItem('sk_nav_t', String(now)); sessionStorage.setItem('sk_nav_n', String(n));
+    if(n >= 5){
+      sessionStorage.removeItem('sk_nav_n');
+      document.open();
+      document.write('<!doctype html><meta charset="utf-8"><body style="font-family:Segoe UI,Arial,sans-serif;background:#0b1f3a;color:#fff;display:flex;min-height:100vh;align-items:center;justify-content:center;padding:20px"><div style="max-width:520px;line-height:1.55"><h2>Sign-in could not be kept</h2><p>This browser is not saving your sign-in between pages. Close private/incognito mode, allow site data, or open the hub through a local server (START_LOCAL_SERVER.bat then http://localhost:8000) or in Chrome / Edge. Then <a style="color:#7fc1ff" href="login.html">try again</a>.</p></div></body>');
+      document.close();
+      return true;
+    }
+  }catch(e){}
+  return false;
+}
 function skRequireAuth(){
   const u = skGetCurrentUser();
-  if(!u){ window.location.replace('login.html'); return null; }
+  if(!u){ if(skLoopTrip()) return null; window.location.replace('login.html'); return null; }
   return u;
 }
 function skListAllUsers(){ return _sk_loadUsers().slice().sort((a,b)=> new Date(b.createdAt)-new Date(a.createdAt)); }

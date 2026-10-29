@@ -17,6 +17,22 @@
   if(!BL || BL.__printExtended) return;
   BL.__printExtended = true;
 
+  /* Bill of Lading Number is assigned automatically, exactly as a carrier's system does it: the carrier's 4-letter
+     SCAC code + year + month + a running serial (e.g. MAEU2610000123). The SCAC follows the carrier chosen on the Job
+     (txn.carrierName) when there is one, otherwise a neutral SKEL prefix. The student can still overwrite the value. */
+  const SCAC = [[/maersk/i,"MAEU"],[/\b(msc|mediterranean)/i,"MEDU"],[/cma\s*cgm/i,"CMDU"],[/cosco/i,"COSU"],[/hapag/i,"HLCU"],[/\bone\b|ocean network/i,"ONEY"],[/evergreen/i,"EGLV"],[/oocl|orient overseas/i,"OOLU"],[/\bzim\b/i,"ZIMU"],[/yang\s*ming/i,"YMLU"],[/\bhmm\b|hyundai/i,"HDMU"],[/\bpil\b|pacific international/i,"PCIU"]];
+  function generateBlNumber(userId){
+    let carrier = "";
+    try{ const c = typeof skGetTransactionContext === "function" ? skGetTransactionContext(userId) : null; carrier = (c && c["txn.carrierName"] && c["txn.carrierName"].value) || ""; }catch(e){}
+    const hit = SCAC.find(x => x[0].test(carrier));
+    const d = new Date();
+    const serial = (typeof skNextSeq === "function") ? skNextSeq(userId, "bill-of-lading-sea:blNumber") : Math.floor(Math.random()*900000)+100000;
+    return (hit ? hit[1] : "SKEL") + String(d.getFullYear()).slice(2) + String(d.getMonth()+1).padStart(2,"0") + String(serial).padStart(6,"0");
+  }
+  (function(){
+    for(const st of BL.steps){ const f = (st.fields||[]).find(x => x.name === "blNumber"); if(f){ f.autoGenerate = true; f.autoGenerateWith = generateBlNumber; f.help = (f.help ? f.help + " " : "") + "Generated automatically (carrier code + year/month + serial) - overwrite it only if your exercise gives you a specific B/L number."; return; } }
+  })();
+
   const F = (type, name, label, extra) => Object.assign({name, label, type, required:false}, extra||{});
   const addFields = (title, fields) => {
     const s = BL.steps.find(x => x.title === title);

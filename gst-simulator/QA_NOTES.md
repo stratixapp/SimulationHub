@@ -60,3 +60,13 @@ Verified by a full run for **AS Group of Industries Private Limited, Bengaluru, 
 - GSTR-1 does not check that Table 12 (HSN) and Table 13 (documents) totals agree with the invoices (the real portal only warns).
 - GSTR-1 late fee is shown but not debited from the cash ledger.
 - QRMP (quarterly) taxpayers are not subject to the Rule 59(6) block.
+
+
+## v30 - all states in Place of Supply + resume + re-audit
+| # | Area | Change |
+|---|------|--------|
+| 27 | Place of Supply | B2B, B2C, notes, advances, export, GSTR-1A add/amend and IFF now list every State/UT (36 + Other Territory, code-ordered, taxpayer's own state first). Before, B2B offered only home state + "Inter-State". |
+| 28 | Tax logic | `gstTaxCalc` treats any POS other than the taxpayer's state as inter-State (IGST); same state = CGST+SGST. Legacy values "Inter-State"/"Other State" still work. |
+| 29 | B2B form | POS auto-selects from the first two digits of the recipient GSTIN (as on the portal); tax preview refreshes when POS changes. |
+| 30 | Continue later | GSTR-1 (B2B/B2C/export/notes/advances/HSN/docs/summary/validate/submit) and GSTR-3B (auto-populate/validate/charges/offset/file) steps now record the last stage. A returning student sees "Continue where you left off" on the Taxpayer Dashboard right after login (before it only appeared on the home page, where the logged-out student never saw it). |
+Verified with a scripted browser run: 37 POS options; Delhi/Tamil Nadu/Karnataka = IGST, Kerala = CGST+SGST; GSTR-1 summary and 3B 3.1(a)/3.2 matched hand totals (taxable 2,35,000; IGST 38,050; CGST 1,800; SGST 1,800; 3.2 unregistered inter-State 2,00,000); banner -> CONTINUE reopens GSTR-1.

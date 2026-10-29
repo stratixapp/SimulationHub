@@ -135,10 +135,25 @@ Confirmed as correct: UCP 600 (21 days / 5 banking days / 110% insurance), e-way
 of BCD > IGST on AV+BCD+SWS), SOFTEX number issued by RBI, IATA 6000 volumetric divisor, AWB check digit (serial mod 7).
 Rules change: re-verify against the CBIC / DGFT / RBI notifications before teaching from any figure here.
 
+## Oct 2026 update: sign-in role, auto B/L number, EGM, TCOS = Doc-Sim Shipping Bill / BOE
+- **Logistics sign-in** (`logistics-simulator/login.html`) is now the SKELORA Premium sign-in design. Every sign-in asks for a **Role**
+  (working position; "Faculty / Instructor" creates a faculty account). `auth.js`: `skSetWorkRole / skGetWorkRole / skGetPreparedBy`
+  (key `skelora_session_workrole_v1`, cleared at sign-out). The role is printed beside the student's name on every document PDF
+  ("Document Prepared By - Name - Role"; "Prepared by: ..." footer line on the ICEGATE Shipping Bill / Bill of Entry / B-L pages),
+  on the Certificate of Completion, and is passed to TCOS by `shared/tcos-bridge.js` (`workRole`). Password recovery uses
+  `shared/access-id.js` (hash), the old captcha was dropped with the new design. Three.js now comes from `boot-loader/vendor` (offline).
+- **Bill of Lading Number** is auto-generated (carrier SCAC from the Job + yy + mm + serial) - `bill-of-lading-forms-config.js`,
+  generic hook `autoGenerateWith` in `engine.js`.
+- **Export General Manifest**: first cargo-listing column is "Shipping Bill No. / IEC No." (context key `txn.shippingBillOrIEC`,
+  SB number when it exists, otherwise the exporter's IEC).
+- **TCOS Shipping Bill / Bill of Entry** now print with the Doc-Sim ICEGATE renderers (see `tcos/README.md`). `customs-forms*.js/css`
+  in `logistics-simulator/` are loaded by `tcos/` and `supplychain-tcos/`. Logistics service-worker cache is `skelora-v81`.
+
 ## First-run install wizard
 - `index.html` redirects to `install.html` until the key `dot_hub_installed_v1` exists in this
   browser's localStorage. The key is saved when the 60-second deployment finishes; **Launch** then
   opens the hub (and, where the browser offers it, the native "Install app" dialog).
+- **Launch** opens `index.html?installed=1`, which saves the key in the hub page's own storage (fixes Firefox looping back to the wizard). Opening the hub straight from a folder (`file://`) skips the wizard. Each browser still shows the wizard once, because every browser has its own storage.
 - Bypass for staff: open `index.html?skipinstall=1`. To run the wizard again: open `install.html`
   or delete the key.
 - If storage is blocked (private mode) the hub never redirects, so nobody is trapped in a loop.
@@ -160,3 +175,6 @@ A new simulator needs its own unique prefix and the same filter in its `activate
 2. Repo -> Settings -> Pages -> set source to that location.
 
 (c) 2026-2030 Dot Ecosystem. Developed by Ananthu Shaji.
+
+## Firefox / file:// note (v20)
+Opened from a folder, Firefox keeps each page's storage separate, so Logistics sign-in loops. Logistics pages now show a clear message in Firefox on file:// (use Chrome/Edge or START_LOCAL_SERVER.bat -> http://localhost:8000). Sign-in/dashboard redirect loops also stop after 5 bounces. Favicon is embedded (Chrome ignores favicon files on file://).
