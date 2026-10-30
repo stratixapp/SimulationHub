@@ -105,7 +105,7 @@ function tcosBuildSbData(filing) {
   const d = {
     customsHouseCode: code,
     jobNumber: icPick(ig.jobNumber, filing.id), jobDate: icPick(ig.jobDate, icDay(filing.createdAt)),
-    chaLicenseNo: icPick(ig.chaLicenseNo, ig.cbCode), iecNumber: P.iec, branchSerialNo: icPick(ig.branchSerialNo, '0'),
+    chaLicenseNo: icPick(ig.chaLicenseNo, ig.cbCode), iecNumber: P.iec, panNumber: P.pan, branchSerialNo: icPick(ig.branchSerialNo, '0'),
     exporterType: icPick(ig.exporterType, 'Manufacturer Exporter'), exporterName: P.exporterName, exporterAddress: P.address,
     gstin: P.gstin, gstinType: icPick(ig.gstinType, 'GSN'),
     cbName: icPick(ig.cbName, filing.brokerClientIec ? (STATE.user.profile && STATE.user.profile.name) : ''),
@@ -353,6 +353,7 @@ async function tcosDownloadIcegatePdf(docId) {
     const { pdf } = await tcosIcegatePdf(filing);
     pdf.save(tcosIcegateFileName(doc, filing));
     toast('PDF downloaded.', 'success');
+    if (typeof tcosBridgeSbPdfDone === 'function') { try { tcosBridgeSbPdfDone(filing); } catch (e) { console.warn(e); } }
   } catch (err) {
     console.error('[TCOS ICEGATE PDF]', err);
     toast('Could not generate the PDF — please try again.', 'error');

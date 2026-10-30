@@ -277,7 +277,7 @@
       : [];
     return {
       mode: f.mode || "", sellerName: f.sellerName || "", sellerAddress: f.sellerAddress || "", sellerCountry: f.sellerCountry || "",
-      sellerGSTIN: f.sellerGSTIN || "", sellerIEC: f.sellerIEC || "", sellerPhone: f.sellerPhone || "",
+      sellerGSTIN: f.sellerGSTIN || "", sellerIEC: f.sellerIEC || "", sellerPAN: f.sellerPAN || "", sellerPhone: f.sellerPhone || "",
       buyerName: f.buyerName || "", buyerAddress: f.buyerAddress || "", buyerGSTIN: f.buyerGSTIN || "", buyerPhone: f.buyerPhone || "",
       destination: f.destination || "", portOfLoading: f.portOfLoading || "", portOfDischarge: f.portOfDischarge || "",
       portOfDischargeCountry: f.portOfDischargeCountry || "", vesselName: f.vesselName || "", voyageNo: f.voyageNo || "",

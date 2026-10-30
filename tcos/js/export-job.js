@@ -221,6 +221,8 @@ function submitExportBrief() {
   const first = b.items[0];
   b.commodity = b.items.length > 1 ? `${first.description} (+${b.items.length - 1} more)` : first.description;
   b.hsCode = first.hsCode; b.quantity = Number(first.qty); b.unit = first.unit;
+  /* High-value / controlled goods (defence, space, SCOMET chemicals...) are flagged in the HS table: tick SCOMET automatically so the Export Licence shows up in the Document Plan. */
+  if (b.items.some(it => HS_CODE_TABLE[it.hsCode] && HS_CODE_TABLE[it.hsCode].scomet)) b.scomet = true;
 
   const id = newId('EXJ');
   const job = {

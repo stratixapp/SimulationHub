@@ -182,6 +182,7 @@ function toggleScenarioBrief() {
 function openWizard(filing) {
   filing.icegate = filing.icegate || {}; filing.itemScheme = filing.itemScheme || []; filing.itemDuty = filing.itemDuty || [];   // filings saved before the ICEGATE steps existed
   WZ = { filing, steps: filing.type === 'export' ? exportStepDefs() : importStepDefs(), stepIndex: 0 };
+  WZ.stepIndex = Math.max(0, Math.min(Number(filing.wzStep) || 0, WZ.steps.length - 1));   // resume where the student stopped
   navTo('wizard');
   renderWizard();
 }
@@ -243,7 +244,7 @@ function skTcosPrefillFilingFromJobData(filing, type, jd) {
   // counterparty either way.
   const own = {
     name: isExport ? jd.sellerName : jd.buyerName, address: isExport ? jd.sellerAddress : jd.buyerAddress,
-    gstin: isExport ? jd.sellerGSTIN : jd.buyerGSTIN, iec: isExport ? jd.sellerIEC : '',
+    gstin: isExport ? jd.sellerGSTIN : jd.buyerGSTIN, iec: isExport ? jd.sellerIEC : '', pan: isExport ? (jd.sellerPAN || '') : '',
     contact: isExport ? jd.sellerPhone : jd.buyerPhone
   };
   const counter = {
@@ -253,7 +254,7 @@ function skTcosPrefillFilingFromJobData(filing, type, jd) {
   };
   filing.party = Object.assign({}, filing.party, {
     [isExport ? 'exporterName' : 'importerName']: own.name || '',
-    gstin: own.gstin || '', iec: own.iec || '', address: own.address || '', contact: own.contact || ''
+    gstin: own.gstin || '', iec: own.iec || '', pan: own.pan || (filing.party && filing.party.pan) || '', address: own.address || '', contact: own.contact || ''
   });
   filing.counterparty = Object.assign({}, filing.counterparty, {
     [isExport ? 'consigneeName' : 'supplierName']: counter.name || '',
@@ -307,6 +308,7 @@ function resumeWizardFor(filingId) {
 function renderWizard() {
   const host = $('#screen-wizard');
   const { filing, steps, stepIndex } = WZ;
+  if (filing.wzStep !== stepIndex) { filing.wzStep = stepIndex; saveState(); }
   const isExport = filing.type === 'export';
   host.innerHTML = `
     <div class="page-head">

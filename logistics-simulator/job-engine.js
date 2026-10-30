@@ -571,8 +571,9 @@ const JOB_FIELD_MAP = [
   {key:"sellerName",      label:"Exporter / Seller",             contextKey:"txn.sellerName", type:"text", placeholder:"Meridian Exports Pvt. Ltd.", section:"Exporter (Seller)", modes:["sea","air"]},
   {key:"sellerAddress",   label:"Exporter Address",              contextKey:"txn.sellerAddress", type:"text", placeholder:"Plot 14, MIDC Industrial Area, Pune", section:"Exporter (Seller)", modes:["sea","air"]},
   {key:"sellerCountry",   label:"Country of Origin",              contextKey:"txn.sellerCountry", type:"text", placeholder:"India", section:"Exporter (Seller)", help:"Feeds the Country of Origin field on customs filings like the ISF — leave as India unless this Job's goods actually originate elsewhere.", modes:["sea","air"]},
-  {key:"sellerGSTIN",     label:"Exporter GSTIN",                contextKey:"txn.sellerGSTIN", type:"text", placeholder:"27ABCDE1234F1Z5", section:"Exporter (Seller)", modes:["sea","air"]},
-  {key:"sellerIEC",       label:"Exporter IEC Code",             contextKey:"txn.sellerIEC",  type:"text", placeholder:"0388012345", section:"Exporter (Seller)", modes:["sea","air"]},
+  {key:"sellerGSTIN",     label:"Exporter GSTIN",                contextKey:"txn.sellerGSTIN", type:"text", uppercase:true, placeholder:"27MCPPK1234L1Z1", pattern:"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$", patternMsg:"Enter a valid 15-character GSTIN, e.g. 27MCPPK1234L1Z1.", section:"Exporter (Seller)", modes:["sea","air"]},
+  {key:"sellerIEC",       label:"Exporter IEC Code",             contextKey:"txn.sellerIEC",  type:"text", uppercase:true, placeholder:"UYJPK1234L", pattern:"^[A-Z0-9]{10}$", patternMsg:"IEC must be 10 characters (letters and digits), e.g. UYJPK1234L.", section:"Exporter (Seller)", modes:["sea","air"]},
+  {key:"sellerPAN",      label:"Exporter PAN",                  contextKey:"txn.sellerPAN",  type:"text", uppercase:true, placeholder:"MCPPK1234L", pattern:"^[A-Z]{5}[0-9]{4}[A-Z]{1}$", patternMsg:"Enter a valid 10-character PAN, e.g. MCPPK1234L.", section:"Exporter (Seller)", modes:["sea","air"]},
   {key:"sellerPhone",     label:"Exporter Phone",                contextKey:"txn.sellerPhone", type:"text", placeholder:"+91 98200 12345", section:"Exporter (Seller)", modes:["sea","air"]},
   {key:"sellerEmail",     label:"Exporter Email",                contextKey:"txn.sellerEmail", type:"text", placeholder:"exports@meridian.co.in", pattern:"^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$", patternMsg:"Enter a valid email address.", section:"Exporter (Seller)", modes:["sea","air"]},
   {key:"authorizedSignatory", label:"Authorized Signatory Name", contextKey:"txn.authorizedSignatory", type:"text", placeholder:"Priya Sharma", section:"Exporter (Seller)", help:"The person who signs and certifies documents on the exporter's behalf. Auto-fills the Signatory Name field on the Commercial Invoice, Packing List and other documents that ask for one.", modes:["sea","air"]},
@@ -1149,7 +1150,7 @@ function skRestoreJob(userId, job){
 const JOB_AUTOFILL_ALWAYS_KEYS = ["cargo", "hsCode"]; // legacy single-item keys only - see note above
 const JOB_MASTER_AUTOFILL_KEYS = ["sellerName", "sellerAddress", "sellerCountry", "buyerName", "buyerAddress", "destination", "authorizedSignatory"];
 const JOB_AUTOFILL_HALF_KEYS = JOB_MASTER_AUTOFILL_KEYS.concat([
-  "sellerGSTIN", "sellerIEC", "sellerPhone", "sellerEmail", "buyerGSTIN", "buyerPhone", "buyerEmail", "poNumber", "currency", "incoterm",
+  "sellerGSTIN", "sellerIEC", "sellerPAN", "sellerPhone", "sellerEmail", "buyerGSTIN", "buyerPhone", "buyerEmail", "poNumber", "currency", "incoterm",
   "portOfLoading", "portOfDischarge", "quantity", "grossWeight"
 ]);
 // Same A/B/C idea, one level down, for each row in job.fields.items[]:

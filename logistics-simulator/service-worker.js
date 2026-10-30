@@ -5,7 +5,7 @@
    the new version instead of a stale cached copy.
    ========================================================================= */
 
-const CACHE_VERSION = "skelora-v84";
+const CACHE_VERSION = "skelora-v86";
 const APP_SHELL = [
   "./index.html",
   "./intro.html",

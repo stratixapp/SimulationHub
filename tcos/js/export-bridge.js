@@ -202,7 +202,7 @@ const XD_SEEDERS = {
   COMMERCIAL_INVOICE(f, jd) {
     const ex = f.exporter; xdSet(ex, 'legalName', jd.sellerName); xdSet(ex, 'address', jd.sellerAddress);
     const sc = xdCountry(jd.sellerCountry); if (sc) ex.country = sc;
-    xdSet(ex, 'iec', jd.sellerIEC); xdSet(ex, 'gstin', jd.sellerGSTIN); xdSet(ex, 'contact', jd.sellerPhone);
+    xdSet(ex, 'iec', jd.sellerIEC); xdSet(ex, 'gstin', jd.sellerGSTIN); xdSet(ex, 'pan', jd.sellerPAN); xdSet(ex, 'contact', jd.sellerPhone);
     xdSet(ex, 'email', jd.sellerEmail); xdSet(ex, 'authorizedSignatory', jd.authorizedSignatory);
     const dc = xdDestCountry(jd);
     xdSet(f.buyer, 'legalName', jd.buyerName); xdSet(f.buyer, 'address', jd.buyerAddress); xdSet(f.buyer, 'country', dc);
@@ -239,7 +239,7 @@ const XD_SEEDERS = {
     }));
   },
   CERTIFICATE_OF_ORIGIN(f, jd) {
-    xdSet(f.exporter, 'name', jd.sellerName); xdSet(f.exporter, 'address', jd.sellerAddress); xdSet(f.exporter, 'iec', jd.sellerIEC);
+    xdSet(f.exporter, 'name', jd.sellerName); xdSet(f.exporter, 'address', jd.sellerAddress); xdSet(f.exporter, 'iec', jd.sellerIEC); xdSet(f.exporter, 'pan', jd.sellerPAN);
     const dc = xdDestCountry(jd);
     xdSet(f.consignee, 'name', jd.buyerName); xdSet(f.consignee, 'address', jd.buyerAddress); xdSet(f.consignee, 'country', dc);
     xdSet(f, 'goodsDescription', xdFirstDesc(jd));

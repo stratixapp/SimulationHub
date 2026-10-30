@@ -196,3 +196,7 @@ The Shipping Bill and Bill of Entry are now printed with the same renderers as t
 
 ## Navigation (v17)
 Sidebar restyled to an ICEGATE-style navy menu with ICEGATE section names (e-Filing, Services, e-Sanchit, Enquiry – Document Status, e-Payment). Exact real-portal menu layout is not copied (site menus not publicly documented); training tools sit in a separate group.
+
+## v21 additions
+- HSN table now has ~120 more high-value / controlled goods (defence & arms, aircraft, satellites and space equipment, capital machinery, precious metals/stones, SCOMET chemicals). Controlled lines carry a SCOMET flag (auto-ticks SCOMET in the Export Brief) and new PGA agencies (DGFT SCOMET, MoD, Dept of Space, AERB, NACWC, DGCA, PESO). Duty/drawback/RoDTEP figures are training approximations.
+- IEC accepts 10 letters/digits (e.g. UYJPK1234L); exporter PAN flows from the Document Simulator job into the filing and the Shipping Bill header.

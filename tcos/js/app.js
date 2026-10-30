@@ -114,17 +114,18 @@ function logout() {
    — the student just watched their EGM/OOC come through and may want a
    moment on this screen before leaving, so returning is one click away
    but never forced on them. */
-function showBridgeReturnPrompt(refNo, docLabel) {
+function showBridgeReturnPrompt(refNo, docLabel, opts) {
+  const pdfDone = !!(opts && opts.pdfDone);
   const bridge = (typeof DotBridge !== 'undefined') ? DotBridge.getBridge() : null;
   const returnUrl = '../logistics-simulator/workstation.html?doc=' + (bridge ? encodeURIComponent(bridge.returnSlug) : '') + '&bridgeReturn=1';
   let icDoc = null;
-  try { const fl = getFiling(refNo); if (fl && typeof tcosEnsureIcegateDoc === 'function' && (docLabel === 'Shipping Bill' || docLabel === 'Bill of Entry')) icDoc = tcosEnsureIcegateDoc(fl); } catch (e) { icDoc = null; }
+  try { const fl = getFiling(refNo); if (!pdfDone && fl && typeof tcosEnsureIcegateDoc === 'function' && (docLabel === 'Shipping Bill' || docLabel === 'Bill of Entry')) icDoc = tcosEnsureIcegateDoc(fl); } catch (e) { icDoc = null; }
   const bg = el('div', 'modal-bg show');
   bg.innerHTML = '<div class="modal" role="dialog" aria-modal="true" aria-labelledby="bridgeDoneTitle" style="width:min(460px,92vw)">' +
     '<div class="modal-head" id="bridgeDoneTitle">' + esc(docLabel) + ' Complete <span class="close" role="button" tabindex="0" aria-label="Close dialog">×</span></div>' +
     '<div style="padding:22px">' +
-    '<p style="margin:0 0 10px">This ' + esc(docLabel) + ' (<b>' + esc(refNo) + '</b>) is fully closed out in TCOS.</p>' +
-    '<p style="margin:0 0 18px;color:var(--muted,#667085)">Head back to the Logistics Document Simulator now, marked complete there too — or keep exploring this filing in TCOS first.</p>' +
+    (pdfDone ? '<p style="margin:0 0 10px">Your ' + esc(docLabel) + ' (<b>' + esc(refNo) + '</b>) is filed and the ICEGATE-format PDF is downloaded.</p>' : '<p style="margin:0 0 10px">This ' + esc(docLabel) + ' (<b>' + esc(refNo) + '</b>) is fully closed out in TCOS.</p>') +
+    '<p style="margin:0 0 18px;color:var(--muted,#667085)">Head back to the Logistics Document Simulator now, marked complete there too — or keep exploring this filing in TCOS first' + (pdfDone ? ' (Let Export Order and EGM can be finished here later)' : '') + '.</p>' +
     (icDoc ? '<p style="margin:0 0 14px;color:var(--muted,#667085)">Your <b>' + esc(docLabel) + '</b> is ready as a real ICEGATE-format PDF. Download it, and you will be taken back to the Document Simulator automatically.</p>' : '') +
     '<div class="actions"><button class="back2" data-x="stay">Stay in TCOS</button>' + (icDoc ? '<button class="back2" data-x="return">Return without PDF</button><button class="next" data-x="dlreturn">⬇ Download PDF &amp; return to Document Simulator</button>' : '<button class="next" data-x="return">← Return to Logistics Simulator</button>') + '</div>' +
     '</div></div>';
@@ -253,6 +254,14 @@ function enterApp() {
   navTo(restore || (STATE.user.profile.role === 'Trainer / Instructor' ? 'trainer' : 'dashboard'));
 }
 
+/* Shipping Bill filed + ICEGATE PDF downloaded -> the Document Simulator exercise is done; offer the way back
+   (LEO / EGM can still be completed afterwards in TCOS). */
+function tcosBridgeSbPdfDone(filing) {
+  if (typeof DotBridge === 'undefined' || !filing || filing.type !== 'export' || !filing.ack) return;
+  if (!DotBridge.markCompleted('export', filing.id, 'shipping-bill')) return;
+  showBridgeReturnPrompt(filing.id, 'Shipping Bill', { pdfDone: true });
+}
+
 /* ---------------- Logistics ⇄ TCOS bridge banner ----------------
    A small persistent strip while a bridge is in progress, so the student
    always knows how they got here and can bail out cleanly instead of
@@ -262,9 +271,17 @@ function renderBridgeBanner() {
   const existing = document.getElementById('bridgeBanner');
   if (existing) existing.remove();
   const bridge = (typeof DotBridge !== 'undefined') ? DotBridge.getBridge() : null;
+  if (bridge && bridge.active && bridge.completed) {
+    const done = document.createElement('div');
+    done.id = 'bridgeBanner';
+    done.style.cssText = 'background:#0B6B3A;color:#fff;font-size:12.5px;padding:8px 18px;display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap;text-align:center';
+    done.innerHTML = '<span>✔ Completed in TCOS — your Document Simulator exercise is marked done.</span><a href="../logistics-simulator/workstation.html?doc=' + encodeURIComponent(bridge.returnSlug || '') + '&bridgeReturn=1" style="color:#fff;font-weight:700;text-decoration:underline;white-space:nowrap">← Return to Document Simulator</a>';
+    document.body.insertBefore(done, document.body.firstChild);
+    return;
+  }
   if (!bridge || !bridge.active || bridge.completed) return;
   const docLabel = bridge.filingType === 'export' ? 'Shipping Bill' : bridge.filingType === 'import' ? 'Bill of Entry' : bridge.filingType === 'brc' ? 'Bank Realisation Certificate' : bridge.filingType === 'consignia' ? (typeof EXPORT_DOC_CATALOG !== 'undefined' && EXPORT_DOC_CATALOG[bridge.consignaDocType] ? EXPORT_DOC_CATALOG[bridge.consignaDocType].label : 'your full Export Job') : FREIGHT_SLUG_LABELS[bridge.returnSlug] || 'Freight document';
-  const closingNote = bridge.filingType === 'export' ? 'LEO + EGM' : bridge.filingType === 'import' ? 'Out of Charge' : bridge.filingType === 'brc' ? 'the BRC upload' : bridge.filingType === 'consignia' ? (bridge.consignaDocType === 'SHIPPING_BILL' ? 'LEO + EGM' : bridge.consignaDocType ? 'marking it Ready in Consignia Desk' : 'your Export Job Document Plan') : 'that stage';
+  const closingNote = bridge.filingType === 'export' ? 'filing the Shipping Bill and downloading its PDF' : bridge.filingType === 'import' ? 'Out of Charge' : bridge.filingType === 'brc' ? 'the BRC upload' : bridge.filingType === 'consignia' ? (bridge.consignaDocType === 'SHIPPING_BILL' ? 'LEO + EGM' : bridge.consignaDocType ? 'marking it Ready in Consignia Desk' : 'your Export Job Document Plan') : 'that stage';
   const banner = document.createElement('div');
   banner.id = 'bridgeBanner';
   banner.style.cssText = 'background:#123B70;color:#fff;font-size:12.5px;padding:8px 18px;display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap;text-align:center';
@@ -409,10 +426,10 @@ function validateGSTIN() {
 }
 function validateIEC() {
   const v = (document.getElementById('iec').value || '').trim();
-  const re = /^\d{10}$/;
+  const re = /^[A-Za-z0-9]{10}$/;
   const status = document.getElementById('iecstatus');
   regState.iecValid = re.test(v);
-  status.textContent = regState.iecValid ? 'Format valid (training check only).' : 'Invalid IEC format — expected 10 digits.';
+  status.textContent = regState.iecValid ? 'Format valid (training check only).' : 'Invalid IEC format — expected 10 letters/digits, e.g. UYJPK1234L.';
   status.className = 'status ' + (regState.iecValid ? 'ok' : 'err');
 }
 function validatePAN() {

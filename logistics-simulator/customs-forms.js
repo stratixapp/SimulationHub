@@ -268,6 +268,7 @@
         <tr>${TD("Port Code",2,"k")}${TD("SB No",3,"k","style=\"text-align:center\"")}${TD("SB Date",3,"k","style=\"text-align:center\"")}</tr>
         <tr>${TD(esc(code),2)}${TD(esc(sbNo),3)}${TD(sbDate,3)}</tr>
         <tr>${TD("IEC/Br",2,"k")}${TD(vt(d.iecNumber),3)}${TD(vt(d.branchSerialNo),3)}</tr>
+        <tr>${TD("PAN",2,"k")}${TD(vt(d.panNumber),6)}</tr>
         <tr>${TD("GSTIN/TYPE",2,"k")}${TD(gstinTxt,6)}</tr>
         <tr>${TD("CB CODE",2,"k")}${TD(vt(d.chaLicenseNo),6)}</tr>
         <tr>${TD("TYPE",2,"k")}${TD("INV",2,"k","style=\"text-align:center\"")}${TD("ITEM",2,"k","style=\"text-align:center\"")}${TD("CONT",2,"k","style=\"text-align:center\"")}</tr>
