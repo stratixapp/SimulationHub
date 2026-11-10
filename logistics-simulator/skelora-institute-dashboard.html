@@ -1253,6 +1253,8 @@
      direct "continue this Shipment Lot in TCOS" entry point that isn't
      gated behind first opening one specific document. -->
 <script src="../shared/tcos-bridge.js"></script>
+<!-- DOT Ecosystem Trade & Customs certificate (auto-issued PDF) -->
+<script src="dot-certificate.js"></script>
 
 <script>
 /* ===================== AUTH GUARD ===================== */
@@ -1615,71 +1617,16 @@ renderKpiGrid();
 
 /* ===================== CERTIFICATE OF COMPLETION ===================== */
 function renderCertificateBanner(){
-  const el = document.getElementById('certificateBanner');
-  if(!el) return;
-  if(!CURRENT_USER.id || myStats.completed < TOTAL_EXERCISES || TOTAL_EXERCISES===0){ el.style.display='none'; return; }
-  el.style.display='block';
-  el.innerHTML = `
-    <div style="margin-bottom:24px;padding:22px 26px;border-radius:12px;background:linear-gradient(120deg, var(--navy), #14385E);color:#fff;display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;">
-      <div style="display:flex;align-items:center;gap:16px;">
-        <div style="width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;">${ic('cap')}</div>
-        <div>
-          <div style="font-weight:700;font-size:16px;">All ${TOTAL_EXERCISES} documents completed — congratulations!</div>
-          <div style="font-size:13px;opacity:.85;">You've finished every Fill &amp; Learn exercise in the Skelora Institute Logistics Simulator.</div>
-        </div>
-      </div>
-      <button class="btn-secondary" id="downloadCertBtn" type="button" style="background:#fff;color:var(--navy);white-space:nowrap;">🎓 Download Certificate</button>
-    </div>`;
-  const btn = document.getElementById('downloadCertBtn');
-  if(btn) btn.addEventListener('click', generateCertificatePDF);
+  if(typeof DotCert === 'undefined'){ return; }
+  DotCert.renderBanner(document.getElementById('certificateBanner'), CURRENT_USER.id, TOTAL_EXERCISES);
 }
 
+/* Kept for any older caller: downloads the student's issued certificate (if any). */
 async function generateCertificatePDF(){
-  if(typeof html2canvas === "undefined" || typeof window.jspdf === "undefined"){
-    showToast("PDF tools didn't load — check your internet connection and try again.");
-    return;
-  }
-  const holder = document.createElement('div');
-  holder.style.cssText = 'position:fixed;left:-9999px;top:0;width:1000px;background:#fff;';
-  holder.innerHTML = `
-    <div style="width:1000px;height:700px;box-sizing:border-box;padding:60px;background:#fff;border:10px solid #0B2A4A;position:relative;font-family:Georgia,serif;text-align:center;">
-      <div style="position:absolute;inset:16px;border:1.5px solid #B5854A;"></div>
-      <div style="position:absolute;top:28px;left:0;right:0;text-align:center;font-family:Arial,Helvetica,sans-serif;font-size:11px;letter-spacing:.4px;color:#6E7682;">Designed and Developed By DOT Ecosystem</div>
-      <div style="margin-top:40px;color:#0B2A4A;font-size:13px;letter-spacing:3px;text-transform:uppercase;">Skelora Institute of Logistics</div>
-      <div style="margin-top:18px;font-size:34px;color:#101828;font-weight:700;">Certificate of Completion</div>
-      <div style="margin-top:26px;font-size:14px;color:#5B6472;">This certifies that</div>
-      <div style="margin-top:10px;font-size:30px;color:#0B2A4A;font-weight:700;border-bottom:1.5px solid #B5854A;display:inline-block;padding:0 30px 8px;">${(CURRENT_USER.name||'Student').replace(/</g,'')}</div>
-      <div style="margin-top:8px;font-size:13px;color:#5B6472;letter-spacing:.5px;">${(skGetWorkRole()||'').replace(/</g,'')}</div>
-      <div style="margin-top:26px;font-size:14.5px;color:#5B6472;max-width:640px;margin-left:auto;margin-right:auto;line-height:1.6;">
-        has successfully completed all <b>${TOTAL_EXERCISES}</b> Fill &amp; Learn logistics documentation exercises
-        in the Skelora Institute Logistics Simulator, covering trade documentation, sea &amp; air freight,
-        road transport, warehousing, customs, and finance workflows.
-      </div>
-      <div style="margin-top:50px;display:flex;justify-content:space-between;padding:0 60px;">
-        <div style="text-align:center;">
-          <div style="font-size:13px;color:#101828;border-top:1px solid #101828;padding-top:6px;width:200px;">${new Date().toLocaleDateString('en-IN',{year:'numeric',month:'long',day:'numeric'})}</div>
-          <div style="font-size:11px;color:#5B6472;margin-top:4px;">Date Issued</div>
-        </div>
-        <div style="text-align:center;">
-          <div style="font-size:13px;color:#101828;border-top:1px solid #101828;padding-top:6px;width:200px;">Skelora Institute Logistics Simulator</div>
-          <div style="font-size:11px;color:#5B6472;margin-top:4px;">Issuing Program</div>
-        </div>
-      </div>
-    </div>`;
-  document.body.appendChild(holder);
-  try{
-    const canvas = await html2canvas(holder.firstElementChild, {scale:2, useCORS:true, backgroundColor:'#ffffff'});
-    const { jsPDF } = window.jspdf;
-    const pdf = new jsPDF({orientation:'landscape', unit:'mm', format:'a4'});
-    const pw = pdf.internal.pageSize.getWidth(), ph = pdf.internal.pageSize.getHeight();
-    pdf.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, pw, ph);
-    pdf.save(`Certificate-of-Completion-${(CURRENT_USER.name||'Student').replace(/[^a-zA-Z0-9_-]+/g,'-')}.pdf`);
-    showToast('Certificate downloaded.');
-  } catch(e){
-    showToast("Couldn't generate the certificate. Please try again.");
-  } finally {
-    holder.remove();
-  }
+  const rec = (typeof DotCert !== 'undefined' && CURRENT_USER.id) ? DotCert.getRecord(CURRENT_USER.id) : null;
+  if(!rec){ showToast("Your certificate is issued automatically once the requirements are complete."); return; }
+  try{ await DotCert.downloadPDF(rec); showToast('Certificate downloaded.'); }
+  catch(e){ showToast("Couldn't generate the certificate. Please try again."); }
 }
 
 /* ===================== BADGES ===================== */
@@ -1918,6 +1865,7 @@ async function bulkExportJobPdfs(job){
 }
 
 renderCertificateBanner();
+if(typeof DotCert !== 'undefined' && CURRENT_USER.id){ setTimeout(()=>DotCert.autoIssue({}), 600); }
 renderBadges();
 
 /* ===================== RENDER: PROGRESS DONUT ===================== */
@@ -2458,7 +2406,7 @@ function renderDocs(){
           <div class="doc-cat" style="color:var(${cat.color});">${ic(cat.icon)}<span>${cat.label}</span></div>
           <span class="doc-tag" style="color:var(${d.tag.c});background:color-mix(in srgb, var(${d.tag.c}) 14%, white);">${d.tag.t}</span>
         </div>
-        <div class="doc-name">${d.name}${airMark}</div>
+        <div class="doc-name">${d.name}${airMark}${(typeof skMandatoryLabelHTML==='function' && activeJob && activeJob.fields) ? skMandatoryLabelHTML(slug, activeJob.fields.mode) : ''}</div>
         <div class="doc-bottom">
           <span class="doc-code">${d.code}</span>
           ${ic('chev')}
@@ -2789,6 +2737,16 @@ if(createAssignmentBtnEl) createAssignmentBtnEl.addEventListener('click', ()=> o
    opens the same shared modal to create/edit a Job. Every field here maps
    1:1 to JOB_FIELD_MAP in job-engine.js — nothing about a document's own
    fields, validation, PDF, or lock/unlock logic is touched. */
+/* Is this form element actually in play? Unlike offsetParent, this IGNORES the accordion: a field in a collapsed
+   section is still part of the form (offsetParent is null there, which used to make Save skip every field outside
+   the one open section). Only an explicit display:none on the field's own wrapper / item row / containers block counts. */
+function skJobElActive(el){
+  for(let n = el; n && !(n.classList && n.classList.contains('job-accordion-body')) && n.id !== 'jobFormGrid'; n = n.parentElement){
+    if(n.style && n.style.display === 'none') return false;
+  }
+  return true;
+}
+
 /* BUGFIX: `f.modes` (job-engine.js) restricts a field to certain Shipment
    Modes — the wrapper div below carries data-jobfield-modes so
    skApplyJobFieldModeVisibility (openJobModal) can hide/show it as the
@@ -2912,7 +2870,7 @@ function skJobDocPickerHTML(selectedSlugs, modeGroup, mode){
         ${items.map(d=>{
           return `<label style="display:flex;align-items:flex-start;gap:8px;font-size:12.8px;color:var(--text-1);padding:5px 4px;border-radius:6px;cursor:pointer;">
             <input type="checkbox" class="jobdoc-check" data-cat="${catKey}" data-slug="${d.slug}" ${selected.has(d.slug)?'checked':''} style="margin-top:2px;">
-            <span>${d.name}</span>
+            <span>${d.name}${typeof skMandatoryLabelHTML==='function' ? skMandatoryLabelHTML(d.slug, mode) : ''}</span>
           </label>`;
         }).join('')}
       </div>
@@ -2924,6 +2882,7 @@ function skJobDocPickerHTML(selectedSlugs, modeGroup, mode){
       <span id="jobDocSelectedCount" style="font-size:12px;font-weight:700;color:var(--navy);">${selected.size} selected</span>
     </div>
     <div style="font-size:11.5px;color:var(--text-3);margin-bottom:10px;line-height:1.5;">Only the documents you pick here will be unlocked for this Shipment Lot — everything else stays locked until you start a new Shipment Lot.</div>
+    ${(typeof skIsDocMandatory==='function' && mode && skIsDocMandatory('commercial-invoice', mode) !== null) ? `<div style="font-size:11.5px;color:var(--text-2);margin-bottom:10px;line-height:1.5;background:var(--surface-alt);border-radius:8px;padding:8px 10px;"><b>${SK_MANDATORY_DOCS_SEA_EXPORT.length} documents are labelled <span style="color:var(--green);">Mandatory</span></b> for a ${mode} shipment \u2014 they cover the whole shipment from order to payment. Every other document is <b>Optional</b> practice; tick it only if your assignment asks for it. The label does not lock or hide anything.</div>` : ''}
     <label style="display:flex;align-items:flex-start;gap:9px;padding:11px 12px;border-radius:9px;background:var(--surface-alt);margin-bottom:10px;cursor:pointer;">
       <input type="checkbox" id="jobDocAutoAddToggle" style="margin-top:2px;">
       <span style="font-size:12.3px;color:var(--text-1);line-height:1.5;"><b>Auto-add prerequisite documents</b> — off by default. With this off, only the documents you tick below are included, exactly as picked. If one of them needs another document finished first and that other document isn't in your selection, you'll be warned when you save. Turn this on to have those prerequisites added for you automatically.</span>
@@ -2956,6 +2915,12 @@ function skJobCompanyPickerHTML(role, targetPrefix){
    Shipment Lot isn't capped at one product. Reads back by DOM order on
    save (skJobModal's save handler), not by data-item-idx value, so
    removing a middle row never causes an index mismatch. */
+/* v36: an item column flagged optional:true in JOB_ITEM_FIELD_MAP (Expiry Date) is never mandatory. */
+function skJobItemElOptional(el){
+  const key = el && el.getAttribute ? el.getAttribute('data-itemfield') : null;
+  const fd = (typeof JOB_ITEM_FIELD_MAP!=='undefined' && key) ? JOB_ITEM_FIELD_MAP.find(f=>f.key===key) : null;
+  return !!(fd && fd.optional);
+}
 function skJobItemFieldHTML(f, val, idx, dgVisible){
   const v = val===undefined||val===null?'':val;
   // BUGFIX (requested): the 6 dgOnly fields (UN Number/Hazard Class/
@@ -2973,7 +2938,7 @@ function skJobItemFieldHTML(f, val, idx, dgVisible){
   const dgWrapClose = f.dgOnly ? `</div>` : '';
   if(f.options){
     return `${dgWrapOpen}<div>
-      <label style="display:block;font-size:10.5px;font-weight:700;color:var(--text-2);margin-bottom:4px;text-transform:uppercase;letter-spacing:.03em;">${f.label} <span style="color:var(--red);">*</span></label>
+      <label style="display:block;font-size:10.5px;font-weight:700;color:var(--text-2);margin-bottom:4px;text-transform:uppercase;letter-spacing:.03em;">${f.label} ${f.optional ? '<span style="color:var(--text-3);font-weight:600;text-transform:none;">(optional)</span>' : '<span style="color:var(--red);">*</span>'}</label>
       <select data-item-idx="${idx}" data-itemfield="${f.key}" style="width:100%;height:38px;border-radius:8px;border:1.5px solid var(--border);padding:0 10px;font-size:13px;background:var(--surface);color:var(--text-1);">
         <option value="">Select…</option>
         ${f.options.map(o=>`<option value="${o}" ${v===o?'selected':''}>${o}</option>`).join('')}
@@ -2981,7 +2946,7 @@ function skJobItemFieldHTML(f, val, idx, dgVisible){
     </div>${dgWrapClose}`;
   }
   return `${dgWrapOpen}<div>
-    <label style="display:block;font-size:10.5px;font-weight:700;color:var(--text-2);margin-bottom:4px;text-transform:uppercase;letter-spacing:.03em;">${f.label} <span style="color:var(--red);">*</span></label>
+    <label style="display:block;font-size:10.5px;font-weight:700;color:var(--text-2);margin-bottom:4px;text-transform:uppercase;letter-spacing:.03em;">${f.label} ${f.optional ? '<span style="color:var(--text-3);font-weight:600;text-transform:none;">(optional)</span>' : '<span style="color:var(--red);">*</span>'}</label>
     <input data-item-idx="${idx}" data-itemfield="${f.key}" type="${f.numeric?'number':'text'}" value="${String(v).replace(/"/g,'&quot;')}" placeholder="${f.placeholder||''}" style="width:100%;height:38px;border-radius:8px;border:1.5px solid var(--border);padding:0 10px;font-size:13px;">
   </div>${dgWrapClose}`;
 }
@@ -3425,6 +3390,17 @@ function openJobModal(existingJob){
   // PHASE 13: Add Item / Remove Item — appends or removes a .job-item-row
   // in #jobItemsList. Uses a delegated listener on the list itself so it
   // still works for rows added after the modal first rendered.
+  // v41: fields flagged uppercase:true (GSTIN, vehicle number, seal no., UN Number ...) are upper-cased as the student types.
+  modalBody.addEventListener('input', (e)=>{
+    const el = e.target;
+    if(!el || el.tagName !== 'INPUT' || el.type === 'number') return;
+    const jf = el.getAttribute('data-jobfield'), itf = el.getAttribute('data-itemfield');
+    const def = jf ? (typeof JOB_FIELD_MAP !== 'undefined' && JOB_FIELD_MAP.find(f=>f.key===jf))
+              : itf ? (typeof JOB_ITEM_FIELD_MAP !== 'undefined' && JOB_ITEM_FIELD_MAP.find(f=>f.key===itf)) : null;
+    if(!def || !def.uppercase) return;
+    const up = el.value.toUpperCase();
+    if(up !== el.value){ const a = el.selectionStart, b = el.selectionEnd; el.value = up; try{ el.setSelectionRange(a,b); }catch(_){} }
+  });
   const jobItemsListEl = document.getElementById('jobItemsList');
   const jobAddItemBtn = document.getElementById('jobAddItemBtn');
   if(jobAddItemBtn && jobItemsListEl){
@@ -3608,16 +3584,29 @@ function openJobModal(existingJob){
     // simply don't know yet), and Warehouse Transfer is its own group
     // (below) that correctly still hides them once actually selected.
     document.querySelectorAll('#jobFormGrid [data-jobfield-modes]').forEach(wrap=>{
-      const allowed = wrap.getAttribute('data-jobfield-modes').split(',');
-      const show = mode === "" ? true : allowed.includes(group);
-      wrap.style.display = show ? '' : 'none';
-      if(!show){
-        // Clear + un-highlight a now-hidden field so a stale value from a
-        // previous Mode selection can't silently ride along, and so it
-        // never gets flagged red by the validator while hidden.
-        const el = wrap.querySelector('[data-jobfield]');
-        if(el){ el.style.borderColor = 'var(--border)'; }
+      // The extra-containers block stays Sea-only (a container row means nothing on Air/Road, and Save ignores it there).
+      if(wrap.id === 'jobContainersWrap'){
+        wrap.style.display = (mode === "" || group === 'sea') ? '' : 'none';
+        return;
       }
+      // UNLOCKED: every Job section and field is always visible and fillable, whatever Shipment Mode is picked
+      // (an Export lot can fill Warehouse & Transport; a Road lot can fill Exporter / Transport details...).
+      // A field is only REQUIRED for the modes it applies to — elsewhere it just shows an "optional" tag.
+      wrap.style.display = '';
+      const el = wrap.querySelector('[data-jobfield]');
+      const fd = (el && typeof JOB_FIELD_MAP !== 'undefined') ? JOB_FIELD_MAP.find(f=>f.key===el.getAttribute('data-jobfield')) : null;
+      const required = (typeof skJobFieldRequiredForMode === 'function') ? skJobFieldRequiredForMode(fd, mode) : true;
+      const lbl = wrap.querySelector('label');
+      if(lbl){
+        const star = lbl.querySelector('span[style*="--red"]');
+        if(star) star.style.display = required ? '' : 'none';
+        let tag = lbl.querySelector('.job-opt-tag');
+        if(!required && !(fd && fd.optional)){
+          if(!tag){ tag = document.createElement('span'); tag.className = 'job-opt-tag'; tag.style.cssText = 'margin-left:6px;font-size:10px;font-weight:700;color:var(--text-3);text-transform:none;letter-spacing:0;'; lbl.appendChild(tag); }
+          tag.textContent = '(optional for ' + (mode || 'this mode') + ')';
+        } else if(tag){ tag.remove(); }
+      }
+      if(el && !required) el.style.borderColor = 'var(--border)';
     });
   }
   // BUGFIX (requested): "Destination Country" / "Port of Loading" /
@@ -3826,10 +3815,11 @@ function openJobModal(existingJob){
     // skip fields hidden by the Shipment Mode filter, and skip fields
     // explicitly marked optional (buyerGSTIN, containerNo, the Leg-2
     // Stock Transfer fields, etc).
-    const jobFieldEls = Array.from(body.querySelectorAll('[data-jobfield]')).filter(el=>el.offsetParent!==null);
+    const _modeNow = (document.querySelector('#jobFormGrid [data-jobfield="mode"]') || {}).value || "";
+    const jobFieldEls = Array.from(body.querySelectorAll('[data-jobfield]')).filter(el=>skJobElActive(el));
     const mandatoryJobFieldEls = jobFieldEls.filter(el=>{
       const fd = (typeof JOB_FIELD_MAP!=='undefined') ? JOB_FIELD_MAP.find(f=>f.key===el.getAttribute('data-jobfield')) : null;
-      return !(fd && fd.optional);
+      return (typeof skJobFieldRequiredForMode === 'function') ? skJobFieldRequiredForMode(fd, _modeNow) : !(fd && fd.optional);
     });
     // Item rows: mirrors jobSaveBtn's own rule of "every field on at
     // least one row" — just checks the first row here for the badge.
@@ -3838,7 +3828,7 @@ function openJobModal(existingJob){
     // this row's "Dangerous Goods?" is No — mirrors jobSaveBtn's own
     // offsetParent-based skip, so the section badge doesn't sit at
     // "11/12" forever for an ordinary non-hazardous item.
-    const itemFieldEls = firstItemRow ? Array.from(firstItemRow.querySelectorAll('[data-itemfield]')).filter(el=>el.offsetParent!==null) : [];
+    const itemFieldEls = firstItemRow ? Array.from(firstItemRow.querySelectorAll('[data-itemfield]')).filter(el=>skJobElActive(el) && !skJobItemElOptional(el)) : [];
     const total = mandatoryJobFieldEls.length + itemFieldEls.length;
     const filled = mandatoryJobFieldEls.filter(el=>!!el.value).length + itemFieldEls.filter(el=>!!el.value).length;
     if(total===0){ badge.textContent = ''; return true; }
@@ -4050,19 +4040,27 @@ function openJobModal(existingJob){
     //    optional/if-applicable, so it no longer contradicts that.
     // Clear old error highlighting first, then re-validate from scratch.
     let firstInvalidEl = null;
+    let firstInvalidMsg = '';   // v41: specific format/consistency message (falls back to the generic required text)
     document.querySelectorAll('#jobFormGrid [data-jobfield], #jobItemsList [data-itemfield]').forEach(el=>{
       el.style.borderColor = 'var(--border)';
     });
+    const jobModeForValidation = (document.querySelector('#jobFormGrid [data-jobfield="mode"]') || {}).value || "";
     document.querySelectorAll('#jobFormGrid [data-jobfield]').forEach(el=>{
-      if(el.offsetParent===null) return; // hidden for this Shipment Mode — not required
+      if(!skJobElActive(el)) return; // explicitly hidden (e.g. the Sea-only extra-containers block on an Air lot)
       const fieldDef = (typeof JOB_FIELD_MAP !== 'undefined') ? JOB_FIELD_MAP.find(f=>f.key===el.getAttribute('data-jobfield')) : null;
+      const required = (typeof skJobFieldRequiredForMode === 'function') ? skJobFieldRequiredForMode(fieldDef, jobModeForValidation) : !(fieldDef && fieldDef.optional);
       if(!el.value){
-        if(fieldDef && fieldDef.optional) return; // explicitly optional — blank is fine
+        if(!required) return; // optional here (explicitly optional, or not applicable to this Shipment Mode)
         el.style.borderColor = 'var(--red)'; if(!firstInvalidEl) firstInvalidEl = el; return;
       }
-      if(fieldDef && fieldDef.pattern && !(new RegExp(fieldDef.pattern)).test(el.value.trim())){
-        el.style.borderColor = 'var(--red)';
-        if(!firstInvalidEl) firstInvalidEl = el;
+      // Format rules only bite where the field applies — e.g. a foreign supplier's tax ID on an Import lot is free text.
+      // v41: skValidateJobFieldValue (job-engine.js) = pattern (mode-aware: Air flight no.) + must-be-positive, on the normalized value.
+      if(fieldDef && (required || fieldDef.optional)){
+        const _fmtMsg = skValidateJobFieldValue(fieldDef, el.value, jobModeForValidation);
+        if(_fmtMsg){
+          el.style.borderColor = 'var(--red)';
+          if(!firstInvalidEl){ firstInvalidEl = el; firstInvalidMsg = _fmtMsg; }
+        }
       }
     });
     const itemRows = Array.from(document.querySelectorAll('#jobItemsList .job-item-row'));
@@ -4074,11 +4072,36 @@ function openJobModal(existingJob){
         // hidden because this row's "Dangerous Goods?" is No isn't
         // required — same offsetParent-based skip already used for
         // Shipment-Mode-hidden Job fields just above.
-        if(el.offsetParent===null) return;
-        if(!el.value){ el.style.borderColor = 'var(--red)'; if(!firstInvalidEl) firstInvalidEl = el; }
+        if(!skJobElActive(el)) return;
+        if(skJobItemElOptional(el)) return; // v36: optional column (Expiry Date)
+        if(!el.value){ el.style.borderColor = 'var(--red)'; if(!firstInvalidEl) firstInvalidEl = el; return; }
+        // v41: item rows now get the same format rules as Job fields (HS code = 8 digits, UN Number, positive numbers ...)
+        const _itDef = (typeof JOB_ITEM_FIELD_MAP !== 'undefined') ? JOB_ITEM_FIELD_MAP.find(f=>f.key===el.getAttribute('data-itemfield')) : null;
+        const _itMsg = skValidateJobFieldValue(_itDef, el.value, jobModeForValidation);
+        if(_itMsg){ el.style.borderColor = 'var(--red)'; if(!firstInvalidEl){ firstInvalidEl = el; firstInvalidMsg = _itMsg; } }
+      });
+      // store the normalized form (trimmed / upper-cased where the field says so)
+      Object.keys(item).forEach(k=>{
+        const d = (typeof JOB_ITEM_FIELD_MAP !== 'undefined') ? JOB_ITEM_FIELD_MAP.find(f=>f.key===k) : null;
+        item[k] = skNormalizeJobValue(d, item[k]);
       });
       return item;
     });
+    // v41: cross-field consistency (Invoice Value = Σ items, Gross Weight = Σ item weights, Net <= Gross) — only once every single field is individually valid.
+    if(!firstInvalidEl){
+      const _cf = {};
+      document.querySelectorAll('#jobFormGrid [data-jobfield]').forEach(el=>{
+        const d = (typeof JOB_FIELD_MAP !== 'undefined') ? JOB_FIELD_MAP.find(f=>f.key===el.getAttribute('data-jobfield')) : null;
+        _cf[el.getAttribute('data-jobfield')] = skNormalizeJobValue(d, el.value);
+      });
+      const _issues = skValidateJobConsistency(_cf, items, jobModeForValidation);
+      _issues.forEach(is=>{
+        const target = is.scope === 'field'
+          ? document.querySelector(`#jobFormGrid [data-jobfield="${is.key}"]`)
+          : (itemRows[is.idx] ? itemRows[is.idx].querySelector(`[data-itemfield="${is.key}"]`) : null);
+        if(target){ target.style.borderColor = 'var(--red)'; if(!firstInvalidEl){ firstInvalidEl = target; firstInvalidMsg = is.message; } }
+      });
+    }
     // Additional containers: only for Sea modes (the wrapper is display:none otherwise). A row with nothing in it is ignored;
     // a row with anything in it needs a valid ISO 6346 container number.
     // Decided by Shipment Mode, NOT by offsetParent: the Transport accordion section is usually collapsed when Save is
@@ -4105,9 +4128,11 @@ function openJobModal(existingJob){
     const jobContainersError = document.getElementById('jobContainersError');
     if(jobContainersError) jobContainersError.style.display = containerRowBad ? 'block' : 'none';
     const jobItemsError = document.getElementById('jobItemsError');
-    if(jobItemsError) jobItemsError.style.display = itemRows.some(row=>Array.from(row.querySelectorAll('[data-itemfield]')).some(el=>el.offsetParent!==null && !el.value)) ? 'block' : 'none';
+    if(jobItemsError) jobItemsError.style.display = itemRows.some(row=>Array.from(row.querySelectorAll('[data-itemfield]')).some(el=>skJobElActive(el) && !skJobItemElOptional(el) && !el.value)) ? 'block' : 'none';
     if(firstInvalidEl){
-      showToast('Every field is required — fill in the highlighted fields.');
+      showToast(firstInvalidMsg || 'Every field is required — fill in the highlighted fields.');
+      const _badBody = firstInvalidEl.closest('.job-accordion-body');
+      if(_badBody && _badBody.style.display === 'none'){ skToggleJobAccordion(_badBody.getAttribute('data-accordion-body'), true); }
       firstInvalidEl.scrollIntoView({behavior:'smooth', block:'center'});
       firstInvalidEl.focus();
       return;
@@ -4115,7 +4140,8 @@ function openJobModal(existingJob){
 
     const patch = {items, extraContainers};
     document.querySelectorAll('#jobFormGrid [data-jobfield]').forEach(el=>{
-      patch[el.getAttribute('data-jobfield')] = el.value;
+      const _d = (typeof JOB_FIELD_MAP !== 'undefined') ? JOB_FIELD_MAP.find(f=>f.key===el.getAttribute('data-jobfield')) : null;
+      patch[el.getAttribute('data-jobfield')] = skNormalizeJobValue(_d, el.value);   // v41: trim / UPPERCASE / compact where the field says so
     });
     // BUGFIX: preserve an existing assignment link instead of always
     // clearing it (see note above openJobModal's docPickerOrAssignmentNoticeHtml).

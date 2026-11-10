@@ -370,6 +370,10 @@ const PREREQUISITES = {
   "container-destuffing": ["arrival-notice"],
   "import-license": ["cargo-manifest"],
   "import-invoice": ["commercial-invoice"],
+  // FIX (v35): these import-side documents had no entry at all, so they never waited for anything.
+  "import-packing-list": ["import-invoice"],
+  "duty-challan": ["duty-calculation"],
+  "examination-report": ["bill-of-entry"],
   "bill-of-entry": ["import-invoice", "arrival-notice"],
   "assessment-copy": ["bill-of-entry"],
   "customs-declaration": ["arrival-notice"],

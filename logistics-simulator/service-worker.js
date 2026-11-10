@@ -5,7 +5,7 @@
    the new version instead of a stale cached copy.
    ========================================================================= */
 
-const CACHE_VERSION = "skelora-v86";
+const CACHE_VERSION = "skelora-v98";
 const APP_SHELL = [
   "./index.html",
   "./intro.html",
@@ -26,6 +26,10 @@ const APP_SHELL = [
   "./air-patches.js",
   "./workflow-rules.js",
   "./dot-ecosystem.js",
+  "./dot-certificate.js",
+  "./assets/dot-certificate-template.jpg",
+  "./fonts/eb-garamond-latin-400-normal.woff2",
+  "./fonts/inter-latin-400-normal.woff2",
   "./styles.css",
   "./ship-loader.css",
   /* Boot loader (night-ship 3D scene shown by index.html before the dashboard).

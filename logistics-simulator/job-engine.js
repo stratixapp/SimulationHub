@@ -47,6 +47,7 @@ const INDIA_LOADING_PORTS = [
   {name:"Ennore Port (Kamarajar), Tamil Nadu", type:"sea"},
   {name:"Tuticorin Port (V.O. Chidambaranar), Tamil Nadu", type:"sea"},
   {name:"Cochin Port (Kochi), Kerala", type:"sea"},
+  {name:"Vizhinjam Port, Kerala", type:"sea"},
   {name:"Visakhapatnam Port, Andhra Pradesh", type:"sea"},
   {name:"Krishnapatnam Port, Andhra Pradesh", type:"sea"},
   {name:"Kolkata Port (Haldia), West Bengal", type:"sea"},
@@ -571,26 +572,27 @@ const JOB_FIELD_MAP = [
   {key:"sellerName",      label:"Exporter / Seller",             contextKey:"txn.sellerName", type:"text", placeholder:"Meridian Exports Pvt. Ltd.", section:"Exporter (Seller)", modes:["sea","air"]},
   {key:"sellerAddress",   label:"Exporter Address",              contextKey:"txn.sellerAddress", type:"text", placeholder:"Plot 14, MIDC Industrial Area, Pune", section:"Exporter (Seller)", modes:["sea","air"]},
   {key:"sellerCountry",   label:"Country of Origin",              contextKey:"txn.sellerCountry", type:"text", placeholder:"India", section:"Exporter (Seller)", help:"Feeds the Country of Origin field on customs filings like the ISF — leave as India unless this Job's goods actually originate elsewhere.", modes:["sea","air"]},
-  {key:"sellerGSTIN",     label:"Exporter GSTIN",                contextKey:"txn.sellerGSTIN", type:"text", uppercase:true, placeholder:"27MCPPK1234L1Z1", pattern:"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$", patternMsg:"Enter a valid 15-character GSTIN, e.g. 27MCPPK1234L1Z1.", section:"Exporter (Seller)", modes:["sea","air"]},
-  {key:"sellerIEC",       label:"Exporter IEC Code",             contextKey:"txn.sellerIEC",  type:"text", uppercase:true, placeholder:"UYJPK1234L", pattern:"^[A-Z0-9]{10}$", patternMsg:"IEC must be 10 characters (letters and digits), e.g. UYJPK1234L.", section:"Exporter (Seller)", modes:["sea","air"]},
-  {key:"sellerPAN",      label:"Exporter PAN",                  contextKey:"txn.sellerPAN",  type:"text", uppercase:true, placeholder:"MCPPK1234L", pattern:"^[A-Z]{5}[0-9]{4}[A-Z]{1}$", patternMsg:"Enter a valid 10-character PAN, e.g. MCPPK1234L.", section:"Exporter (Seller)", modes:["sea","air"]},
-  {key:"sellerPhone",     label:"Exporter Phone",                contextKey:"txn.sellerPhone", type:"text", placeholder:"+91 98200 12345", section:"Exporter (Seller)", modes:["sea","air"]},
+  {key:"sellerGSTIN", requiredFor:["Sea Export","Air Export"],     label:"Exporter GSTIN",                contextKey:"txn.sellerGSTIN", type:"text", uppercase:true, placeholder:"12AABCT4521K1ZM", pattern:"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$", patternMsg:"Enter a valid 15-character GSTIN, e.g. 12AABCT4521K1ZM.", section:"Exporter (Seller)", modes:["sea","air"]},
+  {key:"sellerIEC", requiredFor:["Sea Export","Air Export"],       label:"Exporter IEC Code",             contextKey:"txn.sellerIEC",  type:"text", uppercase:true, placeholder:"AABCT4521K", pattern:"^[A-Z0-9]{10}$", patternMsg:"IEC must be 10 characters (letters and digits), e.g. AABCT4521K.", section:"Exporter (Seller)", modes:["sea","air"]},
+  {key:"sellerPAN", requiredFor:["Sea Export","Air Export"],      label:"Exporter PAN",                  contextKey:"txn.sellerPAN",  type:"text", uppercase:true, placeholder:"AABCT4521K", pattern:"^[A-Z]{5}[0-9]{4}[A-Z]{1}$", patternMsg:"Enter a valid 10-character PAN, e.g. AABCT4521K.", section:"Exporter (Seller)", modes:["sea","air"]},
+  {key:"sellerPhone", pattern:"^\\+?[0-9][0-9\\-\\s]{7,16}$", patternMsg:"Enter a valid phone number with country code, e.g. +91 98200 12345.",     label:"Exporter Phone",                contextKey:"txn.sellerPhone", type:"text", placeholder:"+91 98200 12345", section:"Exporter (Seller)", modes:["sea","air"]},
   {key:"sellerEmail",     label:"Exporter Email",                contextKey:"txn.sellerEmail", type:"text", placeholder:"exports@meridian.co.in", pattern:"^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$", patternMsg:"Enter a valid email address.", section:"Exporter (Seller)", modes:["sea","air"]},
   {key:"authorizedSignatory", label:"Authorized Signatory Name", contextKey:"txn.authorizedSignatory", type:"text", placeholder:"Priya Sharma", section:"Exporter (Seller)", help:"The person who signs and certifies documents on the exporter's behalf. Auto-fills the Signatory Name field on the Commercial Invoice, Packing List and other documents that ask for one.", modes:["sea","air"]},
 
   // — Importer / Buyer —
   {key:"buyerName",       label:"Importer / Buyer",              contextKey:"txn.buyerName",  type:"text", placeholder:"Nordic Trading GmbH", section:"Importer (Buyer)", modes:["sea","air"]},
   {key:"buyerAddress",    label:"Importer Address",              contextKey:"txn.buyerAddress", type:"text", placeholder:"Hafenstrasse 22, 20457 Hamburg", section:"Importer (Buyer)", modes:["sea","air"]},
-  {key:"buyerGSTIN",      label:"Importer GSTIN (if applicable)", contextKey:"txn.buyerGSTIN", type:"text", placeholder:"07XYZAB5678G1Z2", section:"Importer (Buyer)", optional:true, modes:["sea","air"]},
-  {key:"buyerPhone",      label:"Importer Phone",                contextKey:"txn.buyerPhone", type:"text", placeholder:"+49 40 123456", section:"Importer (Buyer)", modes:["sea","air"]},
+  {key:"buyerGSTIN", uppercase:true, pattern:"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$", patternMsg:"GSTIN must be 15 characters, e.g. 07XYZAB5678G1Z2 — leave this blank for a foreign buyer (no GSTIN).",      label:"Importer GSTIN (if applicable)", contextKey:"txn.buyerGSTIN", type:"text", placeholder:"07XYZAB5678G1Z2", section:"Importer (Buyer)", optional:true, modes:["sea","air"]},
+  {key:"buyerIEC",       label:"Importer IEC Code",             contextKey:"txn.iecNo", type:"text", uppercase:true, placeholder:"AABCT4521K", pattern:"^[A-Z0-9]{10}$", patternMsg:"IEC must be 10 characters (letters and digits), e.g. AABCT4521K.", section:"Importer (Buyer)", modes:["sea","air"], requiredFor:["Sea Import","Air Import"], help:"Required for Import lots — feeds the Import Permit, Duty Challan and Importer Authorization. Leave blank on an Export lot."},
+  {key:"buyerPhone", pattern:"^\\+?[0-9][0-9\\-\\s]{7,16}$", patternMsg:"Enter a valid phone number with country code, e.g. +49 40 123456.",      label:"Importer Phone",                contextKey:"txn.buyerPhone", type:"text", placeholder:"+49 40 123456", section:"Importer (Buyer)", modes:["sea","air"]},
   {key:"buyerEmail",      label:"Importer Email",                contextKey:"txn.buyerEmail", type:"text", placeholder:"procurement@nordictrading.de", pattern:"^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$", patternMsg:"Enter a valid email address.", section:"Importer (Buyer)", modes:["sea","air"]},
 
 
   // — Order & Cargo —
-  {key:"poNumber",        label:"Purchase Order / Order Ref. No.", contextKey:"txn.poNumber",  type:"text", placeholder:"88213", help:"The buyer's order reference — auto-generated as a plain number when you start a new Shipment Lot, or type your own. Auto-fills the PO Number field wherever a document asks for it (Commercial Invoice, Certificate of Origin, GRN, Bank Guarantee and others) — a Proforma Invoice itself has no PO field, since it's the quotation that comes BEFORE an order exists.", section:"Order & Cargo", modes:["sea","air"]},
-  {key:"quantity",        label:"Quantity (packages)",           contextKey:"txn.noOfPackages", type:"number", placeholder:"500", section:"Order & Cargo", modes:["sea","air"]},
-  {key:"grossWeight",     label:"Gross Weight (KG)",             contextKey:"txn.grossWeight", type:"number", placeholder:"8500", section:"Order & Cargo", modes:["sea","air"]},
-  {key:"invoiceValue",    label:"Invoice Value",                 contextKey:null,             type:"number", placeholder:"40000", section:"Order & Cargo", modes:["sea","air"]},
+  {key:"poNumber", pattern:"^(PO[-\\/]\\d{4}[-\\/]\\d{3,8}|\\d{4,10})$", patternMsg:"Use a plain 4–10 digit number (e.g. 88213) or the PO-YYYY-NNNN format.",        label:"Purchase Order / Order Ref. No.", contextKey:"txn.poNumber",  type:"text", placeholder:"88213", help:"The buyer's order reference — auto-generated as a plain number when you start a new Shipment Lot, or type your own. Auto-fills the PO Number field wherever a document asks for it (Commercial Invoice, Certificate of Origin, GRN, Bank Guarantee and others) — a Proforma Invoice itself has no PO field, since it's the quotation that comes BEFORE an order exists.", section:"Order & Cargo", modes:["sea","air"]},
+  {key:"quantity", positive:true, pattern:"^\\d+$", patternMsg:"Number of packages must be a whole number greater than 0.",        label:"Quantity (packages)",           contextKey:"txn.noOfPackages", type:"number", placeholder:"500", section:"Order & Cargo", modes:["sea","air"]},
+  {key:"grossWeight", positive:true, pattern:"^\\d+(\\.\\d{1,2})?$", patternMsg:"Gross weight must be a number greater than 0 (up to 2 decimals), in KG.",     label:"Gross Weight (KG)",             contextKey:"txn.grossWeight", type:"number", placeholder:"2100", help:"Total gross weight of the cargo — must equal the sum of the item Weight (KG) lines below (customs checks this).", section:"Order & Cargo", modes:["sea","air"]},
+  {key:"invoiceValue", positive:true, pattern:"^\\d+(\\.\\d{1,2})?$", patternMsg:"Invoice value must be a number greater than 0 (up to 2 decimals).",    label:"Invoice Value",                 contextKey:null,             type:"number", placeholder:"42500", help:"The goods value — must equal the total of your item lines below: Σ (Quantity × Unit Price − Discount). Freight, insurance and other charges are added later on the invoice itself.", section:"Order & Cargo", modes:["sea","air"]},
   {key:"currency",        label:"Currency",                      contextKey:"txn.currency",   type:"select", options:["USD","EUR","GBP","INR","AED","JPY","SGD","CNY"], section:"Order & Cargo", modes:["sea","air"]},
   {key:"paymentTerms",    label:"Payment Terms",                 contextKey:"txn.paymentTerms", type:"select", options:["Advance Payment","Letter of Credit","Documentary Collection","Open Account"], section:"Order & Cargo", modes:["sea","air"]},
   {key:"expectedShipmentDate", label:"Expected Shipment Date (ETD)", contextKey:"txn.expectedShipmentDate", type:"date", section:"Order & Cargo", modes:["sea","air"]},
@@ -623,7 +625,7 @@ const JOB_FIELD_MAP = [
     // Job voyage number typed or auto-picked with a dot in it always
     // failed validation the moment the student reached those documents.
     // Enforcing the same pattern here catches it at the source instead.
-    pattern:"^[A-Z0-9]{2,10}$", patternMsg:"Voyage/Flight number should be 2–10 letters/digits only, e.g. V221E — no dots, spaces or slashes (documents downstream reject those)."},
+    pattern:"^[A-Z0-9]{2,10}$", patternMsg:"Voyage/Flight number should be 2–10 letters/digits only, e.g. V221E — no dots, spaces or slashes (documents downstream reject those).", patternAir:"^[A-Z0-9]{2}\\d{1,4}$", patternAirMsg:"Flight number is the 2-character airline code + 1–4 digits, e.g. AI508 or 6E512.", uppercase:true},
   {key:"flightDate",      label:"Flight Date (ETD)",             contextKey:"txn.flightDate", type:"date", section:"Transport", modes:["air"], optional:true,
     help:"Filled in when you pick a flight below, or enter the scheduled departure date yourself. Feeds the Flight Date on the Air Waybill and ULD Manifest."},
   {key:"aircraftType",    label:"Aircraft Type (optional)",      contextKey:"txn.aircraftType", type:"datalist", datalistId:"jobAircraftTypes", placeholder:"Boeing 777F", section:"Transport", modes:["air"], optional:true,
@@ -632,8 +634,8 @@ const JOB_FIELD_MAP = [
     pattern:"^[A-Z0-9]{1,2}-?[A-Z0-9]{2,5}$", patternMsg:"Aircraft registration looks like VT-AIX, A6-EPA or N123FX.",
     help:"The tail number painted on the aircraft. Generated for the picked flight (illustrative) — replace it with a real one if you have it."},
   {key:"carrierName",     label:"Carrier Name",                  contextKey:"txn.carrierName", type:"text", placeholder:"Maersk Line", section:"Transport", modes:["sea","air","road"]},
-  {key:"vehicleNumber",   label:"Vehicle Number (Road)",         contextKey:"txn.vehicleNumber", type:"text", placeholder:"KL-07-AB-1234", section:"Transport", modes:["road"]},
-  {key:"sealNo",          label:"Seal Number",                   contextKey:"txn.sealNo",     type:"text", placeholder:"SL-994231", section:"Transport", modes:["sea","road"]},
+  {key:"vehicleNumber", uppercase:true, normalize:"compact", pattern:"^[A-Z]{2}[0-9]{1,2}[A-Z]{1,3}[0-9]{4}$", patternMsg:"Vehicle number must look like KL07AB1234 (state code, RTO number, series, 4 digits). Spaces and hyphens are removed automatically.",   label:"Vehicle Number (Road)",         contextKey:"txn.vehicleNumber", type:"text", placeholder:"KL07AB1234", section:"Transport", modes:["road"]},
+  {key:"sealNo", uppercase:true, pattern:"^[A-Z0-9\\-]{6,15}$", patternMsg:"Seal number should be 6–15 letters/digits (hyphen allowed), e.g. SL-994231.",          label:"Seal Number",                   contextKey:"txn.sealNo",     type:"text", placeholder:"SL-994231", section:"Transport", modes:["sea","road"]},
 
   // — Warehouse & Transport — a whole extra tier of documents that only
   // exists for a purely domestic move: Delivery Challan, Lorry Receipt,
@@ -645,13 +647,13 @@ const JOB_FIELD_MAP = [
   // mandatory — for a Road / Domestic or Warehouse Transfer Job; an
   // export/import Job never sees any of this, same mechanism as the
   // Transport section's own mode filtering above.
-  {key:"deliveryChallanNo",   label:"Delivery Challan No.",        contextKey:"txn.deliveryChallanNo",   type:"text", placeholder:"MPM/DC/2026/00734", section:"Warehouse & Transport", modes:["road","warehouse"]},
-  {key:"ewayBillNo",          label:"E-Way Bill Number",           contextKey:"txn.ewayBillNo",           type:"text", placeholder:"351122334455", section:"Warehouse & Transport", modes:["road","warehouse"]},
-  {key:"lorryReceiptNo",      label:"Lorry Receipt (LR) No.",      contextKey:"txn.lorryReceiptNo",       type:"text", placeholder:"SRC/LR/2026/018842", section:"Warehouse & Transport", modes:["road","warehouse"]},
+  {key:"deliveryChallanNo", uppercase:true, pattern:"^[A-Z0-9\\-\\/]{6,25}$", patternMsg:"Challan number should be 6–25 letters/digits (- and / allowed), e.g. MPM/DC/2026/00734.",   label:"Delivery Challan No.",        contextKey:"txn.deliveryChallanNo",   type:"text", placeholder:"MPM/DC/2026/00734", section:"Warehouse & Transport", modes:["road","warehouse"]},
+  {key:"ewayBillNo", pattern:"^\\d{12}$", patternMsg:"E-Way Bill number is exactly 12 digits, e.g. 351122334455.",          label:"E-Way Bill Number",           contextKey:"txn.ewayBillNo",           type:"text", placeholder:"351122334455", section:"Warehouse & Transport", modes:["road","warehouse"]},
+  {key:"lorryReceiptNo", uppercase:true, pattern:"^[A-Z0-9\\-\\/]{6,25}$", patternMsg:"LR number should be 6–25 letters/digits (- and / allowed), e.g. SRC/LR/2026/018842.",      label:"Lorry Receipt (LR) No.",      contextKey:"txn.lorryReceiptNo",       type:"text", placeholder:"SRC/LR/2026/018842", section:"Warehouse & Transport", modes:["road","warehouse"]},
   {key:"driverName",          label:"Driver Name",                 contextKey:"txn.driverName",           type:"text", placeholder:"Mr. Joseph Thomas", section:"Warehouse & Transport", modes:["road","warehouse"]},
-  {key:"freightAmount",       label:"Freight Amount — Base (₹)",   contextKey:"txn.freightAmount",        type:"number", placeholder:"42000", section:"Warehouse & Transport", modes:["road","warehouse"]},
-  {key:"loadingCharge",       label:"Loading Charge (₹)",          contextKey:"txn.loadingCharge",        type:"number", placeholder:"2500", section:"Warehouse & Transport", modes:["road","warehouse"]},
-  {key:"unloadingCharge",     label:"Unloading Charge (₹)",        contextKey:"txn.unloadingCharge",      type:"number", placeholder:"2500", section:"Warehouse & Transport", modes:["road","warehouse"]},
+  {key:"freightAmount", pattern:"^\\d+(\\.\\d{1,2})?$", patternMsg:"Enter an amount (up to 2 decimals).",       label:"Freight Amount — Base (₹)",   contextKey:"txn.freightAmount",        type:"number", placeholder:"42000", section:"Warehouse & Transport", modes:["road","warehouse"]},
+  {key:"loadingCharge", pattern:"^\\d+(\\.\\d{1,2})?$", patternMsg:"Enter an amount (up to 2 decimals).",       label:"Loading Charge (₹)",          contextKey:"txn.loadingCharge",        type:"number", placeholder:"2500", section:"Warehouse & Transport", modes:["road","warehouse"]},
+  {key:"unloadingCharge", pattern:"^\\d+(\\.\\d{1,2})?$", patternMsg:"Enter an amount (up to 2 decimals).",     label:"Unloading Charge (₹)",        contextKey:"txn.unloadingCharge",      type:"number", placeholder:"2500", section:"Warehouse & Transport", modes:["road","warehouse"]},
   {key:"warehouseName",       label:"Warehouse Name",              contextKey:"txn.warehouseName",        type:"text", placeholder:"Malabar Pharma Distribution Ltd. – Bangalore RDC", section:"Warehouse & Transport", modes:["road","warehouse"]},
   {key:"warehouseCode",       label:"Warehouse Code",              contextKey:"txn.warehouseCode",        type:"text", placeholder:"BLR-RDC-01", section:"Warehouse & Transport", modes:["road","warehouse"]},
   {key:"warehouseManagerName",label:"Warehouse Manager (Name)",    contextKey:"txn.warehouseManagerName", type:"text", placeholder:"Mr. Suresh Gowda", section:"Warehouse & Transport", modes:["road","warehouse"]},
@@ -671,6 +673,26 @@ function skJobModeGroupForMode(mode){
   return null; // nothing picked yet — caller shows everything until it knows
 }
 
+
+/* A field is only REQUIRED for the Shipment Modes it applies to — but every section and field is now always
+   visible and fillable, whatever mode is picked (e.g. an Export lot can fill the Warehouse & Transport section,
+   a Road lot can fill Exporter / Transport details). Outside its modes a field is simply optional.
+   - fd.optional      -> never required
+   - fd.requiredFor   -> required only for those exact Shipment Modes (e.g. Importer IEC: Import lots only)
+   - fd.modes         -> required only for those mode groups ("sea"/"air"/"road"/"warehouse")
+   No mode picked yet -> required (the Mode field itself is mandatory, so save is blocked until it is set). */
+function skJobFieldRequiredForMode(fd, mode){
+  if(!fd) return true;
+  if(fd.optional) return false;
+  if(!mode) return true;
+  if(Array.isArray(fd.requiredFor)) return fd.requiredFor.includes(mode);
+  if(Array.isArray(fd.modes)){
+    const g = skJobModeGroupForMode(mode);
+    return fd.modes.includes(g);
+  }
+  return true;
+}
+
 /* One row of a Job's repeatable Items list — "Product" (a short name) is
    deliberately a separate field from "Product Description" (the fuller
    description), matching how real invoices/documents distinguish the two.
@@ -681,13 +703,13 @@ function skJobModeGroupForMode(mode){
 const JOB_ITEM_FIELD_MAP = [
   {key:"product",     label:"Product",             contextKey:"txn.itemProduct",     placeholder:"Cotton T-Shirts"},
   {key:"description", label:"Product Description", contextKey:"txn.itemDescription", placeholder:"100% combed cotton, crew neck, assorted sizes"},
-  {key:"productCode", label:"Product Code / SKU",  contextKey:"txn.itemProductCode", placeholder:"BP-COTTON-01"},
-  {key:"hsCode",      label:"HSN / HS Code",       contextKey:"txn.hsCode",          placeholder:"61091000", help:"Full 8-digit ITC-HS code (India's national tariff code) — every document across this Shipment Lot now requires 8 digits, so enter all 8 here rather than the 6-digit international HS heading."},
-  {key:"quantity",    label:"Quantity",            contextKey:"txn.itemQuantity",    placeholder:"5000", numeric:true},
+  {key:"productCode", uppercase:true, pattern:"^[A-Z0-9\\-]{4,15}$", patternMsg:"Product code should be 4–15 letters/digits (hyphen allowed), e.g. BP-COTTON-01.", label:"Product Code / SKU",  contextKey:"txn.itemProductCode", placeholder:"BP-COTTON-01"},
+  {key:"hsCode", pattern:"^\\d{8}$", patternMsg:"HS code must be exactly 8 digits (e.g. 61091000) — every document downstream requires 8.",      label:"HSN / HS Code",       contextKey:"txn.hsCode",          placeholder:"61091000", help:"Full 8-digit ITC-HS code (India's national tariff code) — every document across this Shipment Lot now requires 8 digits, so enter all 8 here rather than the 6-digit international HS heading."},
+  {key:"quantity", positive:true, pattern:"^\\d+(\\.\\d{1,2})?$", patternMsg:"Quantity must be a number greater than 0 (up to 2 decimals).",    label:"Quantity",            contextKey:"txn.itemQuantity",    placeholder:"5000", numeric:true},
   {key:"unit",        label:"Unit",                contextKey:"txn.itemUnit",        placeholder:"PCS", options:["PCS","SET","KG","MT","DZN","CTN","BOX","LTR","SQM","PAIR"]},
-  {key:"unitPrice",   label:"Unit Price",          contextKey:"txn.itemUnitPrice",   placeholder:"8.50", numeric:true},
-  {key:"discount",    label:"Discount (Flat Amount)",        contextKey:"txn.itemDiscount",    placeholder:"0", numeric:true},
-  {key:"weight",      label:"Weight (KG)",         contextKey:"txn.itemWeight",      placeholder:"2100", numeric:true},
+  {key:"unitPrice", positive:true, pattern:"^\\d+(\\.\\d{1,2})?$", patternMsg:"Unit price must be a number greater than 0 (up to 2 decimals).",   label:"Unit Price",          contextKey:"txn.itemUnitPrice",   placeholder:"8.50", numeric:true},
+  {key:"discount", pattern:"^\\d+(\\.\\d{1,2})?$", patternMsg:"Discount must be 0 or a positive amount (up to 2 decimals).",    label:"Discount (Flat Amount)",        contextKey:"txn.itemDiscount",    placeholder:"0", numeric:true},
+  {key:"weight", positive:true, pattern:"^\\d+(\\.\\d{1,2})?$", patternMsg:"Weight must be a number greater than 0 (up to 2 decimals), in KG.",      label:"Weight (KG)",         contextKey:"txn.itemWeight",      placeholder:"2100", numeric:true},
   {key:"countryOfManufacture", label:"Country of Manufacture", contextKey:"txn.itemCountryMfg", placeholder:"India"},
   {key:"brandModel",  label:"Brand / Model No.",   contextKey:"txn.itemBrandModel",  placeholder:"MER-CT-2026"},
   // Added on request — these three already existed as plain (untagged)
@@ -695,16 +717,16 @@ const JOB_ITEM_FIELD_MAP = [
   // Packing List and others); tagging those existing columns with the
   // matching contextKey below (documents-data.js) is what makes these
   // three real autofills rather than just extra Job-side data entry.
-  {key:"netWeight",   label:"Net Weight (KG)",     contextKey:"txn.itemNetWeight",   placeholder:"1980", numeric:true},
+  {key:"netWeight", positive:true, pattern:"^\\d+(\\.\\d{1,2})?$", patternMsg:"Net weight must be a number greater than 0 (up to 2 decimals), in KG.",   label:"Net Weight (KG)",     contextKey:"txn.itemNetWeight",   placeholder:"1980", numeric:true},
   {key:"packageType", label:"Package Type",        contextKey:"txn.itemPackageType", placeholder:"Cartons", options:["Cartons","Pallets","Crates","Drums","Bags","Rolls","Boxes"]},
   {key:"manufacturerDetails", label:"Manufacturer Details", contextKey:"txn.itemManufacturerDetails", placeholder:"Meridian Exports Pvt. Ltd., Pune"},
   // Batch/expiry tracking — for a domestic pharma/FMCG-style Road/
   // Warehouse Job (Delivery Challan, E-Way Bill, Goods Receipt Note,
   // Bin Card) where a SKU is tracked by batch rather than just by HS
   // classification. Full tier only, like the three above.
-  {key:"batchNo",  label:"Batch No.",           contextKey:"txn.itemBatchNo", placeholder:"PCM2609A"},
-  {key:"mfgDate",  label:"Manufacturing Date",  contextKey:"txn.itemMfgDate", placeholder:"2026-09-01"},
-  {key:"expDate",  label:"Expiry Date",         contextKey:"txn.itemExpDate", placeholder:"2028-08-31"},
+  {key:"batchNo",  label:"Batch No.",           contextKey:"txn.itemBatchNo", placeholder:"PCM2609A", optional:true, help:"Optional — only needed for batch-tracked items (pharma / FMCG)."},
+  {key:"mfgDate", pattern:"^\\d{4}-\\d{2}-\\d{2}$", patternMsg:"Use YYYY-MM-DD, e.g. 2026-09-01.",  label:"Manufacturing Date",  contextKey:"txn.itemMfgDate", placeholder:"2026-09-01", optional:true, help:"Optional — only needed for items that carry a manufacturing date."},
+  {key:"expDate", pattern:"^\\d{4}-\\d{2}-\\d{2}$", patternMsg:"Use YYYY-MM-DD, e.g. 2028-08-31.",  label:"Expiry Date",         contextKey:"txn.itemExpDate", placeholder:"2028-08-31", optional:true, help:"Optional — only needed for perishable / pharma / FMCG items that carry an expiry date."},
   // Dangerous Goods (IMDG) classification — full tier only, like the
   // rest of this specialized-data tail. Wired into the Dangerous Goods
   // Declaration document's own dgItems table (unNumber/hazardClass/
@@ -719,9 +741,9 @@ const JOB_ITEM_FIELD_MAP = [
   // html) for the show/hide wiring and jobSaveBtn's validator for the
   // matching "hidden = not required" skip.
   {key:"isDangerousGoods", label:"Dangerous Goods?", contextKey:"txn.itemIsDangerousGoods", type:"select", options:["No","Yes"], help:"Only say Yes if this specific item is hazardous cargo (IMDG/IATA-classified) — most items are No, and the UN Number/Hazard Class/Flashpoint fields below only apply, and only appear, when this is Yes."},
-  {key:"unNumber",     label:"UN Number",        contextKey:"txn.itemUnNumber",     placeholder:"1090", dgOnly:true},
+  {key:"unNumber", uppercase:true, pattern:"^UN\\d{4}$", patternMsg:"UN Number is 'UN' followed by 4 digits, e.g. UN1090.",     label:"UN Number",        contextKey:"txn.itemUnNumber",     placeholder:"UN1090", dgOnly:true},
   {key:"hazardClass",  label:"Hazard Class",     contextKey:"txn.itemHazardClass",  placeholder:"3", dgOnly:true},
-  {key:"packingGroup", label:"Packing Group",    contextKey:"txn.itemPackingGroup", placeholder:"II", dgOnly:true},
+  {key:"packingGroup", label:"Packing Group",    contextKey:"txn.itemPackingGroup", placeholder:"II", options:["I","II","III"], dgOnly:true},
   {key:"flashpoint",   label:"Flashpoint",       contextKey:"txn.itemFlashpoint",   placeholder:"13°C", dgOnly:true},
   {key:"tankType",     label:"Tank Type",        contextKey:"txn.itemTankType",     placeholder:"T14", dgOnly:true},
   {key:"emsCode",      label:"EmS Code",         contextKey:"txn.itemEmsCode",      placeholder:"F-A, S-A", dgOnly:true}
@@ -788,6 +810,72 @@ function skGetActiveJob(userId){
    assignment scope wins if the Job is following one, otherwise the Job's
    own docSlugs governs, otherwise (neither set — a legacy job, or one
    genuinely started with no scope) everything stays open as before. */
+
+/* =========================================================================
+   MANDATORY / OPTIONAL document label (v38)
+   =========================================================================
+   A Sea Export shipment does not need all 49 documents of the full practice set. These 36 are the ones a Sea Export
+   Shipment Lot genuinely needs end to end: the commercial chain (Proforma -> Sales Order -> LC -> Commercial Invoice
+   -> Packing List), the export clearance chain (Export Declaration -> Shipping Bill filed in TCOS -> EGM, plus the
+   Export Licence / RCMC / LUT / ICEGATE registration the exporter needs), the booking + container chain (Shipping
+   Instructions -> Booking -> Shipping Order -> CLP -> Container Packing Certificate -> Seal Report -> VGM -> Weight
+   Certificate -> EIR), the road-leg chain the simulator makes a prerequisite of the Dock Receipt (Delivery Challan,
+   Vehicle Inspection Report, Dispatch Note, Lorry Receipt), the Mate Receipt, the Bills of Lading (B/L + Master B/L +
+   Freight Invoice) and the payment chain (Insurance, Bill of Exchange, eBRC).
+   The set is CLOSED under the simulator's prerequisites, so a Job that finishes just these 36 never hits a locked
+   document. Every other document is labelled Optional. This is a LABEL ONLY: nothing is locked, hidden or
+   re-scored because of it, and other Shipment Modes show no label. */
+const SK_MANDATORY_DOC_MODES = ["Sea Export"];
+const SK_MANDATORY_DOCS_SEA_EXPORT = [
+  "proforma-invoice",
+  "sales-order",
+  "letter-of-credit",
+  "export-license",
+  "commercial-invoice",
+  "packing-list",
+  "insurance-certificate",
+  "export-declaration",
+  "shipping-bill",
+  "shipping-instructions",
+  "booking-confirmation",
+  "container-load-plan",
+  "container-packing-certificate",
+  "seal-report",
+  "weight-certificate",
+  "vgm-certificate",
+  "delivery-challan",
+  "vehicle-inspection-report",
+  "dispatch-note",
+  "lorry-receipt",
+  "dock-receipt",
+  "mate-receipt",
+  "bill-of-lading-sea",
+  "export-general-manifest",
+  "bill-of-exchange",
+  "bank-realization-certificate",
+  "registration-cum-membership-certificate",
+  "letter-of-undertaking",
+  "icegate-registration-form",
+  "marine-insurance-policy",
+  "shipping-order",
+  "master-bill-of-lading",
+  "freight-invoice-sea",
+  "ocean-freight-quotation",
+  "equipment-interchange-receipt",
+  "edi-copy"
+];
+/* true = Mandatory, false = Optional, null = no label (no mode / a mode this list doesn't cover). */
+function skIsDocMandatory(slug, mode){
+  if(!slug || !mode || SK_MANDATORY_DOC_MODES.indexOf(mode) < 0) return null;
+  return SK_MANDATORY_DOCS_SEA_EXPORT.indexOf(slug) >= 0;
+}
+function skMandatoryLabelHTML(slug, mode){
+  const m = skIsDocMandatory(slug, mode);
+  if(m === null) return "";
+  return m
+    ? ' <span class="sk-doc-req sk-doc-mandatory" title="Needed to complete a Sea Export shipment" style="display:inline-block;vertical-align:middle;margin-left:6px;padding:1px 7px;border-radius:999px;font-size:10px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;background:color-mix(in srgb, var(--green) 15%, white);color:var(--green);">Mandatory</span>'
+    : ' <span class="sk-doc-req sk-doc-optional" title="Not needed to complete a Sea Export shipment \u2014 extra practice" style="display:inline-block;vertical-align:middle;margin-left:6px;padding:1px 7px;border-radius:999px;font-size:10px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;background:var(--surface-alt);color:var(--text-3);">Optional</span>';
+}
 
 /* Walks the PREREQUISITES chain (workflow-rules.js) and returns `slugs`
    plus every direct/transitive prerequisite those slugs need — so a
@@ -1150,7 +1238,7 @@ function skRestoreJob(userId, job){
 const JOB_AUTOFILL_ALWAYS_KEYS = ["cargo", "hsCode"]; // legacy single-item keys only - see note above
 const JOB_MASTER_AUTOFILL_KEYS = ["sellerName", "sellerAddress", "sellerCountry", "buyerName", "buyerAddress", "destination", "authorizedSignatory"];
 const JOB_AUTOFILL_HALF_KEYS = JOB_MASTER_AUTOFILL_KEYS.concat([
-  "sellerGSTIN", "sellerIEC", "sellerPAN", "sellerPhone", "sellerEmail", "buyerGSTIN", "buyerPhone", "buyerEmail", "poNumber", "currency", "incoterm",
+  "sellerGSTIN", "sellerIEC", "sellerPAN", "sellerPhone", "sellerEmail", "buyerGSTIN", "buyerIEC", "buyerPhone", "buyerEmail", "poNumber", "currency", "incoterm",
   "portOfLoading", "portOfDischarge", "quantity", "grossWeight"
 ]);
 // Same A/B/C idea, one level down, for each row in job.fields.items[]:
@@ -1365,8 +1453,8 @@ const MODE_APPLICABILITY = {
   "are-1": ["Sea Export", "Air Export"],
   "uld-manifest": ["Air Export", "Air Import"],
   "vendor-comparison-statement": ALL_MODES,
-  "bin-card": ["Sea Import", "Air Import", "Road / Domestic", "Warehouse Transfer"],
-  "cycle-count-sheet": ["Sea Import", "Air Import", "Road / Domestic", "Warehouse Transfer"],
+  "bin-card": ALL_MODES,   // warehouse documents apply to every Shipment Mode: exporters stock, pick and issue goods for stuffing; importers receive cleared cargo into a godown
+  "cycle-count-sheet": ALL_MODES,   // warehouse documents apply to every Shipment Mode: exporters stock, pick and issue goods for stuffing; importers receive cleared cargo into a godown
   "trip-sheet": ["Sea Export", "Sea Import", "Air Export", "Air Import", "Road / Domestic"],
   "weighbridge-slip": ["Sea Export", "Sea Import", "Air Export", "Air Import", "Road / Domestic", "Warehouse Transfer"],
   "icegate-registration-form": ["Sea Export", "Sea Import", "Air Export", "Air Import"],   // customs registration: international modes only
@@ -1383,9 +1471,9 @@ const MODE_APPLICABILITY = {
   "commercial-invoice": ["Sea Export", "Air Export"],
   "tax-invoice-gst": ["Road / Domestic", "Warehouse Transfer", "Sea Import", "Air Import"],
   "packing-list": ["Sea Export", "Air Export"],
-  "stock-transfer-note": ["Warehouse Transfer", "Road / Domestic"],
-  "picking-slip": ["Warehouse Transfer", "Road / Domestic"],
-  "goods-issue-note": ["Warehouse Transfer", "Road / Domestic"],
+  "stock-transfer-note": ALL_MODES,   // warehouse documents apply to every Shipment Mode: exporters stock, pick and issue goods for stuffing; importers receive cleared cargo into a godown
+  "picking-slip": ALL_MODES,   // warehouse documents apply to every Shipment Mode: exporters stock, pick and issue goods for stuffing; importers receive cleared cargo into a godown
+  "goods-issue-note": ALL_MODES,   // warehouse documents apply to every Shipment Mode: exporters stock, pick and issue goods for stuffing; importers receive cleared cargo into a godown
   "certificate-of-origin": ["Sea Export", "Air Export", "Sea Import", "Air Import"],   // importers present the exporter's CoO to claim preferential duty
   "certificate-of-analysis": ["Sea Export", "Sea Import", "Air Export", "Air Import"],
   "fumigation-certificate": ["Sea Export", "Sea Import", "Air Export", "Air Import"],
@@ -1435,7 +1523,7 @@ const MODE_APPLICABILITY = {
   "vehicle-inspection-report": ["Sea Export", "Sea Import", "Air Export", "Air Import", "Road / Domestic"],
   "road-permit": ["Road / Domestic", "Sea Export", "Air Export"],
   "delivery-challan": ["Sea Export", "Air Export", "Road / Domestic", "Warehouse Transfer"],
-  "dispatch-note": ["Road / Domestic", "Warehouse Transfer", "Sea Export", "Air Export"],
+  "dispatch-note": ALL_MODES,   // warehouse documents apply to every Shipment Mode: exporters stock, pick and issue goods for stuffing; importers receive cleared cargo into a godown
   "lorry-receipt": ["Sea Export", "Sea Import", "Air Export", "Air Import", "Road / Domestic", "Warehouse Transfer"],
   "dock-receipt": ["Sea Export"],
   "shipping-bill": ["Sea Export", "Air Export"],
@@ -1468,13 +1556,13 @@ const MODE_APPLICABILITY = {
   "customs-declaration": ["Sea Import", "Air Import"],
   "duty-calculation": ["Sea Import", "Air Import"],
   "out-of-charge": ["Sea Import", "Air Import"],
-  "customs-gate-pass": ["Sea Import", "Air Import"],
+  "customs-gate-pass": ["Sea Import", "Air Import", "Sea Export", "Air Export"],   // export side: the Customs gate pass for cargo entering the port/airport after the Shipping Bill is filed
   "e-way-bill": ["Sea Export", "Sea Import", "Air Export", "Air Import", "Road / Domestic", "Warehouse Transfer"],
   "delivery-order": ["Sea Import", "Air Import"],
-  "goods-receipt-note": ["Sea Import", "Air Import", "Warehouse Transfer"],
-  "put-away-slip": ["Sea Import", "Air Import", "Warehouse Transfer"],
-  "damage-report": ["Sea Import", "Air Import", "Warehouse Transfer", "Road / Domestic"],
-  "warehouse-receipt": ["Sea Import", "Air Import", "Warehouse Transfer"],
+  "goods-receipt-note": ALL_MODES,   // warehouse documents apply to every Shipment Mode: exporters stock, pick and issue goods for stuffing; importers receive cleared cargo into a godown
+  "put-away-slip": ALL_MODES,   // warehouse documents apply to every Shipment Mode: exporters stock, pick and issue goods for stuffing; importers receive cleared cargo into a godown
+  "damage-report": ALL_MODES,   // warehouse documents apply to every Shipment Mode: exporters stock, pick and issue goods for stuffing; importers receive cleared cargo into a godown
+  "warehouse-receipt": ALL_MODES,   // warehouse documents apply to every Shipment Mode: exporters stock, pick and issue goods for stuffing; importers receive cleared cargo into a godown
   "proof-of-delivery": ["Road / Domestic", "Sea Import", "Air Import", "Warehouse Transfer"],
   "equipment-interchange-receipt": ["Sea Export", "Sea Import"],
   "letter-of-indemnity": ["Sea Import", "Air Import"],
@@ -1532,7 +1620,8 @@ function skIsDocumentApplicableForMode(slug, mode){
    Returns the same array shape skGetPrerequisites always did.
    ========================================================================= */
 const MODE_PREREQUISITE_OVERRIDES = {
-  "Air Export": {"cargo-manifest": ["air-waybill"]},
+  "Air Export": {"cargo-manifest": ["air-waybill"], "customs-gate-pass": ["shipping-bill"]},
+  "Sea Export": {"customs-gate-pass": ["shipping-bill"]},   // on an export the gate pass follows the Shipping Bill (on an import it follows Out of Charge)
   "Air Import": {"cargo-manifest": ["air-waybill"]},
   // The carrier issues the Master B/L at the ORIGIN, after the exporter's mate receipt / dock receipt / lorry receipt.
   // To an importer it simply arrives with the shipment, so it has no prerequisites of its own on an import job
@@ -1938,3 +2027,72 @@ function skCompanyFieldMatch(company, keywords){
   return hit ? hit.value : "";
 }
 
+
+
+/* ===================================================================
+   v41 — Job-level validation (pure functions, no DOM).
+   Why this exists: documents downstream carry strict format rules
+   (HS code = 8 digits, vehicle number = KL07AB1234, UN Number = UN1090,
+   seal = 6-15 chars, ...). Before v41 the Job form accepted anything
+   for those fields and then autofilled the value into the documents,
+   where it failed. Every rule below is the INTERSECTION of the document
+   rules for the same contextKey, so a value that passes here is accepted
+   by every document it autofills into. skValidateJobConsistency adds the
+   cross-field checks that TCOS (customs filing) enforces anyway.
+   =================================================================== */
+function skJobFieldPatternFor(fd, mode){
+  if(!fd) return null;
+  if(fd.patternAir && skJobModeGroupForMode(mode) === "air") return {pattern: fd.patternAir, msg: fd.patternAirMsg || fd.patternMsg};
+  return fd.pattern ? {pattern: fd.pattern, msg: fd.patternMsg} : null;
+}
+// What actually gets stored: trimmed, upper-cased where the field says so, and (vehicle number) spaces/hyphens removed.
+function skNormalizeJobValue(fd, raw){
+  let v = (raw === undefined || raw === null) ? "" : String(raw).trim();
+  if(!fd || v === "") return v;
+  if(fd.uppercase) v = v.toUpperCase();
+  if(fd.normalize === "compact") v = v.replace(/[\s\-]+/g, "");
+  return v;
+}
+// Returns "" when the value is acceptable, otherwise the message to show. Empty values are the caller's business (required check).
+function skValidateJobFieldValue(fd, raw, mode){
+  if(!fd) return "";
+  const v = skNormalizeJobValue(fd, raw);
+  if(v === "") return "";
+  const p = skJobFieldPatternFor(fd, mode);
+  if(p && !(new RegExp(p.pattern)).test(v)) return p.msg || ("Invalid format for " + fd.label + ".");
+  if(fd.positive && !(parseFloat(v) > 0)) return (fd.label || "This value") + " must be greater than 0.";
+  return "";
+}
+const SK_JOB_MONEY_TOL = 0.01;
+function _sk_num(x){ const n = parseFloat(String(x === undefined || x === null ? "" : x).trim()); return isNaN(n) ? null : n; }
+// fields = job.fields-shaped object (already normalized), items = array of item rows.
+// Returns [{scope:"field"|"item", key, idx, message}]; empty array = consistent.
+function skValidateJobConsistency(fields, items, mode){
+  const out = [];
+  fields = fields || {}; items = items || [];
+  const group = skJobModeGroupForMode(mode || fields.mode);
+  // 1. Net weight can never exceed the same item's gross weight.
+  items.forEach((it, i)=>{
+    const g = _sk_num(it.weight), n = _sk_num(it.netWeight);
+    if(g !== null && n !== null && n > g + 1e-9) out.push({scope:"item", key:"netWeight", idx:i, message:"Item " + (i+1) + ": Net Weight (" + n + ") cannot be more than Weight (" + g + ")."});
+  });
+  if(group === "sea" || group === "air"){
+    // 2. Invoice Value must equal the total of the item lines (what the Commercial Invoice and the customs filing show).
+    const inv = _sk_num(fields.invoiceValue);
+    let total = 0, complete = items.length > 0;
+    items.forEach(it=>{
+      const q = _sk_num(it.quantity), p = _sk_num(it.unitPrice), d = _sk_num(it.discount) || 0;
+      if(q === null || p === null){ complete = false; return; }
+      total += q * p - d;
+    });
+    if(inv !== null && complete && Math.abs(inv - total) > SK_JOB_MONEY_TOL)
+      out.push({scope:"field", key:"invoiceValue", message:"Invoice Value (" + inv.toFixed(2) + ") must equal the item total (" + total.toFixed(2) + ") = Σ (Quantity × Unit Price − Discount)."});
+    // 3. Gross Weight must equal the sum of item weights (TCOS hard-validates this).
+    const gw = _sk_num(fields.grossWeight);
+    let wsum = 0, wcomplete = items.length > 0;
+    items.forEach(it=>{ const w = _sk_num(it.weight); if(w === null) wcomplete = false; else wsum += w; });
+    if(gw !== null && wcomplete && Math.abs(gw - wsum) > SK_JOB_MONEY_TOL)
+      out.push({scope:"field", key:"grossWeight", message:"Gross Weight (" + gw + " KG) must equal the sum of the item Weight (KG) lines (" + (Math.round(wsum*100)/100) + " KG)."});
+  }
+  return out;
+}

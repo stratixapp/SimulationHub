@@ -46,7 +46,7 @@ function tcosDeepErrors(filing) {
   if (isExp && I.fobValue && I.invoiceValue) {
     const inc = String(I.incoterm || '').toUpperCase(), inv = Number(I.invoiceValue), fr = Number(I.freight) || 0, ins = Number(I.insurance) || 0;
     let exp = null;
-    if (inc === 'CIF') exp = inv - fr - ins; else if (inc === 'CFR' || inc === 'CNF') exp = inv - fr; else if (inc === 'FOB' || inc === 'FCA') exp = inv;
+    if (inc === 'CIF') exp = inv - fr - ins; else if (inc === 'CFR' || inc === 'CNF' || inc === 'CPT') exp = inv - fr; else if (inc === 'FOB' || inc === 'FCA') exp = inv;
     if (exp != null && !tcosClose(I.fobValue, exp, 0.01))
       errs.push({ field: 'fobValue', message: `FOB value does not reconcile with the invoice value for ${inc} terms (FOB = invoice value less freight / insurance included in the price).` });
   }

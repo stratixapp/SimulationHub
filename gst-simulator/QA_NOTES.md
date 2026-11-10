@@ -70,3 +70,37 @@ Verified by a full run for **AS Group of Industries Private Limited, Bengaluru, 
 | 29 | B2B form | POS auto-selects from the first two digits of the recipient GSTIN (as on the portal); tax preview refreshes when POS changes. |
 | 30 | Continue later | GSTR-1 (B2B/B2C/export/notes/advances/HSN/docs/summary/validate/submit) and GSTR-3B (auto-populate/validate/charges/offset/file) steps now record the last stage. A returning student sees "Continue where you left off" on the Taxpayer Dashboard right after login (before it only appeared on the home page, where the logged-out student never saw it). |
 Verified with a scripted browser run: 37 POS options; Delhi/Tamil Nadu/Karnataka = IGST, Kerala = CGST+SGST; GSTR-1 summary and 3B 3.1(a)/3.2 matched hand totals (taxable 2,35,000; IGST 38,050; CGST 1,800; SGST 1,800; 3.2 unregistered inter-State 2,00,000); banner -> CONTINUE reopens GSTR-1.
+
+
+## v31 - GST Simulator audit against real portal behaviour (SimulatorHub v42)
+Every item was reproduced in a scripted Chromium run first, fixed, then re-run. (Supersedes the "Noticed, NOT changed" bullets above for reverse charge and the Table 12/13 checks.)
+| # | Area | Change |
+|---|------|--------|
+| 31 | 3B offset | Cash Ledger was never debited for a registered taxpayer (the debit was capped by an empty liability register), and cash of one head could pay another. Cash is now debited head-wise (tax/interest/fee/penalty), with a clear "insufficient balance in <HEAD>" error. The credit ledger pays tax only, in Rule 88A order. |
+| 32 | B2B tax | SEZ supplies are always IGST; SEZ "without payment" carries 0 tax; reverse-charge (Yes) outward invoices carry no tax for the supplier. Preview refreshes when type/RCM/rate change. |
+| 33 | 3B mapping | SEZ + exports -> 3.1(b) (no more NaN CGST/SGST there); deemed exports -> 3.1(a); Non-GST -> 3.1(e) (was 3.1(c)); RCM=Yes invoices no longer taxed in 3.1(a). |
+| 34 | HSN | Digits only, 4/6/8 digits (min 6 when turnover > Rs 5 crore); taxable > 0; quantity required for goods; clearer "enter tax" message; tolerance Rs 1 (cess no longer mixed into the tax check); B2B invoice-level HSN is optional and format-checked. Validate warns when Table 12 totals differ from supplies. 21-row HSN sample download. |
+| 35 | B2C | Inter-State B2C Others invoice above Rs 1 lakh is rejected (belongs in B2C Large). |
+| 36 | Notes | Recipient GSTIN format validated; credit notes against an invoice in the same return cannot exceed its taxable value. |
+| 37 | Table 13 | Same prefix, To >= From, total <= range, no overlap, <= 16 characters. |
+| 38 | Status | Editing a Validated GSTR-1 sends it back to Draft (summary cleared) so it cannot be submitted stale; B2C/export/HSN/docs/notes are editable until Submitted. |
+| 39 | Places | "Place" on the GSTR-1 file / nil pages follows the taxpayer's state (was always Kerala). |
+| 40 | Rates | 0.25, 1.5 and 3 added to rate dropdowns. |
+| 41 | 3B Table 4 | 4C Net ITC row shown; ITC-reversal check now uses total available ITC (4A 1-5) per head. |
+Not changed: Table 14/15 (ECO / 9(5)) still placeholders; 3.2 is one total, not state-wise; GSTR-1 late fee is still not debited from the cash ledger.
+
+
+## v32 - arithmetic + real-portal cross-check (SimulatorHub v43)
+Method: independent reference model + randomized tests run in Chromium (6,016 tax-calc cases, 300 random GSTR-1 summaries, 4,000 random 3B utilisations, 224 due-date/late-fee combinations, 300 interest cases, 150 GSTR-1 -> 3B reconciliations, registration for 15 states), then portal rules checked against GSTN advisories valid in 2026.
+| # | Area | Change |
+|---|------|--------|
+| 42 | Tax calc | `gstTaxCalc` used floating point: 4239636.25 @ 28% gave 593549.07 instead of 593549.08 (half-paise). Now exact integer paise, half-up. 0 mismatches in 6,016 cases. |
+| 43 | 3B lock | Once GSTR-1 is submitted/filed, Tables 3.1(a),(b),(c),(e) and 3.2 are read-only and re-synced from GSTR-1/GSTR-1A (live portal hard-lock from Jul-2025 / Nov-2025). 3.1(d) and Table 4 stay editable. If GSTR-1 is not filed the page says so. |
+| 44 | ARN | Now 15 characters: AA + state code + MMYY + 6-digit serial + check letter (was 16 random characters). |
+| 45 | Turnover | QRMP eligibility used a separate simulated 4.5 crore while late-fee caps / HSN digits used the registration turnover. All now use the turnover declared at registration. |
+| 46 | Composition | A taxpayer registered under Composition gets taxpayerType = Composition and GSTR-1 / GSTR-3B open a "file CMP-08 / GSTR-4" message instead. |
+| 47 | Periods | A return period that ended before the registration effective date shows "No return is due". |
+| 48 | Table 12 | Code suggestions + description auto-fill from a 21-code master list (live portal is dropdown-only from the full HSN master). |
+| 49 | State code | "Other Territory" = 97 (was falling back to 32). |
+Verified correct, no change: GSTIN generation (state code, PAN, entity 1, Z, mod-36 check character) for 15 states; due dates (11th/13th/20th/22nd/24th); late fee 50/20 per day and caps 500/2,000/5,000/10,000; interest 18% p.a.; Rule 88A utilisation order; GSTR-1 summary == 3B Table 3.1 tax.
+Known differences from the live portal, NOT changed: interest is charged in the same return (live: auto-computed under Rule 88B incl. minimum-cash-balance benefit and shown in the next period's 3B); GSTR-1A is a separate form here with no one-per-period rule; Table 3.1.1 (ECO) and Tables 14/15 are placeholders; HSN master is a 21-row sample; 3.2 is one total, not POS-wise.

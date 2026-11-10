@@ -36,6 +36,7 @@ const INDIAN_PORTS = [
   "Ennore Port (Kamarajar), Tamil Nadu",
   "Tuticorin Port (V.O. Chidambaranar), Tamil Nadu",
   "Cochin Port (Kochi), Kerala",
+  "Vizhinjam Port, Kerala",
   "Visakhapatnam Port, Andhra Pradesh",
   "Krishnapatnam Port, Andhra Pradesh",
   "Kolkata Port (Haldia), West Bengal",
@@ -210,8 +211,8 @@ const COUNTRIES = [
   'Israel', 'Poland'
 ];
 
-const CURRENCIES = ['USD', 'EUR', 'GBP', 'AED', 'SGD', 'JPY', 'INR'];
-const FX_TO_INR = { USD: 83.2, EUR: 90.1, GBP: 105.4, AED: 22.65, SGD: 61.8, JPY: 0.56, INR: 1 };
+const CURRENCIES = ['USD', 'EUR', 'GBP', 'AED', 'SGD', 'JPY', 'CNY', 'INR'];
+const FX_TO_INR = { USD: 83.2, EUR: 90.1, GBP: 105.4, AED: 22.65, SGD: 61.8, JPY: 0.56, CNY: 11.6, INR: 1 };
 
 // BUGFIX: CIP was missing — under Incoterms 2020, CIF/CFR/FOB are valid
 // only for sea/inland waterway transport; the correct equivalents for
@@ -219,10 +220,10 @@ const FX_TO_INR = { USD: 83.2, EUR: 90.1, GBP: 105.4, AED: 22.65, SGD: 61.8, JPY
 // already here, but an air/road shipment had no CIP option and could
 // only be given the sea-only CIF/CFR terms, which is a real, common
 // mistake this list should help a student avoid, not reinforce.
-const INCOTERMS = ['FOB', 'CIF', 'CFR', 'CIP', 'EXW', 'DAP', 'FCA'];
+const INCOTERMS = ['FOB', 'CIF', 'CFR', 'CIP', 'EXW', 'DAP', 'FCA', 'CPT', 'DPU', 'DDP'];
 const MODES_OF_TRANSPORT = ['Sea', 'Air', 'Land (ICD/LCS)'];
-const UNITS = ['PCS', 'KGS', 'BOX', 'CTN', 'SET', 'MTR', 'DOZ', 'PAIR'];
-const PACKAGE_TYPES = ['Carton', 'Wooden Crate', 'Pallet', 'Drum', 'Bag', 'Case'];
+const UNITS = ['PCS', 'KGS', 'BOX', 'CTN', 'SET', 'MTR', 'DOZ', 'PAIR', 'MTS', 'LTR', 'SQM'];
+const PACKAGE_TYPES = ['Carton', 'Wooden Crate', 'Pallet', 'Drum', 'Bag', 'Case', 'Box', 'Roll'];
 const CONTAINER_TYPES = ["20' Standard (Dry)", "40' Standard (Dry)", "40' High Cube", "Reefer 20'", "Reefer 40'", 'LCL (Not Containerized)'];
 
 /* Training HS Code table: code -> real duty-structure fields (approximated for training —
@@ -286,6 +287,13 @@ const HS_CODE_TABLE = {
   '88026000': { desc: 'Spacecraft (including satellites), suborbital and spacecraft launch vehicles', bcdRate: 0.00, cessRate: 0, addRate: 0, pgaAgency: 'DOS_IN_SPACE', riskTier: 'High', ftaPrefix: '88', drawbackAIR: 0.002, rodtepRate: 0.002, scomet: true },
   '88073000': { desc: 'Other parts of aeroplanes or helicopters', bcdRate: 0.025, cessRate: 0, addRate: 0, pgaAgency: 'DGCA', riskTier: 'Medium', ftaPrefix: '88', drawbackAIR: 0.008, rodtepRate: 0.006 },
   '88079000': { desc: 'Parts of spacecraft / launch vehicles and satellites, other', bcdRate: 0.00, cessRate: 0, addRate: 0, pgaAgency: 'DOS_IN_SPACE', riskTier: 'High', ftaPrefix: '88', drawbackAIR: 0.004, rodtepRate: 0.003, scomet: true },
+  '85291034': { desc: 'Satellite ground-station communication antenna system', bcdRate: 0.1, cessRate: 0, addRate: 0, pgaAgency: 'DOS_IN_SPACE', riskTier: 'Medium', ftaPrefix: '85', drawbackAIR: 0.015, rodtepRate: 0.012, scomet: true },
+  '90318034': { desc: 'Satellite / spacecraft tracking and measuring system', bcdRate: 0.1, cessRate: 0, addRate: 0, pgaAgency: 'DOS_IN_SPACE', riskTier: 'High', ftaPrefix: '90', drawbackAIR: 0.015, rodtepRate: 0.012, scomet: true },
+  '85176209': { desc: 'Deep-space telemetry & telecommand (TT&C) communication unit', bcdRate: 0.1, cessRate: 0, addRate: 0, pgaAgency: 'DOS_IN_SPACE', riskTier: 'High', ftaPrefix: '85', drawbackAIR: 0.015, rodtepRate: 0.012, scomet: true },
+  '84198909': { desc: 'Cryogenic satellite testing chamber (industrial plant, other)', bcdRate: 0.075, cessRate: 0, addRate: 0, pgaAgency: 'DOS_IN_SPACE', riskTier: 'Medium', ftaPrefix: '84', drawbackAIR: 0.015, rodtepRate: 0.012, scomet: true },
+  '84198923': { desc: 'Satellite thermal-vacuum test system (industrial plant, other)', bcdRate: 0.075, cessRate: 0, addRate: 0, pgaAgency: 'DOS_IN_SPACE', riskTier: 'Medium', ftaPrefix: '84', drawbackAIR: 0.015, rodtepRate: 0.012, scomet: true },
+  '90058000': { desc: 'Optical astronomical / satellite-tracking telescope (other optical instruments)', bcdRate: 0.1, cessRate: 0, addRate: 0, pgaAgency: 'DOS_IN_SPACE', riskTier: 'High', ftaPrefix: '90', drawbackAIR: 0.015, rodtepRate: 0.012, scomet: true },
+  '90142087': { desc: 'Inertial measurement & navigation unit (aerospace)', bcdRate: 0.1, cessRate: 0, addRate: 0, pgaAgency: 'MOD_DDP', riskTier: 'High', ftaPrefix: '90', drawbackAIR: 0.015, rodtepRate: 0.012, scomet: true },
   '85291090': { desc: 'Satellite dish antennas, antenna reflectors and parts thereof', bcdRate: 0.1, cessRate: 0, addRate: 0, pgaAgency: 'DOS_IN_SPACE', riskTier: 'Medium', ftaPrefix: '85', drawbackAIR: 0.01, rodtepRate: 0.008 },
   '85256000': { desc: 'Transmission apparatus incorporating reception apparatus (satellite transponders, ground terminals)', bcdRate: 0.1, cessRate: 0, addRate: 0, pgaAgency: 'DOS_IN_SPACE', riskTier: 'High', ftaPrefix: '85', drawbackAIR: 0.008, rodtepRate: 0.006, scomet: true },
   '85255000': { desc: 'Transmission apparatus for radio-broadcasting / television (satellite uplink)', bcdRate: 0.1, cessRate: 0, addRate: 0, pgaAgency: 'DOS_IN_SPACE', riskTier: 'High', ftaPrefix: '85', drawbackAIR: 0.008, rodtepRate: 0.006, scomet: true },
@@ -318,6 +326,8 @@ const HS_CODE_TABLE = {
   '84263000': { desc: 'Portal or pedestal jib cranes', bcdRate: 0.075, cessRate: 0, addRate: 0, pgaAgency: null, riskTier: 'Low', ftaPrefix: '84', drawbackAIR: 0.012, rodtepRate: 0.01 },
   '84295100': { desc: 'Self-propelled front-end shovel loaders', bcdRate: 0.075, cessRate: 0, addRate: 0, pgaAgency: null, riskTier: 'Low', ftaPrefix: '84', drawbackAIR: 0.012, rodtepRate: 0.01 },
   '84304100': { desc: 'Self-propelled boring or sinking machinery, other', bcdRate: 0.075, cessRate: 0, addRate: 0, pgaAgency: null, riskTier: 'Low', ftaPrefix: '84', drawbackAIR: 0.012, rodtepRate: 0.01 },
+  '84314310': { desc: 'Parts of boring or sinking machinery (of self-propelled boring or sinking machinery)', bcdRate: 0.075, cessRate: 0, addRate: 0, pgaAgency: null, riskTier: 'Low', ftaPrefix: '84', drawbackAIR: 0.012, rodtepRate: 0.01 },
+  '84148090': { desc: 'Air compressors, other (rotary vane and similar)', bcdRate: 0.075, cessRate: 0, addRate: 0, pgaAgency: null, riskTier: 'Low', ftaPrefix: '84', drawbackAIR: 0.012, rodtepRate: 0.01 },
   '86011000': { desc: 'Rail locomotives powered from an external source of electricity', bcdRate: 0.075, cessRate: 0, addRate: 0, pgaAgency: null, riskTier: 'Low', ftaPrefix: '86', drawbackAIR: 0.01, rodtepRate: 0.008 },
   '86021000': { desc: 'Diesel-electric locomotives', bcdRate: 0.075, cessRate: 0, addRate: 0, pgaAgency: null, riskTier: 'Low', ftaPrefix: '86', drawbackAIR: 0.01, rodtepRate: 0.008 },
   '89012000': { desc: 'Tankers (crude oil / product carriers)', bcdRate: 0.05, cessRate: 0, addRate: 0, pgaAgency: null, riskTier: 'Medium', ftaPrefix: '89', drawbackAIR: 0.004, rodtepRate: 0.003 },

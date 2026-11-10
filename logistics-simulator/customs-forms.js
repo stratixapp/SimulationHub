@@ -52,7 +52,11 @@
     return new Date(t.getTime() + (offsetMin||0)*60000);
   }
   function seqDigits(str, len){          // trailing digits of a generated number, left-padded
-    const dg = String(str||"").replace(/\D/g,"");
+    // FIX (v35): take only the trailing digit run (the sequence part). The old version stripped ALL non-digits,
+    // so "INENR1/SB/2026/001123" became "2026001123" and the 7-digit SB/BE number picked up the year's last
+    // digit ("6001123") instead of "0001123"; a bridged "TRN-SB-2026-914852" gave "6914852" here but "0914852" in TCOS.
+    const m = String(str||"").match(/(\d+)\D*$/);
+    const dg = m ? m[1] : "";
     return (dg.slice(-len) || "1").padStart(len,"0");
   }
 

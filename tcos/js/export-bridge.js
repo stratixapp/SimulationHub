@@ -181,16 +181,12 @@ function xdSet(obj, key, val) {
 function xdCountry(name) { return (typeof bridgeMatchCountry === 'function') ? bridgeMatchCountry(name) : ''; }
 function xdPort(name, list) { return (typeof bridgeMatchPort === 'function') ? bridgeMatchPort(name, list) : ''; }
 function xdNorm(x) { return String(x || '').toLowerCase().replace(/[^a-z]/g, '').replace(/s$/, ''); }
-/* Logistics unit / package vocabulary -> TCOS vocabulary. Anything with no
-   true TCOS equivalent (MT, LTR, SQM, Rolls...) is deliberately left blank. */
-const XD_UNIT_ALIAS = { PCS: 'PCS', SET: 'SET', KG: 'KGS', KGS: 'KGS', DZN: 'DOZ', DOZ: 'DOZ', CTN: 'CTN', BOX: 'BOX', PAIR: 'PAIR', MTR: 'MTR' };
+/* Logistics unit / package vocabulary -> TCOS vocabulary. Every Job unit now has
+   a TCOS equivalent (KG->KGS, MT->MTS, DZN->DOZ, LTR, SQM); only an unknown unit is left blank. */
+const XD_UNIT_ALIAS = (typeof BRIDGE_UNIT_ALIAS !== 'undefined') ? BRIDGE_UNIT_ALIAS : { PCS: 'PCS', SET: 'SET', KG: 'KGS', KGS: 'KGS', MT: 'MTS', DZN: 'DOZ', DOZ: 'DOZ', CTN: 'CTN', BOX: 'BOX', LTR: 'LTR', SQM: 'SQM', PAIR: 'PAIR', MTR: 'MTR' };
 function xdUnit(u) { const k = String(u || '').trim().toUpperCase(); return XD_UNIT_ALIAS[k] && UNITS.includes(XD_UNIT_ALIAS[k]) ? XD_UNIT_ALIAS[k] : ''; }
-function xdPkgType(p) {
-  const n = xdNorm(p); if (!n) return '';
-  if (n === 'crate') return PACKAGE_TYPES.includes('Wooden Crate') ? 'Wooden Crate' : '';
-  return PACKAGE_TYPES.find(t => xdNorm(t) === n) || '';
-}
-function xdItemsValue(jd) { return (jd.items || []).reduce((s, it) => s + (Number(it.quantity) || 0) * (Number(it.unitPrice) || 0), 0); }
+function xdPkgType(p) { return (typeof bridgeMatchPackageType === 'function') ? bridgeMatchPackageType(p) : ''; }
+function xdItemsValue(jd) { return (typeof bridgeItemsValue === 'function') ? bridgeItemsValue(jd.items) : (jd.items || []).reduce((s, it) => s + (Number(it.quantity) || 0) * (Number(it.unitPrice) || 0) - (Number(it.discount) || 0), 0); }
 function xdMoney(n) { return n ? n.toFixed(2) : ''; }
 function xdFirstDesc(jd) { const it = (jd.items || [])[0]; return it ? (it.description || it.product || '') : ''; }
 function xdQtyText(jd) { const it = (jd.items || [])[0] || {}; const q = it.quantity || jd.quantity || ''; return q ? (q + (it.unit ? ' ' + it.unit : '')) : ''; }

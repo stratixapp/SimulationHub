@@ -169,6 +169,8 @@ function tcosSpecStepHTML(filing, step) {
   const tables = fields.filter(f => f.type === 'table');
   const hasRerender = false;
   const intro = step.docSimStep ? `<p class="hint">Real ICEGATE ${filing.type === 'export' ? 'Shipping Bill' : 'Bill of Entry'} particulars (${esc(spec.title)}). These print on the final document exactly as you enter them.</p>` : `<p class="hint">Fill these for every item - they print in the Items part of the ${filing.type === 'export' ? 'Shipping Bill' : 'Bill of Entry'}.</p>`;
+  // A step whose every field is hidden for this filing (Exchange Rate Details when the invoice is in INR) must not just open blank.
+  if (!fields.length && spec.fields.length) return intro + `<div class="hint" style="margin-top:10px;padding:12px 14px;border:1px dashed #9fb0c6;border-radius:6px"><b>Nothing to enter on this step.</b> ${esc(spec.title)} applies only when the invoice currency is not INR (an INR invoice needs no conversion). Click <b>Next</b> to continue.</div>`;
   return intro + (flat.length ? `<div class="grid">${flat.map(f => tcosIgFieldHTML(f, filing)).join('')}</div>` : '') + tables.map(f => tcosIgTableHTML(f, filing)).join('');
 }
 

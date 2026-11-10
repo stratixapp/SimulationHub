@@ -258,6 +258,8 @@ function enterApp() {
    (LEO / EGM can still be completed afterwards in TCOS). */
 function tcosBridgeSbPdfDone(filing) {
   if (typeof DotBridge === 'undefined' || !filing || filing.type !== 'export' || !filing.ack) return;
+  const br = DotBridge.getBridge();
+  if (br && br.active && !br.completed && br.filingType === 'export' && !filing.leo) { toast('PDF saved. Finish the clearance and issue the Let Export Order (LEO), then download the Shipping Bill PDF again to return to the Document Simulator.', 'info'); return; }
   if (!DotBridge.markCompleted('export', filing.id, 'shipping-bill')) return;
   showBridgeReturnPrompt(filing.id, 'Shipping Bill', { pdfDone: true });
 }
@@ -281,7 +283,7 @@ function renderBridgeBanner() {
   }
   if (!bridge || !bridge.active || bridge.completed) return;
   const docLabel = bridge.filingType === 'export' ? 'Shipping Bill' : bridge.filingType === 'import' ? 'Bill of Entry' : bridge.filingType === 'brc' ? 'Bank Realisation Certificate' : bridge.filingType === 'consignia' ? (typeof EXPORT_DOC_CATALOG !== 'undefined' && EXPORT_DOC_CATALOG[bridge.consignaDocType] ? EXPORT_DOC_CATALOG[bridge.consignaDocType].label : 'your full Export Job') : FREIGHT_SLUG_LABELS[bridge.returnSlug] || 'Freight document';
-  const closingNote = bridge.filingType === 'export' ? 'filing the Shipping Bill and downloading its PDF' : bridge.filingType === 'import' ? 'Out of Charge' : bridge.filingType === 'brc' ? 'the BRC upload' : bridge.filingType === 'consignia' ? (bridge.consignaDocType === 'SHIPPING_BILL' ? 'LEO + EGM' : bridge.consignaDocType ? 'marking it Ready in Consignia Desk' : 'your Export Job Document Plan') : 'that stage';
+  const closingNote = bridge.filingType === 'export' ? 'issuing the Let Export Order (LEO) and downloading the Shipping Bill PDF' : bridge.filingType === 'import' ? 'Out of Charge' : bridge.filingType === 'brc' ? 'the BRC upload' : bridge.filingType === 'consignia' ? (bridge.consignaDocType === 'SHIPPING_BILL' ? 'LEO + EGM' : bridge.consignaDocType ? 'marking it Ready in Consignia Desk' : 'your Export Job Document Plan') : 'that stage';
   const banner = document.createElement('div');
   banner.id = 'bridgeBanner';
   banner.style.cssText = 'background:#123B70;color:#fff;font-size:12.5px;padding:8px 18px;display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap;text-align:center';
@@ -429,7 +431,7 @@ function validateIEC() {
   const re = /^[A-Za-z0-9]{10}$/;
   const status = document.getElementById('iecstatus');
   regState.iecValid = re.test(v);
-  status.textContent = regState.iecValid ? 'Format valid (training check only).' : 'Invalid IEC format — expected 10 letters/digits, e.g. UYJPK1234L.';
+  status.textContent = regState.iecValid ? 'Format valid (training check only).' : 'Invalid IEC format — expected 10 letters/digits, e.g. AABCT4521K.';
   status.className = 'status ' + (regState.iecValid ? 'ok' : 'err');
 }
 function validatePAN() {

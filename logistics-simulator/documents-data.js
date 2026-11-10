@@ -6,6 +6,25 @@
 
 function dline(label,val){ return `<div style="margin-bottom:4px;"><b style="color:var(--text-3);font-weight:600;">${label}:</b> ${val||"—"}</div>`; }
 
+/* Customs Declaration helpers (FIX v35): amounts in different currencies are never added together
+   (USD 1000 + INR 20000 used to show as 21000). Totals are kept per currency; the dutiable value is
+   worked out on the INR lines only, because the duty-free allowance is an INR figure. */
+function cdTotalsByCurrency(rows){
+  const m = {};
+  (rows||[]).forEach(r=>{
+    if(!r || String(r.value||"").trim()==="") return;
+    const c = (String(r.currency||"").trim().toUpperCase()) || "INR";
+    m[c] = (m[c]||0) + (parseFloat(r.value)||0);
+  });
+  return m;
+}
+function cdTotalsText(rows){
+  const m = cdTotalsByCurrency(rows), ks = Object.keys(m);
+  return ks.length ? ks.map(k=>`${k} ${m[k].toFixed(2)}`).join(" + ") : "0.00";
+}
+function cdInrTotal(rows){ return cdTotalsByCurrency(rows)["INR"]||0; }
+function cdHasForeign(rows){ return Object.keys(cdTotalsByCurrency(rows)).some(k=>k!=="INR"); }
+
 /* CFS Gate Pass serves both directions. An import gate pass is issued against a Bill of Entry / Out of Charge /
    IGM; an export gate pass (cargo gated in at the CFS for a Sea Export job) is issued against a Shipping Bill.
    True only while the student's active Job is a Sea Export; free-play (no Job) keeps the original import form. */
@@ -887,7 +906,11 @@ function anLastFreeDayStr(d){
 function anDemurrageDays(d){
   const lastFree = anLastFreeDay(d);
   if(!lastFree) return 0;
-  return Math.max(0, Math.floor((Date.now()-lastFree.getTime())/86400000));
+  // FIX (v35): measured to the notice's own Sign/Issue Date, not to today's date, so the figure no longer changes every day. Falls back to today only if neither date is filled in.
+  const refStr = d.signDate || d.issueDate;
+  const refDt = refStr ? new Date(refStr) : null;
+  const asOf = (refDt && !isNaN(refDt.getTime())) ? refDt.getTime() : Date.now();
+  return Math.max(0, Math.floor((asOf-lastFree.getTime())/86400000));
 }
 function anDemurrageAccrued(d){ return anDemurrageDays(d)*(parseFloat(d.demurrageRatePerDay)||0); }
 function anTotalCharges(d){
@@ -1085,8 +1108,9 @@ function oocNumberGen(d){
 }
 function oocGatePassNoGen(d){
   if(!d.containerNo) return "Not yet generated — enter Container No. to generate.";
-  const seq = String((d.containerNo||"").replace(/\D/g,"").slice(-5) || "00001").padStart(5,"0");
-  return `GP-${seq}`;
+  // FIX (v35): GP-YYYY-NNNNNN, the same format the Delivery Order / CFS Gate Pass / Customs Gate Pass use (was GP-NNNNN, which the Delivery Order's own pattern rejected).
+  const seq = String((d.containerNo||"").replace(/\D/g,"").slice(-6) || "000001").padStart(6,"0");
+  return `GP-${new Date().getFullYear()}-${seq}`;
 }
 
 // BUGFIX: warehouse-receipt mixes TWO real scenarios in one 37-step
@@ -1140,9 +1164,9 @@ const DOCUMENT_CONFIGS = {
         {name:"expPhone", contextKey:"txn.sellerPhone", label:"Phone", type:"text", required:true, placeholder:"+91 98200 12345", pattern:"^\\+?[0-9][0-9\\-\\s]{7,16}$", patternMsg:"Enter a valid phone number with country code, e.g. +91 98200 12345."},
         {name:"expEmail", contextKey:"txn.sellerEmail", label:"Email", type:"text", required:true, placeholder:"exports@meridian.co.in", pattern:"^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$", patternMsg:"Enter a valid email address."},
         {name:"expWebsite", label:"Website", type:"text", required:false, placeholder:"www.meridianexports.co.in"},
-        {name:"expGSTIN", contextKey:"txn.sellerGSTIN", label:"GST Number", type:"text", required:true, uppercase:true, placeholder:"27MCPPK1234L1Z1", pattern:"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$", patternMsg:"Enter a valid 15-character GSTIN, e.g. 27MCPPK1234L1Z1.", help:"15-character Goods and Services Tax Identification Number, mandatory on every tax invoice issued in India.", learn:{explanation:"The exporter's 15-character GST Identification Number \u2014 India's tax registration ID, unique to this business and its state of registration.",purpose:"Confirms the exporter is a legitimate GST-registered entity; needed to claim GST refunds/exemptions on exports and to file the e-Way Bill and GST returns.",context:"Printed on every tax invoice issued in India, and cross-checked by customs against the IEC and Shipping Bill at the time of export.",money:"Exports are usually zero-rated under GST (LUT/bond route), so no GST is actually charged here \u2014 but the GSTIN is still mandatory so the exemption can be tracked.",example:"27MCPPK1234L1Z1",mistakes:"Transposing digits, or entering the buyer's tax ID here instead of the exporter's own GSTIN.",validation:"15 characters: 2-digit state code + 10-character PAN + entity/checksum characters, always ending in Z + 1 check digit.",hint:"The first 2 digits are the GST state code (27 = Maharashtra) \u2014 a quick sanity check that it matches the exporter's stated state."}},
-        {name:"expIEC", contextKey:"txn.sellerIEC", label:"IEC Number (India)", type:"text", uppercase:true, required:true, placeholder:"UYJPK1234L", pattern:"^[A-Z0-9]{10}$", patternMsg:"IEC must be 10 characters (letters and digits), e.g. UYJPK1234L.", help:"The 10-character Importer Exporter Code issued by DGFT. No shipment can legally leave India without one.", learn:{explanation:"The 10-character Importer Exporter Code issued by India's DGFT (Directorate General of Foreign Trade).",purpose:"A legal precondition to export or import anything commercially from India \u2014 Customs' ICEGATE system checks it before accepting a Shipping Bill.",context:"Obtained once, when the business first registers to trade internationally; quoted on every invoice and Shipping Bill after that.",money:"No fee for the code itself, but without a valid IEC the shipment simply cannot be filed with customs at all.",example:"UYJPK1234L",mistakes:"Confusing this with the GSTIN, or entering a PAN instead of the actual DGFT-issued IEC.",validation:"Exactly 10 digits.",hint:"Since 2018 the IEC is usually just the business's PAN, but it must still be separately registered and linked on the DGFT portal."}},
-        {name:"expPAN", contextKey:"txn.sellerPAN", label:"PAN Number", type:"text", required:false, uppercase:true, placeholder:"MCPPK1234L", pattern:"^[A-Z]{5}[0-9]{4}[A-Z]{1}$", patternMsg:"Enter a valid 10-character PAN, e.g. MCPPK1234L.", help:"10-character Permanent Account Number of the exporter (5 letters, 4 digits, 1 letter). The 3rd-12th characters of the GSTIN are the same PAN."}
+        {name:"expGSTIN", contextKey:"txn.sellerGSTIN", label:"GST Number", type:"text", required:true, uppercase:true, placeholder:"12AABCT4521K1ZM", pattern:"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$", patternMsg:"Enter a valid 15-character GSTIN, e.g. 12AABCT4521K1ZM.", help:"15-character Goods and Services Tax Identification Number, mandatory on every tax invoice issued in India.", learn:{explanation:"The exporter's 15-character GST Identification Number \u2014 India's tax registration ID, unique to this business and its state of registration.",purpose:"Confirms the exporter is a legitimate GST-registered entity; needed to claim GST refunds/exemptions on exports and to file the e-Way Bill and GST returns.",context:"Printed on every tax invoice issued in India, and cross-checked by customs against the IEC and Shipping Bill at the time of export.",money:"Exports are usually zero-rated under GST (LUT/bond route), so no GST is actually charged here \u2014 but the GSTIN is still mandatory so the exemption can be tracked.",example:"12AABCT4521K1ZM",mistakes:"Transposing digits, or entering the buyer's tax ID here instead of the exporter's own GSTIN.",validation:"15 characters: 2-digit state code + 10-character PAN + entity/checksum characters, always ending in Z + 1 check digit.",hint:"The first 2 digits are the GST state code (27 = Maharashtra) \u2014 a quick sanity check that it matches the exporter's stated state."}},
+        {name:"expIEC", contextKey:"txn.sellerIEC", label:"IEC Number (India)", type:"text", uppercase:true, required:true, placeholder:"AABCT4521K", pattern:"^[A-Z0-9]{10}$", patternMsg:"IEC must be 10 characters (letters and digits), e.g. AABCT4521K.", help:"The 10-character Importer Exporter Code issued by DGFT. No shipment can legally leave India without one.", learn:{explanation:"The 10-character Importer Exporter Code issued by India's DGFT (Directorate General of Foreign Trade).",purpose:"A legal precondition to export or import anything commercially from India \u2014 Customs' ICEGATE system checks it before accepting a Shipping Bill.",context:"Obtained once, when the business first registers to trade internationally; quoted on every invoice and Shipping Bill after that.",money:"No fee for the code itself, but without a valid IEC the shipment simply cannot be filed with customs at all.",example:"AABCT4521K",mistakes:"Confusing this with the GSTIN, or entering a PAN instead of the actual DGFT-issued IEC.",validation:"Exactly 10 digits.",hint:"Since 2018 the IEC is usually just the business's PAN, but it must still be separately registered and linked on the DGFT portal."}},
+        {name:"expPAN", contextKey:"txn.sellerPAN", label:"PAN Number", type:"text", required:false, uppercase:true, placeholder:"AABCT4521K", pattern:"^[A-Z]{5}[0-9]{4}[A-Z]{1}$", patternMsg:"Enter a valid 10-character PAN, e.g. AABCT4521K.", help:"10-character Permanent Account Number of the exporter (5 letters, 4 digits, 1 letter). The 3rd-12th characters of the GSTIN are the same PAN."}
       ]},
     { title:"Importer / Buyer", est:6, sub:"Who is legally buying the goods.",
       intro:"The buyer's tax registration matters just as much as the exporter's — customs in the destination country will check it, and it's what an EORI or VAT check runs against.",
@@ -1429,9 +1453,9 @@ const DOCUMENT_CONFIGS = {
         {name:"shipperPhone", contextKey:"txn.sellerPhone", label:"Phone", type:"text", required:true, placeholder:"+91 98200 12345", pattern:"^\\+?[0-9][0-9\\-\\s]{7,16}$", patternMsg:"Enter a valid phone number with country code, e.g. +91 98200 12345."},
         {name:"shipperEmail", contextKey:"txn.sellerEmail", label:"Email", type:"text", required:true, placeholder:"exports@meridian.co.in", pattern:"^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$", patternMsg:"Enter a valid email address."},
         {name:"shipperCountry", label:"Country", type:"text", required:true, placeholder:"India"},
-        {name:"shipperIECRef", contextKey:"txn.sellerIEC", label:"IEC Number", type:"text", uppercase:true, required:true, placeholder:"UYJPK1234L", pattern:"^[A-Z0-9]{10}$", patternMsg:"IEC must be 10 characters (letters and digits), e.g. UYJPK1234L."},
-        {name:"shipperGSTINRef", contextKey:"txn.sellerGSTIN", label:"GSTIN", type:"text", required:true, uppercase:true, placeholder:"27MCPPK1234L1Z1", pattern:"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$", patternMsg:"Enter a valid 15-character GSTIN, e.g. 27MCPPK1234L1Z1."},
-        {name:"shipperPANRef", contextKey:"txn.sellerPAN", label:"PAN", type:"text", required:false, uppercase:true, placeholder:"MCPPK1234L", pattern:"^[A-Z]{5}[0-9]{4}[A-Z]{1}$", patternMsg:"Enter a valid 10-character PAN, e.g. MCPPK1234L.", help:"10-character Permanent Account Number of the exporter (5 letters, 4 digits, 1 letter). The 3rd-12th characters of the GSTIN are the same PAN."},
+        {name:"shipperIECRef", contextKey:"txn.sellerIEC", label:"IEC Number", type:"text", uppercase:true, required:true, placeholder:"AABCT4521K", pattern:"^[A-Z0-9]{10}$", patternMsg:"IEC must be 10 characters (letters and digits), e.g. AABCT4521K."},
+        {name:"shipperGSTINRef", contextKey:"txn.sellerGSTIN", label:"GSTIN", type:"text", required:true, uppercase:true, placeholder:"12AABCT4521K1ZM", pattern:"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$", patternMsg:"Enter a valid 15-character GSTIN, e.g. 12AABCT4521K1ZM."},
+        {name:"shipperPANRef", contextKey:"txn.sellerPAN", label:"PAN", type:"text", required:false, uppercase:true, placeholder:"AABCT4521K", pattern:"^[A-Z]{5}[0-9]{4}[A-Z]{1}$", patternMsg:"Enter a valid 10-character PAN, e.g. AABCT4521K.", help:"10-character Permanent Account Number of the exporter (5 letters, 4 digits, 1 letter). The 3rd-12th characters of the GSTIN are the same PAN."},
         {name:"shipperBankAccount", label:"Bank Account Number", type:"text", required:false, placeholder:"3021554488901"},
         {name:"shipperBankName", label:"Bank Name", type:"text", required:false, placeholder:"HDFC Bank Ltd."},
         {name:"shipperSignatoryName", contextKey:"txn.authorizedSignatory", label:"Authorized Signatory Name", type:"text", required:true, placeholder:"Priya Sharma"},
@@ -1465,9 +1489,9 @@ const DOCUMENT_CONFIGS = {
         {name:"oceanCarrier", contextKey:"txn.carrierName", label:"Ocean Carrier Name", type:"text", required:true, placeholder:"Mediterranean Shipping Company S.A."},
         {name:"carrierAgent", label:"Carrier Agent", type:"text", required:true, placeholder:"MSC Agency (India) Pvt. Ltd., Mumbai"},
         {name:"vesselName", contextKey:"txn.vesselName", label:"Ocean Vessel Name", type:"text", required:true, uppercase:true, placeholder:"MSC ANNA"},
-        {name:"vesselIMO", label:"Vessel IMO Number", type:"text", required:false, placeholder:"9321483", pattern:"^\\d{7}$", patternMsg:"IMO Number must be exactly 7 digits."},
+        {name:"vesselIMO", label:"Vessel IMO Number", type:"text", required:false, placeholder:"9321483", pattern:"^(IMO)?\\d{7}$", patternMsg:"Enter the 7-digit IMO number, with or without the IMO prefix (9321483 or IMO9321483)."},
         {name:"voyageNo", contextKey:"txn.voyageNo", label:"Voyage Number", type:"text", required:true, uppercase:true, placeholder:"234E", pattern:"^[A-Z0-9]{2,10}$", patternMsg:"Voyage number should be 2-10 letters/digits, e.g. 234E."},
-        {name:"portLoading", contextKey:"txn.portOfLoading", label:"Port of Loading (POL)", type:"select", required:true, options:["Nhava Sheva (JNPT)","Mundra","Chennai","Kolkata","Cochin (Vallarpadam)","Visakhapatnam","Kandla (Deendayal)","Tuticorin (V.O. Chidambaranar)","Other"]},
+        {name:"portLoading", contextKey:"txn.portOfLoading", label:"Port of Loading (POL)", type:"text", required:true, placeholder:"Nhava Sheva (JNPT), Mumbai", help:"Any port of loading — Indian for an export, foreign for an import. Same text as the Port of Loading on your Job."},
         {name:"portDischarge", contextKey:"txn.portOfDischarge", label:"Port of Discharge (POD)", type:"text", required:true, placeholder:"Hamburg"},
         {name:"placeReceipt", label:"Place of Receipt", type:"text", required:false, placeholder:"Pune ICD", help:"Only relevant on a combined/multimodal B/L, where the carrier takes custody before the port of loading."},
         {name:"finalPlaceDelivery", label:"Final Place of Delivery", type:"text", required:false, placeholder:"Munich", help:"Only used on a combined/multimodal transport B/L, where the carrier's responsibility extends beyond the discharge port."},
@@ -1530,11 +1554,11 @@ const DOCUMENT_CONFIGS = {
     { title:"Customs & Export Clearance Cross-Check", est:12, sub:"Cross-checking the B/L against the Shipping Bill, LEO, EGM and customs examination status.",
       intro:"This phase confirms the B/L reconciles with the customs side of the export — Shipping Bill number, Let Export Order, EGM filing, origin certificate, and any incentive scheme claimed.",
       fields:[
-        {name:"customsShippingBillNo", contextKey:"txn.shippingBillNo", label:"Shipping Bill Number", type:"text", required:true, uppercase:true, placeholder:"SB/2026/004481", pattern:"^[A-Z0-9\\/]{6,25}$", patternMsg:"Enter a valid Shipping Bill number, e.g. SB/2026/004481."},
+        {name:"customsShippingBillNo", contextKey:"txn.shippingBillNo", label:"Shipping Bill Number", type:"text", required:true, uppercase:true, placeholder:"SB/2026/004481", pattern:"^[A-Z0-9\\/-]{6,25}$", patternMsg:"Enter a valid Shipping Bill number, e.g. SB/2026/004481 or TRN-SB-2026-914852."},
         {name:"customsIecGstinMatched", label:"IEC and GSTIN on the B/L match the Shipping Bill exactly", type:"checkbox", required:true},
         {name:"leoNumber", label:"Let Export Order (LEO) Reference", type:"text", required:false, uppercase:true, placeholder:"LEO-2026-004481", pattern:"^[A-Z0-9\\-\\/]{4,20}$", patternMsg:"Use letters, numbers, hyphens or slashes, 4-20 characters."},
         {name:"leoDate", label:"LEO Date", type:"date", required:false, help:"The date Customs grants Let Export Order (LEO) — the cargo is officially cleared to leave India."},
-        {name:"egmNumberCheck", label:"EGM Number", type:"text", required:false, uppercase:true, placeholder:"EGM/2026/006842", pattern:"^[A-Z0-9\\-\\/]{4,20}$", patternMsg:"Use letters, numbers, hyphens or slashes, 4-20 characters."},
+        {name:"egmNumberCheck", label:"EGM Number", type:"text", required:false, uppercase:true, placeholder:"EGM/2026/006842", pattern:"^[A-Z0-9\\-\\/]{4,30}$", patternMsg:"Use letters, numbers, hyphens or slashes, 4-30 characters."},
         {name:"coOriginRefCheck", label:"Certificate of Origin Number", type:"text", required:false, uppercase:true, placeholder:"COO/2026/00871", pattern:"^[A-Z0-9\\-\\/]{4,20}$", patternMsg:"Use letters, numbers, hyphens or slashes, 4-20 characters."},
         {name:"exportIncentiveScheme", label:"Export Incentive Scheme", type:"select", required:false, options:["None","Duty Drawback","RoDTEP","Advance Authorization","EPCG"]},
         {name:"customsExamStatus", label:"Customs Examination Status", type:"select", required:true, options:["Not Selected (Green Channel)","Document Examination","Physical Examination"]},
@@ -2000,14 +2024,14 @@ const DOCUMENT_CONFIGS = {
         {name:"jobNumber", label:"Job Number", type:"text", required:true, uppercase:true, placeholder:"JOB/2026/001123", pattern:"^[A-Z0-9\\/\\-]{4,20}$", patternMsg:"Use letters, numbers, slashes or hyphens, 4–20 characters."},
         {name:"jobDate", label:"Job Date", type:"date", required:true, help:"The date the Customs House Agent (CHA) files this Shipping Bill job with ICEGATE."},
         {name:"chaLicenseNo", label:"CHA License Number", type:"text", required:true, uppercase:true, placeholder:"11/1234", pattern:"^[A-Z0-9\\/\\-]{4,15}$", patternMsg:"Enter a valid CHA licence number, e.g. 11/1234."},
-        {name:"iecNumber", contextKey:"txn.sellerIEC", label:"IEC (Importer Exporter Code)", type:"text", uppercase:true, required:true, placeholder:"UYJPK1234L", pattern:"^[A-Z0-9]{10}$", patternMsg:"IEC must be 10 characters (letters and digits), e.g. UYJPK1234L.", help:"The 10-character Importer Exporter Code issued by DGFT against which this shipment is being exported."},
+        {name:"iecNumber", contextKey:"txn.sellerIEC", label:"IEC (Importer Exporter Code)", type:"text", uppercase:true, required:true, placeholder:"AABCT4521K", pattern:"^[A-Z0-9]{10}$", patternMsg:"IEC must be 10 characters (letters and digits), e.g. AABCT4521K.", help:"The 10-character Importer Exporter Code issued by DGFT against which this shipment is being exported."},
         {name:"branchSerialNo", label:"Branch Serial Number", type:"text", required:true, placeholder:"01", pattern:"^\\d{1,3}$", patternMsg:"Branch serial number must be 1–3 digits."},
         {name:"exporterType", label:"Exporter Type", type:"select", required:true, options:["Manufacturer Exporter","Merchant Exporter","Third Party Exporter","EOU / SEZ Unit"]},
         {name:"exporterName", contextKey:"txn.sellerName", label:"Exporter Name", type:"text", required:true, placeholder:"Meridian Exports Pvt. Ltd."},
         {name:"exporterAddress", contextKey:"txn.sellerAddress", label:"Exporter Address", type:"textarea", required:true, full:true, placeholder:"Plot 14, MIDC Industrial Area, Pune, Maharashtra – 411019, India"},
         {name:"exporterClass", label:"Exporter Class", type:"select", required:true, options:["Not Applicable","One Star Export House","Two Star Export House","Three Star Export House","Four Star Export House","Five Star Export House"], help:"Status-holder classification under India's Foreign Trade Policy, if applicable."},
-        {name:"gstin", contextKey:"txn.sellerGSTIN", label:"GSTIN", type:"text", required:true, uppercase:true, placeholder:"27MCPPK1234L1Z1", pattern:"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$", patternMsg:"Enter a valid 15-character GSTIN, e.g. 27MCPPK1234L1Z1."},
-        {name:"panNumber", contextKey:"txn.sellerPAN", label:"PAN", type:"text", required:false, uppercase:true, placeholder:"MCPPK1234L", pattern:"^[A-Z]{5}[0-9]{4}[A-Z]{1}$", patternMsg:"Enter a valid 10-character PAN, e.g. MCPPK1234L.", help:"10-character Permanent Account Number of the exporter (5 letters, 4 digits, 1 letter). The 3rd-12th characters of the GSTIN are the same PAN."}
+        {name:"gstin", contextKey:"txn.sellerGSTIN", label:"GSTIN", type:"text", required:true, uppercase:true, placeholder:"12AABCT4521K1ZM", pattern:"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$", patternMsg:"Enter a valid 15-character GSTIN, e.g. 12AABCT4521K1ZM."},
+        {name:"panNumber", contextKey:"txn.sellerPAN", label:"PAN", type:"text", required:false, uppercase:true, placeholder:"AABCT4521K", pattern:"^[A-Z]{5}[0-9]{4}[A-Z]{1}$", patternMsg:"Enter a valid 10-character PAN, e.g. AABCT4521K.", help:"10-character Permanent Account Number of the exporter (5 letters, 4 digits, 1 letter). The 3rd-12th characters of the GSTIN are the same PAN."}
       ]},
     { title:"Cargo & Shipment Particulars", est:8, sub:"What is being shipped, in what quantity, and by which route.",
       intro:"This section is what customs cross-checks physically at the port — package count, weight, and container count must match what's actually loaded, down to the marks and numbers on the outer packing.",
@@ -2249,12 +2273,12 @@ const DOCUMENT_CONFIGS = {
     { title:"Importer Details", est:7, sub:"Who is legally importing the goods, and under whose authorization.",
       intro:"Customs verifies the importer's legal identity from this section before assessment even begins. A mismatched PAN or GSTIN here is one of the most common reasons a Bill of Entry gets held up.",
       fields:[
-        {name:"iecNumber", label:"IEC Number", type:"text", uppercase:true, required:true, placeholder:"UYJPK1234L", pattern:"^[A-Z0-9]{10}$", patternMsg:"IEC must be 10 characters (letters and digits), e.g. UYJPK1234L."},
-        {name:"gstin", contextKey:"txn.buyerGSTIN", label:"GSTIN", type:"text", required:true, uppercase:true, placeholder:"27MCPPK1234L1Z1", pattern:"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$", patternMsg:"Enter a valid 15-character GSTIN, e.g. 27MCPPK1234L1Z1."},
+        {name:"iecNumber", label:"IEC Number", type:"text", uppercase:true, required:true, placeholder:"AABCT4521K", pattern:"^[A-Z0-9]{10}$", patternMsg:"IEC must be 10 characters (letters and digits), e.g. AABCT4521K."},
+        {name:"gstin", contextKey:"txn.buyerGSTIN", label:"GSTIN", type:"text", required:true, uppercase:true, placeholder:"12AABCT4521K1ZM", pattern:"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$", patternMsg:"Enter a valid 15-character GSTIN, e.g. 12AABCT4521K1ZM."},
         {name:"importerName", contextKey:"txn.buyerName", label:"Importer Name", type:"text", required:true, placeholder:"Meridian Imports Pvt. Ltd."},
         {name:"importerAddress", contextKey:"txn.buyerAddress", label:"Importer Address", type:"textarea", required:true, full:true, placeholder:"Plot 14, MIDC Industrial Area, Pune, Maharashtra – 411019, India"},
         {name:"branchSerialNo", label:"Branch Serial Number", type:"text", required:true, placeholder:"01", pattern:"^\\d{1,3}$", patternMsg:"Branch serial number must be 1–3 digits."},
-        {name:"pan", label:"PAN", type:"text", required:true, uppercase:true, placeholder:"MCPPK1234L", pattern:"^[A-Z]{5}[0-9]{4}[A-Z]{1}$", patternMsg:"Enter a valid 10-character PAN, e.g. MCPPK1234L."},
+        {name:"pan", label:"PAN", type:"text", required:true, uppercase:true, placeholder:"AABCT4521K", pattern:"^[A-Z]{5}[0-9]{4}[A-Z]{1}$", patternMsg:"Enter a valid 10-character PAN, e.g. AABCT4521K."},
         {name:"adCode", label:"Authorized Dealer (AD) Code", type:"text", required:true, placeholder:"0123456", pattern:"^\\d{7}$", patternMsg:"AD Code must be exactly 7 digits.", help:"The 7-digit code assigned by the importer's bank branch, mandatory for remitting payment abroad."},
         {name:"chaDetails", label:"CHA (Customs Broker) Details", type:"text", required:true, placeholder:"Mumbai Customs House Agency Pvt. Ltd., Licence 11/1234"},
         {name:"importerCategory", label:"Importer Category", type:"select", required:true, options:["Individual","Proprietorship","Partnership","Private Limited","Public Limited","EOU","SEZ Unit","Government"]}
@@ -2485,7 +2509,7 @@ const DOCUMENT_CONFIGS = {
       fields:[
         {name:"exporterName", contextKey:"txn.sellerName", label:"Exporter Name", type:"text", required:true, placeholder:"Meridian Exports Pvt. Ltd."},
         {name:"exporterAddress", contextKey:"txn.sellerAddress", label:"Exporter Address", type:"textarea", required:true, full:true, placeholder:"Plot 14, MIDC Industrial Area, Pune, Maharashtra, India"},
-        {name:"exporterGSTIEC", label:"Exporter GST / IEC", type:"text", required:true, uppercase:true, placeholder:"UYJPK1234L", pattern:"^([0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}|[A-Z0-9]{10})$", patternMsg:"Enter a valid 15-character GSTIN or a 10-character IEC (e.g. UYJPK1234L)."}
+        {name:"exporterGSTIEC", label:"Exporter GST / IEC", type:"text", required:true, uppercase:true, placeholder:"AABCT4521K", pattern:"^([0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}|[A-Z0-9]{10})$", patternMsg:"Enter a valid 15-character GSTIN or a 10-character IEC (e.g. AABCT4521K)."}
       ]},
     { title:"Consignee & Notify", est:5, sub:"Who this certificate is made out to, and who's notified on arrival.",
       intro:"On a preferential certificate, the consignee named here is often exactly who the destination customs office checks the importer's claim against — keep it consistent with the Bill of Lading.",
@@ -2639,9 +2663,9 @@ const DOCUMENT_CONFIGS = {
         {name:"applicantName", contextKey:"txn.buyerName", label:"Applicant Name", type:"text", required:true, placeholder:"Rajesh Mehta"},
         {name:"applicantCompanyName", contextKey:"txn.buyerName", label:"Company Name", type:"text", required:true, placeholder:"Nordic Trading GmbH"},
         {name:"applicantAddress", contextKey:"txn.buyerAddress", label:"Address", type:"textarea", required:true, full:true, placeholder:"Hafenstrasse 22, 20457 Hamburg, Germany"},
-        {name:"applicantIEC", label:"IEC (if applicable)", type:"text", uppercase:true, required:false, placeholder:"UYJPK1234L", pattern:"^[A-Z0-9]{10}$", patternMsg:"IEC must be 10 characters (letters and digits), e.g. UYJPK1234L."},
-        {name:"applicantGSTIN", contextKey:"txn.buyerGSTIN", label:"GSTIN", type:"text", required:false, uppercase:true, placeholder:"27MCPPK1234L1Z1", pattern:"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$", patternMsg:"Enter a valid 15-character GSTIN, e.g. 27MCPPK1234L1Z1."},
-        {name:"applicantPAN", label:"PAN", type:"text", required:false, uppercase:true, placeholder:"MCPPK1234L", pattern:"^[A-Z]{5}[0-9]{4}[A-Z]{1}$", patternMsg:"Enter a valid 10-character PAN, e.g. MCPPK1234L."},
+        {name:"applicantIEC", label:"IEC (if applicable)", type:"text", uppercase:true, required:false, placeholder:"AABCT4521K", pattern:"^[A-Z0-9]{10}$", patternMsg:"IEC must be 10 characters (letters and digits), e.g. AABCT4521K."},
+        {name:"applicantGSTIN", contextKey:"txn.buyerGSTIN", label:"GSTIN", type:"text", required:false, uppercase:true, placeholder:"12AABCT4521K1ZM", pattern:"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$", patternMsg:"Enter a valid 15-character GSTIN, e.g. 12AABCT4521K1ZM."},
+        {name:"applicantPAN", label:"PAN", type:"text", required:false, uppercase:true, placeholder:"AABCT4521K", pattern:"^[A-Z]{5}[0-9]{4}[A-Z]{1}$", patternMsg:"Enter a valid 10-character PAN, e.g. AABCT4521K."},
         {name:"applicantContact", label:"Contact Person", type:"text", required:true, placeholder:"Lars Fischer"},
         {name:"applicantPhone", contextKey:"txn.buyerPhone", label:"Phone Number", type:"text", required:true, placeholder:"+49 40 3312 0098", pattern:"^\\+?[0-9][0-9\\-\\s]{7,16}$", patternMsg:"Enter a valid phone number with country code."},
         {name:"applicantEmail", contextKey:"txn.buyerEmail", label:"Email", type:"text", required:true, placeholder:"procurement@nordictrading.de", pattern:"^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$", patternMsg:"Enter a valid email address."},
@@ -3153,7 +3177,7 @@ const DOCUMENT_CONFIGS = {
       fields:[
         {name:"consignorCompany", contextKey:"txn.sellerName", label:"Company Name", type:"text", required:true, placeholder:"Meridian Exports Pvt. Ltd."},
         {name:"consignorContact", label:"Contact Person", type:"text", required:true, placeholder:"Priya Sharma"},
-        {name:"consignorGSTIN", contextKey:"txn.sellerGSTIN", label:"GSTIN", type:"text", required:true, uppercase:true, placeholder:"27MCPPK1234L1Z1", pattern:"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$", patternMsg:"Enter a valid 15-character GSTIN, e.g. 27MCPPK1234L1Z1."},
+        {name:"consignorGSTIN", contextKey:"txn.sellerGSTIN", label:"GSTIN", type:"text", required:true, uppercase:true, placeholder:"12AABCT4521K1ZM", pattern:"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$", patternMsg:"Enter a valid 15-character GSTIN, e.g. 12AABCT4521K1ZM."},
         {name:"consignorAddress1", contextKey:"txn.sellerAddress", label:"Address Line 1", type:"text", required:true, placeholder:"Plot 14, MIDC Industrial Area"},
         {name:"consignorAddress2", label:"Address Line 2", type:"text", required:false, placeholder:"Near Chakan Toll Plaza"},
         {name:"consignorCity", label:"City", type:"text", required:true, placeholder:"Pune"},
@@ -3430,7 +3454,7 @@ const DOCUMENT_CONFIGS = {
         {name:"supplierName", contextKey:"txn.sellerName", label:"Supplier Name", type:"text", required:true, placeholder:"Bosch Rexroth India Pvt. Ltd."},
         {name:"supplierContact", label:"Contact Person", type:"text", required:true, placeholder:"Anil Kumar"},
         {name:"supplierAddress", label:"Address", type:"textarea", required:true, full:true, placeholder:"Plot 22, Chakan Industrial Area, Pune, Maharashtra, India"},
-        {name:"supplierGSTVAT", label:"GST / VAT Number", type:"text", required:true, uppercase:true, placeholder:"27MCPPK1234L1Z1", pattern:"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$", patternMsg:"Enter a valid 15-character GSTIN, e.g. 27MCPPK1234L1Z1."},
+        {name:"supplierGSTVAT", label:"GST / VAT Number", type:"text", required:true, uppercase:true, placeholder:"12AABCT4521K1ZM", pattern:"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$", patternMsg:"Enter a valid 15-character GSTIN, e.g. 12AABCT4521K1ZM."},
         {name:"supplierPhone", label:"Phone", type:"text", required:true, placeholder:"+91 98220 11223", pattern:"^\\+?[0-9][0-9\\-\\s]{7,16}$", patternMsg:"Enter a valid phone number with country code."},
         {name:"supplierEmail", label:"Email", type:"text", required:true, placeholder:"sales@boschrexroth.co.in", pattern:"^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$", patternMsg:"Enter a valid email address."}
       ]},
@@ -4027,14 +4051,14 @@ const DOCUMENT_CONFIGS = {
         {name:"contactPerson", label:"Contact Person", type:"text", required:true, placeholder:"Rahul Menon"},
         {name:"mobileNumber", label:"Mobile Number", type:"text", required:true, placeholder:"9845012345", pattern:"^[6-9]\\d{9}$", patternMsg:"Enter a valid 10-digit Indian mobile number starting with 6-9."},
         {name:"consigneeEmail", contextKey:"txn.buyerEmail", label:"Email ID", type:"text", required:true, placeholder:"rahul@sunriseimports.in", pattern:"^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$", patternMsg:"Enter a valid email address."},
-        {name:"gstVatNumber", label:"GST / VAT Number", type:"text", required:false, uppercase:true, placeholder:"27MCPPK1234L1Z1", pattern:"^[A-Z0-9]{5,20}$", patternMsg:"Enter a valid GST or VAT registration number (5–20 alphanumeric characters)."}
+        {name:"gstVatNumber", label:"GST / VAT Number", type:"text", required:false, uppercase:true, placeholder:"12AABCT4521K1ZM", pattern:"^[A-Z0-9]{5,20}$", patternMsg:"Enter a valid GST or VAT registration number (5–20 alphanumeric characters)."}
       ]},
     { title:"Authorized Representative", est:4, sub:"Whoever is physically collecting this Delivery Order needs to prove they're entitled to.",
       fields:[
         {name:"repName", label:"Representative Name", type:"text", required:true, placeholder:"Suresh Patil"},
         {name:"repDesignation", label:"Designation", type:"text", required:true, placeholder:"Logistics Executive"},
         {name:"idProofType", label:"ID Proof Type", type:"select", required:true, options:["Aadhaar Card","PAN Card","Passport","Driving Licence","Company ID Card"]},
-        {name:"idNumber", label:"ID Number", type:"text", required:true, uppercase:true, placeholder:"MCPPK1234L"},
+        {name:"idNumber", label:"ID Number", type:"text", required:true, uppercase:true, placeholder:"AABCT4521K"},
         {name:"authLetterNo", label:"Authorization Letter Number", type:"text", required:true, uppercase:true, placeholder:"AUTH-2026-000512", pattern:"^AUTH[-\\/]\\d{4}[-\\/]\\d{3,6}$", patternMsg:"Use the format AUTH-YYYY-NNNNNN, e.g. AUTH-2026-000512."},
         {name:"authLetterDate", label:"Authorization Date", type:"date", required:true, help:"The date the consignee issues a letter authorizing their CHA to collect the Delivery Order on their behalf."},
         {name:"repContactNumber", label:"Contact Number", type:"text", required:true, placeholder:"+91 98220 11223", pattern:"^\\+?[0-9][0-9\\-\\s]{7,16}$", patternMsg:"Enter a valid phone number with country code."}
@@ -4083,7 +4107,7 @@ const DOCUMENT_CONFIGS = {
         {name:"invoiceDate", label:"Invoice Date", type:"date", required:true, help:"The date of the Commercial Invoice this shipment/Delivery Order relates to."},
         {name:"sellerName", contextKey:"txn.sellerName", label:"Seller", type:"text", required:true, placeholder:"Meridian Exports Pte. Ltd."},
         {name:"buyerName", contextKey:"txn.buyerName", label:"Buyer", type:"text", required:true, placeholder:"Sunrise Imports Pvt. Ltd."},
-        {name:"packingListNo", contextKey:"txn.packingListNo", label:"Packing List Number", type:"text", required:true, uppercase:true, placeholder:"PL-2026-0001", pattern:"^PL[-\\/]\\d{4}[-\\/]\\d{4,6}$", patternMsg:"Use the format PL-YYYY-NNNN, e.g. PL-2026-0001."},
+        {name:"packingListNo", contextKey:"txn.packingListNo", label:"Packing List Number", type:"text", required:true, uppercase:true, placeholder:"PL-2026-0001", pattern:"^[A-Z0-9\\-\\/]{6,25}$", patternMsg:"Use letters, numbers, hyphens or slashes, 6-25 characters, e.g. PL-2026-0001 or IPL/2026/005812."},
         {name:"packingListPackagesVerified", label:"Packing List — Package Count Verified", type:"checkbox", required:false},
         {name:"packingListWeightVerified", label:"Packing List — Weight Verified", type:"checkbox", required:false},
         {name:"packingListDimensionsVerified", label:"Packing List — Dimensions Verified", type:"checkbox", required:false}
@@ -4092,7 +4116,7 @@ const DOCUMENT_CONFIGS = {
       fields:[
         {name:"importLicenseNo", label:"Import License Number", type:"text", required:false, uppercase:true, placeholder:"IL-2026-00451", pattern:"^[A-Z0-9\\/\\-]{4,20}$", patternMsg:"Use letters, numbers, slashes or hyphens, 4–20 characters."},
         {name:"importPermitNo", autoGenerate:true, label:"Import Permit Number", type:"text", required:false, uppercase:true, placeholder:"IP-2026-00451", pattern:"^[A-Z0-9\\/\\-]{4,20}$", patternMsg:"Use letters, numbers, slashes or hyphens, 4–20 characters."},
-        {name:"customsEntryNo", autoGenerate:true, label:"Customs Entry Number", type:"text", required:true, uppercase:true, placeholder:"CE-2026-00451", pattern:"^[A-Z0-9\\/\\-]{4,20}$", patternMsg:"Use letters, numbers, slashes or hyphens, 4–20 characters."},
+        {name:"customsEntryNo", contextKey:"txn.billOfEntryNo", autoGenerate:true, label:"Customs Entry Number", type:"text", required:true, uppercase:true, placeholder:"CE-2026-00451", pattern:"^[A-Z0-9\\/\\-]{4,30}$", patternMsg:"Use letters, numbers, slashes or hyphens, 4–30 characters."},
         {name:"importDeclarationNo", autoGenerate:true, label:"Import Declaration Number", type:"text", required:true, uppercase:true, placeholder:"ID-2026-00451", pattern:"^[A-Z0-9\\/\\-]{4,20}$", patternMsg:"Use letters, numbers, slashes or hyphens, 4–20 characters."},
         {name:"companyIdVerified", label:"Company Identity Verified Against Records", type:"checkbox", required:false},
         {name:"authPersonIdVerified", label:"Authorized Person's Identity Verified", type:"checkbox", required:false},
@@ -4211,7 +4235,7 @@ const DOCUMENT_CONFIGS = {
       ]},
     { title:"Exit & Cargo Handover", est:6, sub:"The gate, the security check, and finally putting the cargo in the receiver's hands.",
       fields:[
-        {name:"gatePassNumber", autoGenerate:true, label:"Gate Pass Number", type:"text", required:true, uppercase:true, placeholder:"GP-2026-000512", pattern:"^GP[-\\/]\\d{4}[-\\/]\\d{3,6}$", patternMsg:"Use the format GP-YYYY-NNNNNN, e.g. GP-2026-000512."},
+        {name:"gatePassNumber", contextKey:"txn.gatePassNo", autoGenerate:true, label:"Gate Pass Number", type:"text", required:true, uppercase:true, placeholder:"GP-2026-000512", pattern:"^GP[-\\/]\\d{4}[-\\/]\\d{3,6}$", patternMsg:"Use the format GP-YYYY-NNNNNN, e.g. GP-2026-000512."},
         {name:"exitSecurityCheckPassed", label:"Exit Security Check Passed", type:"checkbox", required:false},
         {name:"sealVerifiedAtExit", label:"Seal Verified at Exit", type:"checkbox", required:false},
         {name:"vehicleExitApproved", label:"Vehicle Exit Approved", type:"checkbox", required:false},
@@ -4486,7 +4510,7 @@ const DOCUMENT_CONFIGS = {
       fields:[
         {name:"applicantNameBG", contextKey:"txn.buyerName", label:"Applicant Name", type:"text", required:true, placeholder:"Meridian Exports Pvt. Ltd."},
         {name:"applicantAddressBG", contextKey:"txn.buyerAddress", label:"Applicant Address", type:"textarea", required:true, full:true, placeholder:"Plot 14, MIDC Industrial Area, Pune, Maharashtra, India"},
-        {name:"applicantRegNo", label:"Applicant GST/PAN/Registration Number", type:"text", required:true, uppercase:true, placeholder:"27MCPPK1234L1Z1", pattern:"^([0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}|[A-Z]{5}[0-9]{4}[A-Z]{1}|[A-Z0-9]{5,15})$", patternMsg:"Enter a valid GSTIN, PAN, or registration number."},
+        {name:"applicantRegNo", label:"Applicant GST/PAN/Registration Number", type:"text", required:true, uppercase:true, placeholder:"12AABCT4521K1ZM", pattern:"^([0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}|[A-Z]{5}[0-9]{4}[A-Z]{1}|[A-Z0-9]{5,15})$", patternMsg:"Enter a valid GSTIN, PAN, or registration number."},
         {name:"beneficiaryNameBG", contextKey:"txn.sellerName", label:"Beneficiary Name", type:"text", required:true, placeholder:"Nordic Trading GmbH"},
         {name:"beneficiaryAddressBG", contextKey:"txn.sellerAddress", label:"Beneficiary Address", type:"textarea", required:true, full:true, placeholder:"Hafenstrasse 22, 20457 Hamburg, Germany"},
         {name:"beneficiaryRegNo", label:"Beneficiary Registration Number", type:"text", required:false, uppercase:true, placeholder:"HRB 123456"}
@@ -4812,8 +4836,8 @@ const DOCUMENT_CONFIGS = {
         {name:"customerPhone", label:"Phone Number", type:"text", required:true, placeholder:"+91 98450 12345", pattern:"^\\+?[0-9][0-9\\-\\s]{7,16}$", patternMsg:"Enter a valid phone number with country code."},
         {name:"customerEmail", label:"Email", type:"text", required:true, placeholder:"customer@example.com", pattern:"^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$", patternMsg:"Enter a valid email address."},
         {name:"customerAddressInquiry", contextKey:"txn.buyerAddress", label:"Address", type:"textarea", required:true, full:true, placeholder:"14 Industrial Estate, Navi Mumbai, Maharashtra, India"},
-        {name:"customerGstinInquiry", contextKey:"txn.buyerGSTIN", label:"GST Number", type:"text", required:true, uppercase:true, placeholder:"27MCPPK1234L1Z1", pattern:"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$", patternMsg:"Enter a valid 15-character GSTIN."},
-        {name:"customerIecInquiry", label:"IEC Number", type:"text", required:false, uppercase:true, placeholder:"MCPPK1234L", pattern:"^[A-Z]{5}[0-9]{4}[A-Z]{1}$", patternMsg:"IEC Number must be 10 characters in PAN format, e.g. MCPPK1234L.",},
+        {name:"customerGstinInquiry", contextKey:"txn.buyerGSTIN", label:"GST Number", type:"text", required:true, uppercase:true, placeholder:"12AABCT4521K1ZM", pattern:"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$", patternMsg:"Enter a valid 15-character GSTIN."},
+        {name:"customerIecInquiry", label:"IEC Number", type:"text", required:false, uppercase:true, placeholder:"AABCT4521K", pattern:"^[A-Z]{5}[0-9]{4}[A-Z]{1}$", patternMsg:"IEC Number must be 10 characters in PAN format, e.g. AABCT4521K.",},
         {name:"customerCountry", label:"Country", type:"text", required:true, placeholder:"India"},
         {name:"customerCategory", label:"Customer Category", type:"select", required:true, options:["New Customer","Existing Customer","Corporate Account","Government Entity"]}
       ]},
@@ -4904,12 +4928,12 @@ const DOCUMENT_CONFIGS = {
         {name:"businessType", label:"Business Type", type:"select", required:true, options:["Private Limited","Public Limited","Partnership","Sole Proprietorship","LLP"]},
         {name:"dateOfIncorporation", label:"Date of Incorporation", type:"date", required:true, help:"The date the depositor company was incorporated, as recorded on file with the warehouse."},
         {name:"authorizedSignatoryNameKyc", label:"Authorized Signatory", type:"text", required:true, placeholder:"Rohan Mehta"},
-        {name:"gstinVerification", label:"GSTIN (Verified)", type:"text", required:true, uppercase:true, placeholder:"27MCPPK1234L1Z1", pattern:"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$", patternMsg:"Enter a valid 15-character GSTIN."},
-        {name:"panNumber", label:"PAN", type:"text", required:true, uppercase:true, placeholder:"MCPPK1234L", pattern:"^[A-Z]{5}[0-9]{4}[A-Z]{1}$", patternMsg:"Enter a valid 10-character PAN."},
+        {name:"gstinVerification", label:"GSTIN (Verified)", type:"text", required:true, uppercase:true, placeholder:"12AABCT4521K1ZM", pattern:"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$", patternMsg:"Enter a valid 15-character GSTIN."},
+        {name:"panNumber", label:"PAN", type:"text", required:true, uppercase:true, placeholder:"AABCT4521K", pattern:"^[A-Z]{5}[0-9]{4}[A-Z]{1}$", patternMsg:"Enter a valid 10-character PAN."},
         {name:"gstFilingStatus", label:"GST Filing Status", type:"select", required:true, options:["Filed — Up to Date","Filed — Pending Returns","Not Applicable"]},
         {name:"taxRegistrationStatus", label:"Tax Registration Status", type:"select", required:true, options:["Valid","Invalid","Expired"]},
         {name:"iecApplicable", label:"IEC Applicable (Import/Export Cargo)", type:"checkbox", required:false, reRenderOnChange:true},
-        {name:"iecVerificationNo", label:"IEC Number (Verified)", type:"text", required:true, uppercase:true, showIf:d=>d.iecApplicable, placeholder:"MCPPK1234L", pattern:"^[A-Z]{5}[0-9]{4}[A-Z]{1}$", patternMsg:"IEC Number must be 10 characters in PAN format, e.g. MCPPK1234L.",},
+        {name:"iecVerificationNo", label:"IEC Number (Verified)", type:"text", required:true, uppercase:true, showIf:d=>d.iecApplicable, placeholder:"AABCT4521K", pattern:"^[A-Z]{5}[0-9]{4}[A-Z]{1}$", patternMsg:"IEC Number must be 10 characters in PAN format, e.g. AABCT4521K.",},
         {name:"iecStatus", label:"IEC Status", type:"select", required:true, showIf:d=>d.iecApplicable, options:["Active","Inactive"]},
         {name:"dgftStatus", label:"DGFT Status", type:"select", required:true, showIf:d=>d.iecApplicable, options:["Verified","Not Verified"]}
       ]},
@@ -5309,8 +5333,8 @@ const DOCUMENT_CONFIGS = {
       fields:[
         {name:"exporterName", contextKey:"txn.sellerName", label:"Exporter Company Name", type:"text", required:true, placeholder:"Malabar Spices Exporters Pvt. Ltd."},
         {name:"exporterAddress", contextKey:"txn.sellerAddress", label:"Exporter Address", type:"textarea", required:true, full:true, placeholder:"12 Export Promotion Industrial Estate, Kochi, Kerala, India"},
-        {name:"gstin", contextKey:"txn.sellerGSTIN", label:"GSTIN / Tax ID", type:"text", required:true, uppercase:true, placeholder:"32MCPPK1234L1Z5", pattern:"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$", patternMsg:"Enter a valid 15-character GSTIN, e.g. 32MCPPK1234L1Z5."},
-        {name:"iecNumber", contextKey:"txn.sellerIEC", label:"IEC Number (India)", type:"text", uppercase:true, required:true, placeholder:"UYJPK1234L", pattern:"^[A-Z0-9]{10}$", patternMsg:"IEC must be 10 characters (letters and digits), e.g. UYJPK1234L."},
+        {name:"gstin", contextKey:"txn.sellerGSTIN", label:"GSTIN / Tax ID", type:"text", required:true, uppercase:true, placeholder:"32AABCT4521K1Z5", pattern:"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$", patternMsg:"Enter a valid 15-character GSTIN, e.g. 32AABCT4521K1Z5."},
+        {name:"iecNumber", contextKey:"txn.sellerIEC", label:"IEC Number (India)", type:"text", uppercase:true, required:true, placeholder:"AABCT4521K", pattern:"^[A-Z0-9]{10}$", patternMsg:"IEC must be 10 characters (letters and digits), e.g. AABCT4521K."},
         {name:"companyLogoRef", label:"Company Logo (File Reference)", type:"text", required:false, placeholder:"logo-malabar-spices.png", help:"Reference only — used for letterhead branding when this document is printed."},
         {name:"contactPerson", label:"Contact Person", type:"text", required:true, placeholder:"Priya Sharma"},
         {name:"email", label:"Email ID", type:"text", required:true, placeholder:"priya@malabarspices.in", pattern:"^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$", patternMsg:"Enter a valid email address."},
@@ -5914,7 +5938,7 @@ const DOCUMENT_CONFIGS = {
   steps: [
     { title:"Product & Sample Identification", est:8, sub:"Exactly which batch, and which sample of it, these results actually apply to.",
       fields:[
-        {name:"productName", contextKey:"txn.itemDescription", label:"Product Name", type:"text", required:true, placeholder:"Premium Black Pepper (Whole)"},
+        {name:"productName", contextKey:"txn.itemProduct", label:"Product Name", type:"text", required:true, placeholder:"Premium Black Pepper (Whole)"},
         {name:"productCode", label:"Product Code / ID", type:"text", required:true, uppercase:true, placeholder:"PC-BP-001", pattern:"^[A-Z0-9\\-\\/]{3,20}$", patternMsg:"Use only letters, numbers, hyphens or slashes, 3–20 characters."},
         {name:"batchLotNo", autoGenerate:true, label:"Batch / Lot Number", type:"text", required:true, uppercase:true, placeholder:"BATCH-2026-0451-A", pattern:"^[A-Z0-9\\-\\/]{4,25}$", patternMsg:"Use only letters, numbers, hyphens or slashes, 4–25 characters."},
         {name:"sampleNo", label:"Sample Number", type:"text", required:true, uppercase:true, placeholder:"SMP-2026-000451", pattern:"^SMP[-\\/]\\d{4}[-\\/]\\d{3,6}$", patternMsg:"Use the format SMP-YYYY-NNNNNN, e.g. SMP-2026-000451."},
@@ -6308,11 +6332,11 @@ const DOCUMENT_CONFIGS = {
             validation:"Free text — a complete postal address.",
             hint:"Match this to the address on the shipper's GST registration or IEC certificate."
           }},
-        {name:"shipperTaxId", label:"Shipper GST/Tax ID", type:"text", required:true, uppercase:true, placeholder:"27MCPPK1234L1Z1", pattern:"^([0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}|[A-Z0-9]{5,15})$", patternMsg:"Enter a valid 15-character GSTIN, or another country's tax ID (5–15 characters).",
+        {name:"shipperTaxId", label:"Shipper GST/Tax ID", type:"text", required:true, uppercase:true, placeholder:"12AABCT4521K1ZM", pattern:"^([0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}|[A-Z0-9]{5,15})$", patternMsg:"Enter a valid 15-character GSTIN, or another country's tax ID (5–15 characters).",
           learn:{
             explanation:"The shipper's GST registration number (India) or equivalent tax ID for other countries.",
             purpose:"Confirms the shipper is a legitimate, tax-registered exporting entity — carriers and customs both check this.",
-            example:"27MCPPK1234L1Z1",
+            example:"12AABCT4521K1ZM",
             mistakes:"Entering the consignee's tax ID by mistake, or leaving this blank for an Indian shipper (GSTIN is mandatory).",
             validation:"15-character GSTIN format for India; 5–15 alphanumeric characters accepted for other countries' tax IDs.",
             hint:"For India, a GSTIN always starts with a 2-digit state code."
@@ -6829,7 +6853,7 @@ const DOCUMENT_CONFIGS = {
       fields:[
         {name:"sellerName", contextKey:"txn.sellerName", label:"Seller Name", type:"text", required:true, placeholder:"Malabar Spices Exporters Pvt. Ltd."},
         {name:"sellerAddress", label:"Seller Address", type:"textarea", required:true, full:true, placeholder:"12 Export Promotion Industrial Estate, Kochi, India"},
-        {name:"sellerGSTIN", label:"Seller GSTIN", type:"text", required:true, uppercase:true, placeholder:"27MCPPK1234L1Z1", pattern:"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$", patternMsg:"Enter a valid 15-character GSTIN, e.g. 27MCPPK1234L1Z1."}
+        {name:"sellerGSTIN", label:"Seller GSTIN", type:"text", required:true, uppercase:true, placeholder:"12AABCT4521K1ZM", pattern:"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$", patternMsg:"Enter a valid 15-character GSTIN, e.g. 12AABCT4521K1ZM."}
       ]},
     { title:"Buyer Details &amp; Reference Verification", est:7, sub:"Who this credit is actually owed to, and confirming it ties back to the right invoice.",
       fields:[
@@ -7028,7 +7052,7 @@ const DOCUMENT_CONFIGS = {
       fields:[
         {name:"sellerName", contextKey:"txn.sellerName", label:"Seller Name", type:"text", required:true, placeholder:"Malabar Spices Exporters Pvt. Ltd."},
         {name:"sellerAddress", label:"Seller Address", type:"textarea", required:true, full:true, placeholder:"12 Export Promotion Industrial Estate, Kochi, India"},
-        {name:"sellerGSTIN", label:"Seller GSTIN", type:"text", required:true, uppercase:true, placeholder:"27MCPPK1234L1Z1", pattern:"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$", patternMsg:"Enter a valid 15-character GSTIN, e.g. 27MCPPK1234L1Z1."}
+        {name:"sellerGSTIN", label:"Seller GSTIN", type:"text", required:true, uppercase:true, placeholder:"12AABCT4521K1ZM", pattern:"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$", patternMsg:"Enter a valid 15-character GSTIN, e.g. 12AABCT4521K1ZM."}
       ]},
     { title:"Buyer Details &amp; Reference Verification", est:7, sub:"Who this additional amount is actually owed by, and confirming it ties back to the right invoice.",
       fields:[
@@ -7440,7 +7464,7 @@ const DOCUMENT_CONFIGS = {
         {name:"orderDate", label:"Order Date", type:"date", required:true, help:"The date the seller records this Sales Order in their system."},
         {name:"customerPoNumber", contextKey:"txn.poNumber", label:"Customer PO Number", type:"text", required:true, uppercase:true, placeholder:"PO/2026/009912 or 88213", pattern:"^(PO[-\\/]\\d{4}[-\\/]\\d{3,8}|\\d{4,10})$", patternMsg:"Use the format PO-YYYY-NNNNNN, e.g. PO/2026/009912 — or a plain number if that's your Shipment Lot's PO Number."},
         {name:"customerPoDate", label:"Customer PO Date", type:"date", required:true, help:"The date of the customer's Purchase Order this Sales Order is created against."},
-        {name:"orderType", label:"Order Type", type:"select", required:true, options:["Standard Order","Rush Order","Sample Order","Consignment Order","Return Order"]},
+        {name:"orderType", label:"Order Type", type:"select", required:true, options:["Standard Order","Export Order","Rush Order","Sample Order","Consignment Order","Return Order"]},
         {name:"orderCurrency", contextKey:"txn.currency", label:"Currency", type:"select", required:true, options:["USD","EUR","GBP","INR","AED","JPY","SGD","CNY"]},
         {name:"priceList", label:"Price List", type:"select", required:true, options:["Export Price List 2026","Domestic Price List","Wholesale Price List","Government Contract Price List"]},
         {name:"salesChannel", label:"Sales Channel", type:"select", required:true, options:["Direct Sales","Distributor","Online Portal","Export Agent"]},
@@ -7651,9 +7675,9 @@ const DOCUMENT_CONFIGS = {
     { title:"Exporter Preparation", est:11, sub:"Phase 1 of 8 — the registrations and decisions that exist before any specific shipment does.",
       intro:"None of this is shipment-specific — IEC, AD Code, ICEGATE registration, and a Digital Signature Certificate are one-time prerequisites. Every future export leans on this phase being done correctly once.",
       fields:[
-        {name:"iecNumber", label:"Import Export Code (IEC)", type:"text", required:true, uppercase:true, placeholder:"MCPPK1234L", pattern:"^[A-Z0-9]{10}$", patternMsg:"IEC is a 10-character alphanumeric code, e.g. MCPPK1234L."},
-        {name:"gstin", contextKey:"txn.sellerGSTIN", label:"GSTIN", type:"text", required:true, uppercase:true, placeholder:"32MCPPK1234L1Z5", pattern:"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$", patternMsg:"Enter a valid 15-character GSTIN."},
-        {name:"panNumber", label:"PAN", type:"text", required:true, uppercase:true, placeholder:"MCPPK1234L", pattern:"^[A-Z]{5}[0-9]{4}[A-Z]{1}$", patternMsg:"Enter a valid 10-character PAN."},
+        {name:"iecNumber", label:"Import Export Code (IEC)", type:"text", required:true, uppercase:true, placeholder:"AABCT4521K", pattern:"^[A-Z0-9]{10}$", patternMsg:"IEC is a 10-character alphanumeric code, e.g. AABCT4521K."},
+        {name:"gstin", contextKey:"txn.sellerGSTIN", label:"GSTIN", type:"text", required:true, uppercase:true, placeholder:"32AABCT4521K1Z5", pattern:"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$", patternMsg:"Enter a valid 15-character GSTIN."},
+        {name:"panNumber", label:"PAN", type:"text", required:true, uppercase:true, placeholder:"AABCT4521K", pattern:"^[A-Z]{5}[0-9]{4}[A-Z]{1}$", patternMsg:"Enter a valid 10-character PAN."},
         {name:"adBankName", label:"Authorized Dealer (AD) Bank", type:"text", required:true, placeholder:"HDFC Bank Ltd."},
         {name:"adBankAccountNo", label:"AD Bank Account No.", type:"text", required:true, placeholder:"00123456789012", pattern:"^[0-9]{8,20}$", patternMsg:"Enter a valid account number (8–20 digits)."},
         {name:"adCode", label:"AD Code (Registered with Customs)", type:"text", required:true, uppercase:true, placeholder:"AD0304022541", pattern:"^AD[A-Z0-9]{8,12}$", patternMsg:"Enter a valid AD Code, e.g. AD0304022541."},
@@ -7844,7 +7868,7 @@ const DOCUMENT_CONFIGS = {
       fields:[
         {name:"exporterIdentityVerified", label:"Exporter Identity Verified", type:"checkbox", required:false},
         {name:"businessRegistrationNo", label:"Business Registration No.", type:"text", uppercase:true, required:true, placeholder:"U15490KL2015PTC012345"},
-        {name:"taxIdentificationNo", label:"Tax Identification No.", type:"text", required:true, uppercase:true, placeholder:"MCPPK1234L"},
+        {name:"taxIdentificationNo", label:"Tax Identification No.", type:"text", required:true, uppercase:true, placeholder:"AABCT4521K"},
         {name:"exportLicenseNo", label:"Export License No.", type:"text", required:true, uppercase:true, placeholder:"EXP-LIC-2026-00451"},
         {name:"aeoStatus", label:"Authorized Economic Operator (AEO) Status", type:"select", required:true, options:["AEO Certified","Not AEO Certified","Application Pending"]},
         {name:"sanctionsWatchlistScreened", label:"Screened Against Sanctions / Watchlists", type:"checkbox", required:false},
@@ -8019,7 +8043,7 @@ const DOCUMENT_CONFIGS = {
     { title:"Supplier (From) Details", est:6, sub:"Part A · Step 6 — Who the goods are moving from.",
       intro:"The From GSTIN here must be registered and active — the portal cross-checks it live against the GST database before allowing the filing to proceed.",
       fields:[
-        {name:"fromGSTIN", contextKey:"txn.sellerGSTIN", label:"Supplier GSTIN", type:"text", required:true, uppercase:true, placeholder:"27MCPPK1234L1Z1", pattern:"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$", patternMsg:"Enter a valid 15-character GSTIN, e.g. 27MCPPK1234L1Z1."},
+        {name:"fromGSTIN", contextKey:"txn.sellerGSTIN", label:"Supplier GSTIN", type:"text", required:true, uppercase:true, placeholder:"12AABCT4521K1ZM", pattern:"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$", patternMsg:"Enter a valid 15-character GSTIN, e.g. 12AABCT4521K1ZM."},
         {name:"fromName", contextKey:"txn.sellerName", label:"Supplier Name", type:"text", required:true, placeholder:"Meridian Exports Pvt. Ltd."},
         {name:"fromAddress", contextKey:"txn.sellerAddress", label:"Supplier Address", type:"textarea", required:true, full:true, placeholder:"Plot 14, MIDC Industrial Area, Pune, Maharashtra"},
         {name:"fromPlace", label:"Supplier Place", type:"text", required:true, placeholder:"Pune"},
@@ -8048,7 +8072,7 @@ const DOCUMENT_CONFIGS = {
           help:"Add one row per product. HSN/SAC Code should be exactly 8 digits.", addLabel:"Add Item",
           cellPatterns:{ hsnCode:{pattern:"^\\d{8}$"}, quantity:{pattern:"^\\d+(\\.\\d{1,3})?$"}, taxableValue:{pattern:"^\\d+(\\.\\d{1,2})?$"}, cgst:{pattern:"^\\d+(\\.\\d{1,2})?$"}, sgst:{pattern:"^\\d+(\\.\\d{1,2})?$"}, igst:{pattern:"^\\d+(\\.\\d{1,2})?$"}, cess:{pattern:"^\\d+(\\.\\d{1,2})?$"} },
           columns:[
-            {key:"productName", contextKey:"txn.itemDescription", label:"Product Name", placeholder:"Hydraulic Pump Assembly"},
+            {key:"productName", contextKey:"txn.itemProduct", label:"Product Name", placeholder:"Hydraulic Pump Assembly"},
             {key:"description", contextKey:"txn.itemDescription", label:"Description", placeholder:"Industrial hydraulic pump, 5HP"},
             {key:"hsnCode", contextKey:"txn.hsCode", label:"HSN/SAC Code", placeholder:"84131100"},
             {key:"quantity", contextKey:"txn.itemQuantity", label:"Qty", placeholder:"40", numeric:true},
@@ -8080,7 +8104,7 @@ const DOCUMENT_CONFIGS = {
     { title:"Transporter & Vehicle Details", est:6, sub:"Part B · Step 16–17 — Who's carrying it, and on what.",
       intro:"For road transport, the vehicle number is what a GST officer checks against this E-Way Bill at any checkpost. For rail, air or ship, the Transport Document Number takes its place.",
       fields:[
-        {name:"transporterIdOrDoc", label:"Transporter ID / GSTIN", type:"text", required:false, uppercase:true, placeholder:"27MCPPK1234L1Z1", pattern:"^[0-9A-Z]{15}$", patternMsg:"Enter a valid 15-character Transporter ID or GSTIN."},
+        {name:"transporterIdOrDoc", label:"Transporter ID / GSTIN", type:"text", required:false, uppercase:true, placeholder:"12AABCT4521K1ZM", pattern:"^[0-9A-Z]{15}$", patternMsg:"Enter a valid 15-character Transporter ID or GSTIN."},
         {name:"vehicleNumber", contextKey:"txn.vehicleNumber", label:"Vehicle Number", type:"text", required:true, showIf:d=>d.modeOfTransport==="Road", uppercase:true, placeholder:"MH12AB1234", pattern:"^[A-Z]{2}[0-9]{1,2}[A-Z]{1,3}[0-9]{4}$", patternMsg:"Enter a valid Indian vehicle registration number, e.g. MH12AB1234."},
         {name:"transportDocNumber", label:"Transport Document Number", type:"text", required:true, showIf:d=>d.modeOfTransport&&d.modeOfTransport!=="Road", uppercase:true, placeholder:"RR-2026-004521", help:"Railway Receipt number for Rail, Airway Bill number for Air, or Bill of Lading number for Ship."}
       ]},
@@ -8188,8 +8212,8 @@ const DOCUMENT_CONFIGS = {
   steps: [
     { title:"Shipping Request & Booking Reference", est:8, sub:"Phase 1 of 12 — the booking this loading actually fulfills, and who is handling it ashore.",
       fields:[
-        {name:"bookingReferenceNo", autoGenerate:true, label:"Booking Reference / Shipping Order No.", type:"text", required:true, uppercase:true, placeholder:"BKG-COSU-260705-45821", pattern:"^BKG[-\\/][A-Z0-9\\-]{6,20}$", patternMsg:"Use the format BKG-CARRIER-NNNNNN, e.g. BKG-COSU-260705-45821."},
-        {name:"shippingBillNo", contextKey:"txn.shippingBillNo", label:"Shipping Bill No.", type:"text", required:true, placeholder:"SB/2026/004481", pattern:"^[A-Z0-9\\/]{6,25}$", patternMsg:"Enter a valid Shipping Bill number, e.g. SB/2026/004481."},
+        {name:"bookingReferenceNo", autoGenerate:true, label:"Booking Reference / Shipping Order No.", type:"text", required:true, uppercase:true, placeholder:"BKG-COSU-260705-45821", pattern:"^BKG[-\\/]?[A-Z0-9\\-]{6,20}$", patternMsg:"Use the format BKG-CARRIER-NNNNNN, e.g. BKG-COSU-260705-45821."},
+        {name:"shippingBillNo", contextKey:"txn.shippingBillNo", label:"Shipping Bill No.", type:"text", required:true, placeholder:"SB/2026/004481", pattern:"^[A-Z0-9\\/-]{6,25}$", patternMsg:"Enter a valid Shipping Bill number, e.g. SB/2026/004481 or TRN-SB-2026-914852."},
         {name:"shippingBillDate", label:"Shipping Bill Date", type:"date", required:true, help:"The date of the Shipping Bill this cargo is being loaded against."},
         {name:"freightBookingNoteNo", label:"Freight Booking Note No.", type:"text", required:false, uppercase:true, placeholder:"FBN-2026-004481"},
         {name:"requestDate", label:"Request Date", type:"date", required:true, help:"The date the shipper/CHA requests a Mate Receipt for the loaded cargo."},
@@ -8201,8 +8225,8 @@ const DOCUMENT_CONFIGS = {
       fields:[
         {name:"shipperName", contextKey:"txn.sellerName", label:"Shipper Name", type:"text", required:true, placeholder:"Malabar Spices Exporters Pvt. Ltd."},
         {name:"shipperAddress", contextKey:"txn.sellerAddress", label:"Shipper Address", type:"textarea", required:true, full:true, placeholder:"12 Export Promotion Industrial Estate, Kochi, India"},
-        {name:"shipperIec", label:"Shipper IEC", type:"text", required:true, uppercase:true, placeholder:"MCPPK1234L", pattern:"^[A-Z0-9]{10}$", patternMsg:"IEC is a 10-character alphanumeric code, e.g. MCPPK1234L."},
-        {name:"shipperGstin", contextKey:"txn.sellerGSTIN", label:"Shipper GSTIN", type:"text", required:true, uppercase:true, placeholder:"32MCPPK1234L1Z5", pattern:"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$", patternMsg:"Enter a valid 15-character GSTIN, e.g. 32MCPPK1234L1Z5."},
+        {name:"shipperIec", label:"Shipper IEC", type:"text", required:true, uppercase:true, placeholder:"AABCT4521K", pattern:"^[A-Z0-9]{10}$", patternMsg:"IEC is a 10-character alphanumeric code, e.g. AABCT4521K."},
+        {name:"shipperGstin", contextKey:"txn.sellerGSTIN", label:"Shipper GSTIN", type:"text", required:true, uppercase:true, placeholder:"32AABCT4521K1Z5", pattern:"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$", patternMsg:"Enter a valid 15-character GSTIN, e.g. 32AABCT4521K1Z5."},
         {name:"consigneeName", contextKey:"txn.buyerName", label:"Consignee Name", type:"text", required:true, placeholder:"Euro Spice Imports GmbH"},
         {name:"consigneeAddress", contextKey:"txn.buyerAddress", label:"Consignee Address", type:"textarea", required:true, full:true, placeholder:"Am Sandtorkai 50, Hamburg, Germany"},
         {name:"notifyPartyName", label:"Notify Party Name", type:"text", required:true, placeholder:"Euro Spice Imports GmbH — Import Desk"},
@@ -8211,7 +8235,7 @@ const DOCUMENT_CONFIGS = {
     { title:"Vessel & Voyage Details", est:9, sub:"Phase 3 of 12 — which ship, which voyage, and who commands it.",
       fields:[
         {name:"vesselName", contextKey:"txn.vesselName", label:"Vessel Name", type:"text", required:true, placeholder:"MV COSCO Harmony"},
-        {name:"vesselImoNumber", label:"Vessel IMO Number", type:"text", required:true, uppercase:true, placeholder:"IMO9321483", pattern:"^IMO\\d{7}$", patternMsg:"Enter a valid IMO number, e.g. IMO9321483."},
+        {name:"vesselImoNumber", label:"Vessel IMO Number", type:"text", required:true, uppercase:true, placeholder:"IMO9321483", pattern:"^(IMO)?\\d{7}$", patternMsg:"Enter the 7-digit IMO number, with or without the IMO prefix (9321483 or IMO9321483)."},
         {name:"voyageNo", contextKey:"txn.voyageNo", label:"Voyage Number", type:"text", required:true, uppercase:true, placeholder:"VY2607E", pattern:"^[A-Z0-9]{2,10}$", patternMsg:"Enter a valid voyage number (2–10 alphanumeric characters)."},
         {name:"vesselFlag", label:"Flag / Nationality of Vessel", type:"text", required:true, placeholder:"Panama"},
         {name:"masterName", label:"Master's Name (Captain)", type:"text", required:true, placeholder:"Capt. Dimitri Volkov"},
@@ -8471,7 +8495,7 @@ const DOCUMENT_CONFIGS = {
         {type:"computed", name:"computedLastFreeDay", label:"Last Free Day (computed)", deps:["actualArrivalDate","freeDays"], compute:d=>anLastFreeDayStr(d)},
         {name:"demurrageRatePerDay", label:"Demurrage Rate (per day, per container)", type:"number", pattern:"^\\d+(\\.\\d{1,2})?$", patternMsg:"Enter a valid non-negative number (up to 2 decimal places).", required:true, placeholder:"50.00"},
         {name:"currency", contextKey:"txn.currency", label:"Currency", type:"select", required:true, options:["USD","EUR","GBP","INR","AED","JPY","SGD","CNY"]},
-        {type:"computed", name:"computedDemurrageAccrued", label:"Demurrage Accrued to Date (computed)", deps:["actualArrivalDate","freeDays","demurrageRatePerDay","currency"], compute:d=>`${d.currency||"USD"} ${anDemurrageAccrued(d).toFixed(2)} (${anDemurrageDays(d)} day(s) over free time)`}
+        {type:"computed", name:"computedDemurrageAccrued", label:"Demurrage Accrued as of Issue/Sign Date (computed)", deps:["actualArrivalDate","freeDays","demurrageRatePerDay","currency"], compute:d=>`${d.currency||"USD"} ${anDemurrageAccrued(d).toFixed(2)} (${anDemurrageDays(d)} day(s) over free time)`}
       ]},
     { title:"Charges Due Before Release", est:6, sub:"What actually has to be paid before the Delivery Order can be issued.",
       fields:[
@@ -8661,7 +8685,9 @@ const DOCUMENT_CONFIGS = {
             {key:"packingGroup", contextKey:"txn.itemPackingGroup", label:"Packing Group", placeholder:"II"},
             {key:"quantity", label:"Net/Gross Quantity", placeholder:"200 L"},
             {key:"packageType", contextKey:"txn.itemPackageType", label:"Package Type", placeholder:"Steel Drums, UN-Certified"},
-            {key:"flashPoint", contextKey:"txn.itemFlashpoint", label:"Flash Point (if applicable)", placeholder:"-20°C"}
+            {key:"flashPoint", contextKey:"txn.itemFlashpoint", label:"Flash Point (if applicable)", placeholder:"-20°C"},
+            {key:"tankType", contextKey:"txn.itemTankType", label:"Tank Type (if bulk/tank)", placeholder:"T14"},
+            {key:"emsCode", contextKey:"txn.itemEmsCode", label:"EmS Code (sea)", placeholder:"F-E, S-D"}
           ]
         },
         {name:"additionalHandlingInstructions", contextKey:"txn.segregationRequirement", label:"Additional Handling Instructions", type:"textarea", required:false, full:true, placeholder:"Stow away from foodstuffs. Keep away from sources of ignition. Segregate from Class 8 materials."},
@@ -8716,7 +8742,7 @@ const DOCUMENT_CONFIGS = {
         const rows = (d.dgItems||[]).filter(r=>r.unNumber).map(r=>`<tr>
           <td class="mono">${r.unNumber}</td><td>${r.properShippingName||"—"}</td>
           <td style="text-align:center;">${r.hazardClass||"—"}</td><td style="text-align:center;">${r.packingGroup||"—"}</td>
-          <td style="text-align:right;">${r.quantity||"—"}</td><td>${r.packageType||"—"}</td><td style="text-align:right;">${r.flashPoint||"—"}</td>
+          <td style="text-align:right;">${r.quantity||"—"}</td><td>${r.packageType||"—"}</td><td style="text-align:right;">${r.flashPoint||"—"}</td><td>${r.tankType||"—"}</td><td>${r.emsCode||"—"}</td>
         </tr>`).join("");
         const primary = dgdPrimaryItem(d);
         const primaryClass = primary.hazardClass || (d.primaryHazardClass||"").split(" — ")[0] || "?";
@@ -8741,7 +8767,7 @@ const DOCUMENT_CONFIGS = {
             <div class="doc-box"><h4>Transport Reference</h4><div class="dv">${dline("Conveyance",d.vesselFlightDetails)}${dline("Booking No.",d.bookingNo)}${dline("Container / Seal",`${d.containerNo||"—"} / ${d.sealNo||"—"}`)}</div></div>
           </div>
           <table class="doc-table">
-            <thead><tr><th>UN No.</th><th>Proper Shipping Name</th><th>Class</th><th>PG</th><th>Quantity</th><th>Package Type</th><th>Flash Point</th></tr></thead>
+            <thead><tr><th>UN No.</th><th>Proper Shipping Name</th><th>Class</th><th>PG</th><th>Quantity</th><th>Package Type</th><th>Flash Point</th><th>Tank Type</th><th>EmS Code</th></tr></thead>
             <tbody>${rows || "<tr><td colspan=7 style='text-align:center;color:var(--text-3);'>No items added</td></tr>"}</tbody>
           </table>
           <div class="doc-grid3">
@@ -8952,7 +8978,7 @@ const DOCUMENT_CONFIGS = {
         {name:"commercialInvoiceVerified", label:"Commercial Invoice Verified", type:"checkbox", required:false},
         {name:"packingListVerified", label:"Packing List Verified", type:"checkbox", required:false},
         {name:"bookingContainerAllocationConfirmed", label:"Booking / Container Allocation Confirmed", type:"checkbox", required:false},
-        {name:"cargoClassification", label:"Cargo Classification", type:"select", required:true, reRenderOnChange:true, options:["General Cargo","Dangerous Goods","Perishable","Reefer","Out of Gauge"]},
+        {name:"cargoClassification", label:"Cargo Classification", type:"select", required:true, reRenderOnChange:true, options:["General Cargo","Dangerous Goods","Perishable","Reefer","Out of Gauge","Special Cargo — Controlled / High Value"]},
         {name:"dangerousGoodsIdentified", label:"Dangerous Goods Identified", type:"checkbox", required:false, showIf:d=>d.cargoClassification==="Dangerous Goods", reRenderOnChange:true},
         {name:"imdgCodeReviewed", label:"IMDG Code Requirements Reviewed", type:"checkbox", required:false, showIf:d=>d.dangerousGoodsIdentified},
         {name:"packingPlanPrepared", label:"Packing Plan Prepared", type:"checkbox", required:false},
@@ -9400,7 +9426,7 @@ const DOCUMENT_CONFIGS = {
   steps: [
     { title:"Section 1 — Identification", est:9, sub:"The substance's own identity, who made it, and who to call in an emergency.",
       fields:[
-        {name:"productName", contextKey:"txn.itemDescription", label:"Product Name", type:"text", required:true, placeholder:"Industrial Solvent XR-40"},
+        {name:"productName", contextKey:"txn.itemProduct", label:"Product Name", type:"text", required:true, placeholder:"Industrial Solvent XR-40"},
         {name:"productCode", label:"Product Code / SKU", type:"text", required:false, placeholder:"SOL-XR40"},
         {name:"productUse", label:"Recommended Use", type:"text", required:true, placeholder:"Industrial degreasing solvent"},
         {name:"restrictionsOnUse", label:"Restrictions on Use", type:"text", required:false, placeholder:"Not for consumer or food-contact applications"},
@@ -9710,7 +9736,7 @@ const DOCUMENT_CONFIGS = {
       fields:[
         {name:"boeNumber", contextKey:"txn.billOfEntryNo", label:"Bill of Entry No. (if known)", type:"text", required:false, placeholder:"BOE/2026/778812"},
         {name:"importerName", contextKey:"txn.buyerName", label:"Importer Name", type:"text", required:true, placeholder:"Sunrise Imports Pvt. Ltd."},
-        {name:"invoiceNo", label:"Supplier Invoice No.", type:"text", required:true, placeholder:"EXP/2026/0451"},
+        {name:"invoiceNo", contextKey:"txn.commercialInvoiceNo", label:"Supplier Invoice No.", type:"text", required:true, placeholder:"EXP/2026/0451"},
         {name:"preparedByCompany", label:"Worksheet Prepared By (Company)", type:"text", required:true, placeholder:"Coastal Customs Brokers Pvt. Ltd."}
       ]},
     { title:"Product Classification — Identification", est:8, sub:"Phase 1 of 10 (Part 1) — working out exactly what this product is, from the source documents, before any tariff lookup.",
@@ -9949,7 +9975,7 @@ const DOCUMENT_CONFIGS = {
         {name:"spaceAvailabilityChecked", label:"Space Availability Checked", type:"checkbox", required:false},
         {name:"equipmentTypeRequested", label:"Equipment Type Requested", type:"select", required:true, options:["20' Dry (General Purpose)","40' Dry (General Purpose)","40' High Cube","Reefer (Refrigerated)","Open Top","Flat Rack","Air ULD"]},
         {name:"specialCargoFlagged", label:"Special Cargo Flagged at Request Stage", type:"checkbox", required:false, reRenderOnChange:true},
-        {name:"specialCargoTypeAtRequest", label:"Special Cargo Type", type:"select", reRenderOnChange:true, required:true, showIf:d=>d.specialCargoFlagged, options:["Reefer / Temperature Controlled","Dangerous Goods","Out of Gauge / Oversized","Break Bulk"]},
+        {name:"specialCargoTypeAtRequest", label:"Special Cargo Type", type:"select", reRenderOnChange:true, required:true, showIf:d=>d.specialCargoFlagged, options:["Reefer / Temperature Controlled","Dangerous Goods","Out of Gauge / Oversized","Break Bulk","High Value"]},
         {name:"carrierInternalRefNo", autoGenerate:true, label:"Carrier's Internal Booking Reference", type:"text", required:true, uppercase:true, placeholder:"CIB-2026-45821"}
       ]},
     { title:"Vessel & Voyage Nomination", est:9, sub:"Phase 2 of 8 — the carrier accepts the request and actually nominates a conveyance.",
@@ -10174,7 +10200,7 @@ const DOCUMENT_CONFIGS = {
         {name:"boeType", label:"Bill of Entry Type", type:"select", required:true, options:["Home Consumption","Warehousing","Ex-Bond"]},
         {name:"importerName", contextKey:"txn.buyerName", label:"Importer Name", type:"text", required:true, placeholder:"Sunrise Imports Pvt. Ltd.", help:"As recorded on the assessed Bill of Entry."},
         {name:"importerAddress", contextKey:"txn.buyerAddress", label:"Importer Address", type:"textarea", required:true, full:true, placeholder:"14 Industrial Estate, Navi Mumbai, India"},
-        {name:"importerIEC", label:"Importer IEC", type:"text", required:true, uppercase:true, placeholder:"MCPPK1234L", pattern:"^[A-Z]{5}[0-9]{4}[A-Z]{1}$", patternMsg:"IEC Number must be 10 characters in PAN format, e.g. MCPPK1234L.",},
+        {name:"importerIEC", label:"Importer IEC", type:"text", required:true, uppercase:true, placeholder:"AABCT4521K", pattern:"^[A-Z0-9]{10}$", patternMsg:"IEC Number must be exactly 10 letters/digits, e.g. AABCT4521K.",},
         {name:"hsCodeAssessed", label:"HS Code (as Assessed)", type:"text", required:true, placeholder:"84821000", pattern:"^\\d{8}$", patternMsg:"Enter a valid 8-digit HS Code."},
         {name:"assessableValueFromBOE", label:"Assessable Value (as Assessed on BOE)", type:"number", pattern:"^\\d+(\\.\\d{1,2})?$", patternMsg:"Enter a valid non-negative number (up to 2 decimal places).", required:true, placeholder:"1585664.04"},
         {type:"computed", name:"assessmentReferenceDisplay", label:"Assessment Reference", full:true, deps:["boeNumber","boeType"], compute:d=>`${d.boeNumber||"—"} (${d.boeType||"—"})`}
@@ -10230,7 +10256,7 @@ const DOCUMENT_CONFIGS = {
     { title:"Gate Pass & Release Confirmation", est:5, sub:"The physical last step — actually getting the cargo out of the terminal.",
       fields:[
         {name:"gatePassRequired", label:"Gate Pass Required for Physical Release", type:"checkbox", required:false, reRenderOnChange:true},
-        {type:"computed", name:"gatePassNumberDisplay", label:"Gate Pass No. (system-generated)", full:true, showIf:d=>d.gatePassRequired, deps:["containerNo"], compute:d=>oocGatePassNoGen(d)},
+        {type:"computed", name:"gatePassNumberDisplay", contextKey:"txn.gatePassNo", label:"Gate Pass No. (system-generated)", full:true, showIf:d=>d.gatePassRequired, deps:["containerNo"], compute:d=>oocGatePassNoGen(d)},
         {name:"cargoReleasedToImporter", label:"Cargo Released to Importer / CHA", type:"checkbox", required:false},
         {name:"releaseValidUntil", label:"Release Valid Until", type:"date", required:true, help:"The last date the goods can be cleared out of customs custody under this Out of Charge order."}
       ]},
@@ -10313,8 +10339,8 @@ const DOCUMENT_CONFIGS = {
       fields:[
         {name:"shipperName", contextKey:"txn.sellerName", label:"Shipper Name", type:"text", required:true, placeholder:"Meridian Exports Pvt. Ltd."},
         {name:"shipperAddress", contextKey:"txn.sellerAddress", label:"Shipper Address", type:"textarea", required:true, full:true, placeholder:"Plot 14, MIDC Industrial Area, Pune - 411019, India"},
-        {name:"shipperIEC", contextKey:"txn.sellerIEC", label:"Shipper IEC Number", type:"text", uppercase:true, required:true, placeholder:"UYJPK1234L", pattern:"^[A-Z0-9]{10}$", patternMsg:"IEC must be 10 characters (letters and digits), e.g. UYJPK1234L."},
-        {name:"shipperGSTIN", contextKey:"txn.sellerGSTIN", label:"Shipper GSTIN", type:"text", required:false, uppercase:true, placeholder:"27MCPPK1234L1Z1", pattern:"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$", patternMsg:"Enter a valid 15-character GSTIN, e.g. 27MCPPK1234L1Z1."}
+        {name:"shipperIEC", contextKey:"txn.sellerIEC", label:"Shipper IEC Number", type:"text", uppercase:true, required:true, placeholder:"AABCT4521K", pattern:"^[A-Z0-9]{10}$", patternMsg:"IEC must be 10 characters (letters and digits), e.g. AABCT4521K."},
+        {name:"shipperGSTIN", contextKey:"txn.sellerGSTIN", label:"Shipper GSTIN", type:"text", required:false, uppercase:true, placeholder:"12AABCT4521K1ZM", pattern:"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$", patternMsg:"Enter a valid 15-character GSTIN, e.g. 12AABCT4521K1ZM."}
       ]},
     { title:"Consignee & Notify Party", est:6, sub:"Who this HBL is made out to, and who must be notified on arrival.",
       fields:[
@@ -10474,7 +10500,7 @@ const DOCUMENT_CONFIGS = {
     { title:"Vessel, Voyage & Routing", est:7, sub:"The physical movement the carrier is contractually bound to perform.",
       fields:[
         {name:"vesselName", contextKey:"txn.vesselName", label:"Vessel Name", type:"text", required:true, placeholder:"MV Nordic Star"},
-        {name:"vesselImoNo", label:"Vessel IMO Number", type:"text", required:true, placeholder:"9321483", pattern:"^\\d{7}$", patternMsg:"IMO number must be exactly 7 digits."},
+        {name:"vesselImoNo", label:"Vessel IMO Number", type:"text", required:true, placeholder:"9321483", pattern:"^(IMO)?\\d{7}$", patternMsg:"Enter the 7-digit IMO number, with or without the IMO prefix (9321483 or IMO9321483)."},
         {name:"voyageNo", contextKey:"txn.voyageNo", label:"Voyage Number", type:"text", required:true, uppercase:true, placeholder:"026W"},
         {name:"placeOfReceipt", label:"Place of Receipt", type:"text", required:true, placeholder:"Nhava Sheva CFS"},
         {name:"portOfLoading", contextKey:"txn.portOfLoading", label:"Port of Loading", type:"text", required:true, placeholder:"Nhava Sheva (JNPT)"},
@@ -10601,7 +10627,7 @@ const DOCUMENT_CONFIGS = {
         {name:"manifestNo", autoGenerate:true, label:"Manifest Number", type:"text", required:true, uppercase:true, placeholder:"IGM-INNSA1-2026-004521", pattern:"^[A-Z0-9\\-\\/]{8,30}$", patternMsg:"Use letters, numbers, hyphens or slashes, 8-30 characters."},
         {name:"manifestDate", label:"Filing Date", type:"date", required:true, help:"The date the carrier files this Cargo Manifest with customs."},
         {name:"vesselName", contextKey:"txn.vesselName", label:"Vessel Name", type:"text", required:true, placeholder:"MV Nordic Star"},
-        {name:"vesselImoNo", label:"Vessel IMO Number", type:"text", required:true, placeholder:"9321483", pattern:"^\\d{7}$", patternMsg:"IMO number must be exactly 7 digits."},
+        {name:"vesselImoNo", label:"Vessel IMO Number", type:"text", required:true, placeholder:"9321483", pattern:"^(IMO)?\\d{7}$", patternMsg:"Enter the 7-digit IMO number, with or without the IMO prefix (9321483 or IMO9321483)."},
         {name:"voyageNo", contextKey:"txn.voyageNo", label:"Voyage Number", type:"text", required:true, uppercase:true, placeholder:"026W"},
         {name:"rotationNo", label:"Rotation Number", type:"text", required:false, uppercase:true, placeholder:"ROT/2026/00871"}
       ]},
@@ -10728,7 +10754,7 @@ const DOCUMENT_CONFIGS = {
       intro:"SOLAS places sole legal responsibility for VGM accuracy on the shipper named on the Bill of Lading — not the carrier, and not the terminal.",
       fields:[
         {name:"shipperName", contextKey:"txn.sellerName", label:"Shipper Name", type:"text", required:true, placeholder:"Meridian Exports Pvt. Ltd."},
-        {name:"shipperIEC", contextKey:"txn.sellerIEC", label:"Shipper IEC Number", type:"text", uppercase:true, required:false, placeholder:"UYJPK1234L", pattern:"^[A-Z0-9]{10}$", patternMsg:"IEC must be 10 characters (letters and digits), e.g. UYJPK1234L."},
+        {name:"shipperIEC", contextKey:"txn.sellerIEC", label:"Shipper IEC Number", type:"text", uppercase:true, required:false, placeholder:"AABCT4521K", pattern:"^[A-Z0-9]{10}$", patternMsg:"IEC must be 10 characters (letters and digits), e.g. AABCT4521K."},
         {name:"authorizedPersonName", label:"Authorized Person Name", type:"text", required:true, placeholder:"Priya Sharma"},
         {name:"authorizedPersonDesignation", label:"Designation", type:"text", required:true, placeholder:"Export Documentation Manager"}
       ]},
@@ -10807,7 +10833,7 @@ const DOCUMENT_CONFIGS = {
     { title:"Invoice Reference", est:5, sub:"The reference numbers this import will be traced by internally and at customs.",
       fields:[
         {name:"importInvoiceNo", autoGenerate:true, label:"Import Invoice Number (Internal)", type:"text", required:true, uppercase:true, placeholder:"IMP-INV-2026-00451", pattern:"^[A-Z0-9\\-\\/]{6,25}$", patternMsg:"Use letters, numbers, hyphens or slashes, 6-25 characters."},
-        {name:"supplierInvoiceNo", autoGenerate:true, label:"Supplier's (Foreign) Invoice Number", type:"text", required:true, uppercase:true, placeholder:"NT-2026-8891"},
+        {name:"supplierInvoiceNo", contextKey:"txn.commercialInvoiceNo", autoGenerate:true, label:"Supplier's (Foreign) Invoice Number", type:"text", required:true, uppercase:true, placeholder:"NT-2026-8891"},
         {name:"invoiceDate", label:"Supplier Invoice Date", type:"date", required:true, help:"The date the overseas supplier issued this invoice."},
         {name:"poNumber", contextKey:"txn.poNumber", label:"Purchase Order Number", type:"text", required:true, uppercase:true, placeholder:"PO-88213"}
       ]},
@@ -10821,8 +10847,8 @@ const DOCUMENT_CONFIGS = {
       fields:[
         {name:"importerName", contextKey:"txn.buyerName", label:"Importer Name", type:"text", required:true, placeholder:"Meridian Imports Pvt. Ltd."},
         {name:"importerAddress", contextKey:"txn.buyerAddress", label:"Importer Address", type:"textarea", required:true, full:true, placeholder:"Plot 14, MIDC Industrial Area, Pune - 411019, India"},
-        {name:"importerGSTIN", label:"Importer GSTIN", type:"text", required:true, uppercase:true, placeholder:"27MCPPK1234L1Z1", pattern:"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$", patternMsg:"Enter a valid 15-character GSTIN, e.g. 27MCPPK1234L1Z1."},
-        {name:"importerIEC", label:"Importer IEC Number", type:"text", uppercase:true, required:true, placeholder:"UYJPK1234L", pattern:"^[A-Z0-9]{10}$", patternMsg:"IEC must be 10 characters (letters and digits), e.g. UYJPK1234L."}
+        {name:"importerGSTIN", label:"Importer GSTIN", type:"text", required:true, uppercase:true, placeholder:"12AABCT4521K1ZM", pattern:"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$", patternMsg:"Enter a valid 15-character GSTIN, e.g. 12AABCT4521K1ZM."},
+        {name:"importerIEC", label:"Importer IEC Number", type:"text", uppercase:true, required:true, placeholder:"AABCT4521K", pattern:"^[A-Z0-9]{10}$", patternMsg:"IEC must be 10 characters (letters and digits), e.g. AABCT4521K."}
       ]},
     { title:"Shipment & Transport Details", est:6, sub:"How the goods physically arrived.",
       fields:[
@@ -10835,7 +10861,7 @@ const DOCUMENT_CONFIGS = {
       fields:[
         {name:"incoterm", contextKey:"txn.incoterm", label:"Incoterm", type:"select", required:true, options:["EXW","FCA","FOB","CFR","CIF","CPT","CIP","DAP","DPU","DDP"]},
         {name:"currency", contextKey:"txn.currency", label:"Invoice Currency", type:"select", required:true, options:["USD","EUR","GBP","INR","AED","JPY","SGD","CNY"]},
-        {name:"paymentTerms", contextKey:"txn.paymentTerms", label:"Payment Terms", type:"select", required:true, options:["Advance Payment","Letter of Credit","Documents Against Payment","Documents Against Acceptance","Open Account"]}
+        {name:"paymentTerms", contextKey:"txn.paymentTerms", label:"Payment Terms", type:"select", required:true, options:["Advance Payment","Letter of Credit","Documentary Collection","Documents Against Payment","Documents Against Acceptance","Open Account"]}
       ]},
     { title:"Line Items", est:14, sub:"Every item on the supplier's invoice, as it will be declared on the Bill of Entry.",
       fields:[
@@ -10948,7 +10974,7 @@ const DOCUMENT_CONFIGS = {
       fields:[
         {name:"declarantName", contextKey:"txn.buyerName", label:"Declarant Name", type:"text", required:true, placeholder:"Arjun Mehta"},
         {name:"declarantAddress", label:"Declarant Address", type:"textarea", required:true, full:true, placeholder:"14 Lake View Apartments, Pune - 411001, India"},
-        {name:"declarantPAN", label:"PAN (if applicable)", type:"text", required:false, uppercase:true, placeholder:"MCPPK1234L", pattern:"^[A-Z]{5}[0-9]{4}[A-Z]{1}$", patternMsg:"Enter a valid 10-character PAN, e.g. MCPPK1234L."}
+        {name:"declarantPAN", label:"PAN (if applicable)", type:"text", required:false, uppercase:true, placeholder:"AABCT4521K", pattern:"^[A-Z]{5}[0-9]{4}[A-Z]{1}$", patternMsg:"Enter a valid 10-character PAN, e.g. AABCT4521K."}
       ]},
     { title:"Goods Declared", est:10, sub:"Everything being brought in that isn't a bona fide personal-use exemption.",
       fields:[
@@ -10961,7 +10987,7 @@ const DOCUMENT_CONFIGS = {
             {key:"value", label:"Declared Value", placeholder:"55000.00", numeric:true},
             {key:"currency", contextKey:"txn.currency", label:"Currency", placeholder:"INR"}
           ],
-          footer:{ label:"Total Declared Value", compute:(rows)=>rows.reduce((s,r)=>s+(parseFloat(r.value)||0),0).toFixed(2) }
+          footer:{ label:"Total Declared Value (per currency)", compute:(rows)=>cdTotalsText(rows) }
         }
       ]},
     { title:"Currency Declaration", est:5, sub:"Only required where foreign currency or high-value instruments are being carried.",
@@ -10975,8 +11001,8 @@ const DOCUMENT_CONFIGS = {
     { title:"Duty & Exemption Details", est:6, sub:"What falls within the free allowance, and what is dutiable.",
       fields:[
         {name:"dutyFreeAllowanceClaimed", label:"Duty-Free Allowance Claimed (INR)", type:"number", required:true, pattern:"^\\d+(\\.\\d{1,2})?$", patternMsg:"Enter a valid non-negative number (up to 2 decimal places).", placeholder:"50000.00", help:"The General Free Allowance available to an eligible passenger under the Baggage Rules, 2016."},
-        {type:"computed", name:"totalDeclaredValue", label:"Total Declared Value (computed)", deps:["goodsDeclared"], compute:d=>(d.goodsDeclared||[]).reduce((s,r)=>s+(parseFloat(r.value)||0),0).toFixed(2)},
-        {type:"computed", name:"dutiableValueComputed", label:"Dutiable Value (computed)", deps:["goodsDeclared","dutyFreeAllowanceClaimed"], compute:d=>{ const total=(d.goodsDeclared||[]).reduce((s,r)=>s+(parseFloat(r.value)||0),0); const allowance=parseFloat(d.dutyFreeAllowanceClaimed)||0; return Math.max(0,total-allowance).toFixed(2); }, help:"Total Declared Value minus the Duty-Free Allowance claimed — this is the amount customs duty is assessed on."}
+        {type:"computed", name:"totalDeclaredValue", label:"Total Declared Value (computed)", deps:["goodsDeclared"], compute:d=>cdTotalsText(d.goodsDeclared)},
+        {type:"computed", name:"dutiableValueComputed", label:"Dutiable Value (INR, computed)", deps:["goodsDeclared","dutyFreeAllowanceClaimed"], compute:d=>{ const total=cdInrTotal(d.goodsDeclared); const allowance=parseFloat(d.dutyFreeAllowanceClaimed)||0; return Math.max(0,total-allowance).toFixed(2) + (cdHasForeign(d.goodsDeclared) ? " (INR lines only — convert foreign-currency lines at the CBIC notified rate first)" : ""); }, help:"INR Declared Value minus the Duty-Free Allowance claimed (an INR amount) — this is the amount customs duty is assessed on. Foreign-currency lines are not added to INR lines; convert them first."}
       ]},
     { title:"Declaration & Signature", est:4, sub:"The declarant's binding statement to customs.",
       fields:[
@@ -10988,7 +11014,8 @@ const DOCUMENT_CONFIGS = {
     { title:"Review Document", est:5, sub:"A complete preview of the Customs Declaration.",
       custom:"review",
       renderReview: function(d){
-        const total = (d.goodsDeclared||[]).reduce((s,r)=>s+(parseFloat(r.value)||0),0);
+        const totalText = cdTotalsText(d.goodsDeclared);
+        const total = cdInrTotal(d.goodsDeclared);
         const allowance = parseFloat(d.dutyFreeAllowanceClaimed)||0;
         const dutiable = Math.max(0,total-allowance);
         const rows = (d.goodsDeclared||[]).map(r=>`<tr>
@@ -11011,7 +11038,7 @@ const DOCUMENT_CONFIGS = {
           <table class="doc-table">
             <thead><tr><th>Description</th><th>Qty</th><th>Declared Value</th></tr></thead>
             <tbody>${rows}</tbody>
-            <tfoot><tr><td colspan="2" style="text-align:right;font-weight:700;">Total Declared Value</td><td style="text-align:right;font-weight:700;">${total.toFixed(2)}</td></tr></tfoot>
+            <tfoot><tr><td colspan="2" style="text-align:right;font-weight:700;">Total Declared Value</td><td style="text-align:right;font-weight:700;">${totalText}</td></tr></tfoot>
           </table>
           <div class="doc-grid3" style="margin-top:16px;">
             <div class="doc-box"><h4>Duty-Free Allowance</h4><div class="dv">${allowance.toFixed(2)}</div></div>
@@ -11052,13 +11079,13 @@ const DOCUMENT_CONFIGS = {
   steps: [
     { title:"Shipment & Reference Details", est:7, sub:"Who shipped this, and which other documents it has to tie back to.",
       fields:[
-        {name:"packingListNo", autoGenerate:true, label:"Packing List Number", type:"text", required:true, uppercase:true, placeholder:"IPL/2026/005812", pattern:"^[A-Z0-9\\-\\/]{6,25}$", patternMsg:"Use letters, numbers, hyphens or slashes, 6-25 characters."},
+        {name:"packingListNo", contextKey:"txn.packingListNo", autoGenerate:true, label:"Packing List Number", type:"text", required:true, uppercase:true, placeholder:"IPL/2026/005812", pattern:"^[A-Z0-9\\-\\/]{6,25}$", patternMsg:"Use letters, numbers, hyphens or slashes, 6-25 characters."},
         {name:"packingListDate", label:"Date", type:"date", required:true, help:"The date the overseas supplier prepared this Packing List."},
         {name:"supplierName", contextKey:"txn.sellerName", label:"Supplier / Shipper Name", type:"text", required:true, placeholder:"Rheinland Precision Tools GmbH"},
         {name:"supplierCountry", contextKey:"txn.destinationCountry", label:"Country of Origin", type:"text", required:true, placeholder:"Germany", help:"Auto-filled from this shipment's Destination Country field on the Job."},
         {name:"consigneeName", contextKey:"txn.buyerName", label:"Consignee (Importer) Name", type:"text", required:true, placeholder:"Kerala Precision Imports Pvt Ltd"},
-        {name:"invoiceRef", contextKey:"txn.invoiceNo", label:"Commercial Invoice No.", type:"text", required:true, uppercase:true, placeholder:"CI/2026/004521"},
-        {name:"blAwbRef", contextKey:"txn.blNumber", label:"Bill of Lading / AWB No.", type:"text", required:true, uppercase:true, placeholder:"MAEU264400123"}
+        {name:"invoiceRef", contextKey:"txn.commercialInvoiceNo", label:"Commercial Invoice No.", type:"text", required:true, uppercase:true, placeholder:"CI/2026/004521"},
+        {name:"blAwbRef", contextKey:"txn.blNo", label:"Bill of Lading / AWB No.", type:"text", required:true, uppercase:true, placeholder:"MAEU264400123"}
       ]},
     { title:"Package-Wise Breakdown", est:12, sub:"Every carton, pallet or drum, listed individually — this is what gets checked box by box.",
       fields:[
@@ -11261,11 +11288,11 @@ const DOCUMENT_CONFIGS = {
   steps: [
     { title:"Bill of Entry Reference", est:7, sub:"Which filing this payment is actually settling.",
       fields:[
-        {name:"boeNo", contextKey:"txn.boeNo", label:"Bill of Entry Number", type:"text", required:true, uppercase:true, placeholder:"BOE/2026/4471293"},
+        {name:"boeNo", contextKey:"txn.billOfEntryNo", label:"Bill of Entry Number", type:"text", required:true, uppercase:true, placeholder:"BOE/2026/4471293"},
         {name:"boeDate", label:"Bill of Entry Date", type:"date", required:true},
         {name:"importerName", contextKey:"txn.buyerName", label:"Importer Name", type:"text", required:true, placeholder:"Kerala Precision Imports Pvt Ltd"},
         {name:"iecNo", contextKey:"txn.iecNo", label:"Importer IEC", type:"text", required:true, uppercase:true, placeholder:"AABCK1234M", pattern:"^[A-Z0-9]{10}$", patternMsg:"Enter a valid 10-character IEC."},
-        {name:"gstin", contextKey:"txn.buyerGSTIN", label:"Importer GSTIN", type:"text", required:true, uppercase:true, placeholder:"32MCPPK1234L1Z5", pattern:"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$", patternMsg:"Enter a valid 15-character GSTIN."}
+        {name:"gstin", contextKey:"txn.buyerGSTIN", label:"Importer GSTIN", type:"text", required:true, uppercase:true, placeholder:"32AABCT4521K1Z5", pattern:"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$", patternMsg:"Enter a valid 15-character GSTIN."}
       ]},
     { title:"Accounting Head Classification", est:6, sub:"The government accounting code this payment is actually booked under — not just \"customs duty\" in general.",
       fields:[
@@ -11277,7 +11304,7 @@ const DOCUMENT_CONFIGS = {
       fields:[
         {name:"bcdAmount", label:"Basic Customs Duty (BCD)", type:"number", required:true, pattern:"^\\d+(\\.\\d{1,2})?$", patternMsg:"Enter a valid non-negative number (up to 2 decimal places).", placeholder:"45000.00"},
         {name:"swsAmount", label:"Social Welfare Surcharge (SWS)", type:"number", required:true, pattern:"^\\d+(\\.\\d{1,2})?$", patternMsg:"Enter a valid non-negative number (up to 2 decimal places).", placeholder:"4500.00"},
-        {name:"igstAmount", label:"IGST", type:"number", required:true, pattern:"^\\d+(\\.\\d{1,2})?$", patternMsg:"Enter a valid non-negative number (up to 2 decimal places).", placeholder:"89100.00"},
+        {name:"igstAmount", label:"IGST", type:"number", required:true, pattern:"^\\d+(\\.\\d{1,2})?$", patternMsg:"Enter a valid non-negative number (up to 2 decimal places).", placeholder:"89910.00"},
         {name:"cessAmount", label:"Compensation Cess / Other Cess (if any)", type:"number", required:false, pattern:"^\\d+(\\.\\d{1,2})?$", patternMsg:"Enter a valid non-negative number (up to 2 decimal places).", placeholder:"0.00"},
         {name:"adSafeguardAmount", label:"Anti-Dumping / Safeguard Duty (if any)", type:"number", required:false, pattern:"^\\d+(\\.\\d{1,2})?$", patternMsg:"Enter a valid non-negative number (up to 2 decimal places).", placeholder:"0.00"},
         {type:"computed", name:"totalDutyPayable", label:"Total Duty Payable (computed)", deps:["bcdAmount","swsAmount","igstAmount","cessAmount","adSafeguardAmount"], compute:d=>{
@@ -11364,7 +11391,7 @@ const DOCUMENT_CONFIGS = {
     { title:"Examination Order Reference", est:7, sub:"Which Bill of Entry this examination was ordered against, and why.",
       fields:[
         {name:"examReportNo", autoGenerate:true, label:"Examination Report Number", type:"text", required:true, uppercase:true, placeholder:"EXM/2026/007734", pattern:"^[A-Z0-9\\-\\/]{6,25}$", patternMsg:"Use letters, numbers, hyphens or slashes, 6-25 characters."},
-        {name:"boeNo", contextKey:"txn.boeNo", label:"Bill of Entry Number", type:"text", required:true, uppercase:true, placeholder:"BOE/2026/4471293"},
+        {name:"boeNo", contextKey:"txn.billOfEntryNo", label:"Bill of Entry Number", type:"text", required:true, uppercase:true, placeholder:"BOE/2026/4471293"},
         {name:"examOrderType", label:"RMS Examination Order Type", type:"select", required:true, options:["Examination Only (Second Check)","Assessment + Examination (First Check)","Random / RMS-Selected"]},
         {name:"examLocation", label:"Examination Location", type:"select", required:true, options:["Dock / Wharf","Container Freight Station (CFS)","Air Cargo Complex — Import Shed","Inland Container Depot (ICD)","Tailgate Examination"]},
         {name:"examDate", label:"Date of Examination", type:"date", required:true}
@@ -11460,7 +11487,7 @@ const DOCUMENT_CONFIGS = {
         {name:"importerName", contextKey:"txn.buyerName", label:"Importer Company Name", type:"text", required:true, placeholder:"Kerala Precision Imports Pvt Ltd"},
         {name:"importerAddress", label:"Registered Address", type:"textarea", required:true, full:true, placeholder:"14 Industrial Estate, Edappally, Kochi - 682024, Kerala, India"},
         {name:"iecNo", contextKey:"txn.iecNo", label:"Importer IEC", type:"text", required:true, uppercase:true, placeholder:"AABCK1234M", pattern:"^[A-Z0-9]{10}$", patternMsg:"Enter a valid 10-character IEC."},
-        {name:"gstin", contextKey:"txn.buyerGSTIN", label:"Importer GSTIN", type:"text", required:true, uppercase:true, placeholder:"32MCPPK1234L1Z5", pattern:"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$", patternMsg:"Enter a valid 15-character GSTIN."},
+        {name:"gstin", contextKey:"txn.buyerGSTIN", label:"Importer GSTIN", type:"text", required:true, uppercase:true, placeholder:"32AABCT4521K1Z5", pattern:"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$", patternMsg:"Enter a valid 15-character GSTIN."},
         {name:"cbName", label:"Customs Broker Name", type:"text", required:true, placeholder:"Anoop Menon Customs Clearing Agency"},
         {name:"cbLicenseNo", label:"Customs Broker License Number", type:"text", required:true, uppercase:true, placeholder:"CB/COK/0442"}
       ]},
@@ -11483,7 +11510,7 @@ const DOCUMENT_CONFIGS = {
     { title:"Validity & Specific Shipment Reference", est:6, sub:"A standing authorization for all future shipments, or one tied to a single consignment.",
       fields:[
         {name:"authorizationType", label:"Authorization Type", type:"select", required:true, reRenderOnChange:true, options:["General / Standing Authorization","Shipment-Specific Authorization"]},
-        {name:"boeRef", contextKey:"txn.boeNo", label:"Bill of Entry Reference", type:"text", required:false, help:"Optional — the Bill of Entry is filed after this authorization. Enter its reference once you have it.", showIf:d=>d.authorizationType==="Shipment-Specific Authorization", uppercase:true, placeholder:"BOE/2026/4471293"},
+        {name:"boeRef", contextKey:"txn.billOfEntryNo", label:"Bill of Entry Reference", type:"text", required:false, help:"Optional — the Bill of Entry is filed after this authorization. Enter its reference once you have it.", showIf:d=>d.authorizationType==="Shipment-Specific Authorization", uppercase:true, placeholder:"BOE/2026/4471293"},
         {name:"validFrom", label:"Valid From", type:"date", required:true},
         {name:"validUntil", label:"Valid Until", type:"date", required:true, showIf:d=>d.authorizationType==="General / Standing Authorization", help:"CBLR Regulation 10 does not fix a maximum validity, but most authorizations are renewed annually as good practice."}
       ]},
@@ -12399,8 +12426,8 @@ const DOCUMENT_CONFIGS = {
     { title:"Importer / Exporter Details", est:5, sub:"Who this assessment is being issued against.",
       fields:[
         {name:"partyName", contextKey:"txn.buyerName", label:"Importer / Exporter Name", type:"text", required:true, placeholder:"Meridian Imports Pvt. Ltd."},
-        {name:"partyIEC", label:"IEC Number", type:"text", uppercase:true, required:true, placeholder:"UYJPK1234L", pattern:"^[A-Z0-9]{10}$", patternMsg:"IEC must be 10 characters (letters and digits), e.g. UYJPK1234L."},
-        {name:"partyGSTIN", contextKey:"txn.buyerGSTIN", label:"GSTIN", type:"text", required:true, uppercase:true, placeholder:"27MCPPK1234L1Z1", pattern:"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$", patternMsg:"Enter a valid 15-character GSTIN, e.g. 27MCPPK1234L1Z1."}
+        {name:"partyIEC", label:"IEC Number", type:"text", uppercase:true, required:true, placeholder:"AABCT4521K", pattern:"^[A-Z0-9]{10}$", patternMsg:"IEC must be 10 characters (letters and digits), e.g. AABCT4521K."},
+        {name:"partyGSTIN", contextKey:"txn.buyerGSTIN", label:"GSTIN", type:"text", required:true, uppercase:true, placeholder:"12AABCT4521K1ZM", pattern:"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$", patternMsg:"Enter a valid 15-character GSTIN, e.g. 12AABCT4521K1ZM."}
       ]},
     { title:"Assessment Details", est:8, sub:"What the proper officer actually determined at assessment.",
       intro:"The assessed value here is what the officer has determined after examining valuation — it may differ from the value originally declared, and duty is always calculated against this figure, not the declared one.",
@@ -12630,13 +12657,13 @@ const DOCUMENT_CONFIGS = {
     { title:"Billing Party (Carrier / Forwarder)", est:5, sub:"Who is issuing this invoice.",
       fields:[
         {name:"billingPartyName", label:"Billing Party Name", type:"text", required:true, placeholder:"Meridian Logistics & Forwarding Pvt. Ltd."},
-        {name:"billingPartyGSTIN", label:"Billing Party GSTIN", type:"text", required:true, uppercase:true, placeholder:"27MCPPK1234L1Z1", pattern:"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$", patternMsg:"Enter a valid 15-character GSTIN, e.g. 27MCPPK1234L1Z1."}
+        {name:"billingPartyGSTIN", label:"Billing Party GSTIN", type:"text", required:true, uppercase:true, placeholder:"12AABCT4521K1ZM", pattern:"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$", patternMsg:"Enter a valid 15-character GSTIN, e.g. 12AABCT4521K1ZM."}
       ]},
     { title:"Billed To", est:5, sub:"Who is being invoiced for this shipment.",
       fields:[
         {name:"billedToName", contextKey:"txn.buyerName", label:"Billed To Name", type:"text", required:true, placeholder:"Meridian Exports Pvt. Ltd."},
         {name:"billedToAddress", contextKey:"txn.buyerAddress", label:"Billed To Address", type:"textarea", required:true, full:true, placeholder:"Plot 14, MIDC Industrial Area, Pune - 411019, India"},
-        {name:"billedToGSTIN", label:"Billed To GSTIN", type:"text", required:false, uppercase:true, placeholder:"27MCPPK1234L1Z1", pattern:"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$", patternMsg:"Enter a valid 15-character GSTIN, e.g. 27MCPPK1234L1Z1."}
+        {name:"billedToGSTIN", label:"Billed To GSTIN", type:"text", required:false, uppercase:true, placeholder:"12AABCT4521K1ZM", pattern:"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$", patternMsg:"Enter a valid 15-character GSTIN, e.g. 12AABCT4521K1ZM."}
       ]},
     { title:"Shipment Details", est:6, sub:"Which vessel and container this bill covers.",
       fields:[
@@ -12755,13 +12782,13 @@ const DOCUMENT_CONFIGS = {
     { title:"Billing Party (Airline / Forwarder)", est:5, sub:"Who is issuing this invoice.",
       fields:[
         {name:"billingPartyName", label:"Billing Party Name", type:"text", required:true, placeholder:"Meridian Air Cargo Forwarding Pvt. Ltd."},
-        {name:"billingPartyGSTIN", label:"Billing Party GSTIN", type:"text", required:true, uppercase:true, placeholder:"27MCPPK1234L1Z1", pattern:"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$", patternMsg:"Enter a valid 15-character GSTIN, e.g. 27MCPPK1234L1Z1."}
+        {name:"billingPartyGSTIN", label:"Billing Party GSTIN", type:"text", required:true, uppercase:true, placeholder:"12AABCT4521K1ZM", pattern:"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$", patternMsg:"Enter a valid 15-character GSTIN, e.g. 12AABCT4521K1ZM."}
       ]},
     { title:"Billed To", est:5, sub:"Who is being invoiced for this shipment.",
       fields:[
         {name:"billedToName", contextKey:"txn.buyerName", label:"Billed To Name", type:"text", required:true, placeholder:"Meridian Exports Pvt. Ltd."},
         {name:"billedToAddress", contextKey:"txn.buyerAddress", label:"Billed To Address", type:"textarea", required:true, full:true, placeholder:"Plot 14, MIDC Industrial Area, Pune - 411019, India"},
-        {name:"billedToGSTIN", label:"Billed To GSTIN", type:"text", required:false, uppercase:true, placeholder:"27MCPPK1234L1Z1", pattern:"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$", patternMsg:"Enter a valid 15-character GSTIN, e.g. 27MCPPK1234L1Z1."}
+        {name:"billedToGSTIN", label:"Billed To GSTIN", type:"text", required:false, uppercase:true, placeholder:"12AABCT4521K1ZM", pattern:"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$", patternMsg:"Enter a valid 15-character GSTIN, e.g. 12AABCT4521K1ZM."}
       ]},
     { title:"Shipment & Weight Details", est:8, sub:"The flight, route, and the weight this invoice is actually billed against.",
       fields:[
@@ -13285,20 +13312,20 @@ const DOCUMENT_CONFIGS = {
       fields:[
         {name:"challanNo", contextKey:"txn.deliveryChallanNo", autoGenerate:true, label:"Delivery Challan Number", type:"text", required:true, uppercase:true, placeholder:"DC-2026-004521", pattern:"^[A-Z0-9\\-\\/]{6,25}$", patternMsg:"Use letters, numbers, hyphens or slashes, 6-25 characters."},
         {name:"challanDate", label:"Challan Date", type:"date", required:true, help:"The date this Delivery Challan is prepared for goods moving without a tax invoice (e.g. returnable packing, job work)."},
-        {name:"challanType", label:"Challan Type", type:"select", required:true, reRenderOnChange:true, options:["Stock Transfer","Job Work","Returnable Packing","Sample","Exhibition / Fair"]},
+        {name:"challanType", label:"Challan Type", type:"select", required:true, reRenderOnChange:true, options:["Stock Transfer","Sale","Job Work","Returnable Packing","Sample","Exhibition / Fair"]},
         {name:"expectedReturnDate", label:"Expected Return Date", type:"date", required:true, showIf:d=>d.challanType==="Returnable Packing"||d.challanType==="Exhibition / Fair"||d.challanType==="Job Work", help:"The date the goods sent under this Challan are expected back, if returnable."}
       ]},
     { title:"Consignor Details", est:5, sub:"Who is dispatching the goods.",
       fields:[
         {name:"consignorName", contextKey:"txn.sellerName", label:"Consignor Name", type:"text", required:true, placeholder:"Meridian Manufacturing Pvt. Ltd."},
         {name:"consignorAddress", contextKey:"txn.sellerAddress", label:"Consignor Address", type:"textarea", required:true, full:true, placeholder:"Plot 14, MIDC Industrial Area, Pune - 411019, India"},
-        {name:"consignorGSTIN", label:"Consignor GSTIN", type:"text", required:true, uppercase:true, placeholder:"27MCPPK1234L1Z1", pattern:"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$", patternMsg:"Enter a valid 15-character GSTIN, e.g. 27MCPPK1234L1Z1."}
+        {name:"consignorGSTIN", label:"Consignor GSTIN", type:"text", required:true, uppercase:true, placeholder:"12AABCT4521K1ZM", pattern:"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$", patternMsg:"Enter a valid 15-character GSTIN, e.g. 12AABCT4521K1ZM."}
       ]},
     { title:"Consignee Details", est:5, sub:"Who is receiving the goods.",
       fields:[
         {name:"consigneeName", contextKey:"txn.buyerName", label:"Consignee Name", type:"text", required:true, placeholder:"Meridian Manufacturing Pvt. Ltd. (Bangalore Branch)"},
         {name:"consigneeAddress", contextKey:"txn.buyerAddress", label:"Consignee Address", type:"textarea", required:true, full:true, placeholder:"Plot 8, Peenya Industrial Area, Bangalore - 560058, India"},
-        {name:"consigneeGSTIN", label:"Consignee GSTIN", type:"text", required:false, uppercase:true, placeholder:"29MCPPK1234L1Z3", pattern:"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$", patternMsg:"Enter a valid 15-character GSTIN, e.g. 29MCPPK1234L1Z3."}
+        {name:"consigneeGSTIN", label:"Consignee GSTIN", type:"text", required:false, uppercase:true, placeholder:"29AABCT4521K1Z3", pattern:"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$", patternMsg:"Enter a valid 15-character GSTIN, e.g. 29AABCT4521K1Z3."}
       ]},
     { title:"Item Details", est:12, sub:"Every item moving, with the HSN and declared value GST rules require even for non-sale movement.",
       fields:[
@@ -14144,7 +14171,7 @@ const DOCUMENT_CONFIGS = {
       fields:[
         {name:"supplierName", contextKey:"txn.sellerName", label:"Supplier Name", type:"text", required:true, placeholder:"Meridian Manufacturing Pvt. Ltd."},
         {name:"supplierAddress", contextKey:"txn.sellerAddress", label:"Supplier Address", type:"textarea", required:true, full:true, placeholder:"Plot 14, MIDC Industrial Area, Pune - 411019, Maharashtra"},
-        {name:"supplierGSTIN", contextKey:"txn.sellerGSTIN", label:"Supplier GSTIN", type:"text", required:true, uppercase:true, placeholder:"27MCPPK1234L1Z1", pattern:"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$", patternMsg:"Enter a valid 15-character GSTIN, e.g. 27MCPPK1234L1Z1."}
+        {name:"supplierGSTIN", contextKey:"txn.sellerGSTIN", label:"Supplier GSTIN", type:"text", required:true, uppercase:true, placeholder:"12AABCT4521K1ZM", pattern:"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$", patternMsg:"Enter a valid 15-character GSTIN, e.g. 12AABCT4521K1ZM."}
       ]},
     { title:"Buyer / Recipient Details", est:6, sub:"Who is receiving this supply — B2B needs a GSTIN, B2C does not.",
       fields:[
@@ -14344,7 +14371,7 @@ const DOCUMENT_CONFIGS = {
     { title:"Vendor Details", est:5, sub:"Who this bill is being booked against.",
       fields:[
         {name:"vendorName", contextKey:"proc.supplierName", label:"Vendor Name", type:"text", required:true, placeholder:"Precision Components Ltd."},
-        {name:"vendorGSTIN", contextKey:"proc.supplierGSTIN", label:"Vendor GSTIN", type:"text", required:true, uppercase:true, placeholder:"27MCPPK1234L1Z1", pattern:"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$", patternMsg:"Enter a valid 15-character GSTIN, e.g. 27MCPPK1234L1Z1."}
+        {name:"vendorGSTIN", contextKey:"proc.supplierGSTIN", label:"Vendor GSTIN", type:"text", required:true, uppercase:true, placeholder:"12AABCT4521K1ZM", pattern:"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$", patternMsg:"Enter a valid 15-character GSTIN, e.g. 12AABCT4521K1ZM."}
       ]},
     { title:"Three-Way Match", est:6, sub:"Whether the PO, the Goods Receipt Note and this invoice actually agree.",
       fields:[
@@ -14751,8 +14778,8 @@ const DOCUMENT_CONFIGS = {
     { title:"Applicant Details", est:6, sub:"Who is registering for portal access.",
       fields:[
         {name:"applicantName", contextKey:"txn.sellerName", label:"Applicant Name", type:"text", required:true, placeholder:"Meridian Exports Pvt. Ltd."},
-        {name:"applicantPAN", label:"PAN", type:"text", required:true, uppercase:true, placeholder:"MCPPK1234L", pattern:"^[A-Z]{5}[0-9]{4}[A-Z]{1}$", patternMsg:"Enter a valid 10-character PAN, e.g. MCPPK1234L."},
-        {name:"applicantIEC", contextKey:"txn.sellerIEC", label:"IEC Number", type:"text", uppercase:true, required:true, placeholder:"UYJPK1234L", pattern:"^[A-Z0-9]{10}$", patternMsg:"IEC must be 10 characters (letters and digits), e.g. UYJPK1234L."}
+        {name:"applicantPAN", label:"PAN", type:"text", required:true, uppercase:true, placeholder:"AABCT4521K", pattern:"^[A-Z]{5}[0-9]{4}[A-Z]{1}$", patternMsg:"Enter a valid 10-character PAN, e.g. AABCT4521K."},
+        {name:"applicantIEC", contextKey:"txn.sellerIEC", label:"IEC Number", type:"text", uppercase:true, required:true, placeholder:"AABCT4521K", pattern:"^[A-Z0-9]{10}$", patternMsg:"IEC must be 10 characters (letters and digits), e.g. AABCT4521K."}
       ]},
     { title:"AD Code Registration", est:6, sub:"The bank branch this registration links for foreign exchange purposes.",
       fields:[
@@ -14983,8 +15010,8 @@ const DOCUMENT_CONFIGS = {
       ]},
     { title:"Statutory Details", est:8, sub:"What every Vendor Bill and Tax Invoice from this supplier will need to match against.",
       fields:[
-        {name:"vendorGSTIN", contextKey:"proc.supplierGSTIN", label:"GSTIN", type:"text", required:true, uppercase:true, placeholder:"27MCPPK1234L1Z1", pattern:"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$", patternMsg:"Enter a valid 15-character GSTIN, e.g. 27MCPPK1234L1Z1."},
-        {name:"vendorPAN", contextKey:"proc.supplierPAN", label:"PAN", type:"text", required:true, uppercase:true, placeholder:"MCPPK1234L", pattern:"^[A-Z]{5}[0-9]{4}[A-Z]{1}$", patternMsg:"Enter a valid 10-character PAN, e.g. MCPPK1234L."},
+        {name:"vendorGSTIN", contextKey:"proc.supplierGSTIN", label:"GSTIN", type:"text", required:true, uppercase:true, placeholder:"12AABCT4521K1ZM", pattern:"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$", patternMsg:"Enter a valid 15-character GSTIN, e.g. 12AABCT4521K1ZM."},
+        {name:"vendorPAN", contextKey:"proc.supplierPAN", label:"PAN", type:"text", required:true, uppercase:true, placeholder:"AABCT4521K", pattern:"^[A-Z]{5}[0-9]{4}[A-Z]{1}$", patternMsg:"Enter a valid 10-character PAN, e.g. AABCT4521K."},
         {name:"msmeRegistered", label:"Vendor is MSME Registered", type:"checkbox", required:false, reRenderOnChange:true},
         {name:"msmeRegistrationNo", label:"MSME Registration Number (Udyam)", type:"text", required:true, showIf:d=>d.msmeRegistered, uppercase:true, placeholder:"UDYAM-MH-03-0012345"}
       ]},
@@ -15337,7 +15364,7 @@ const DOCUMENT_CONFIGS = {
       fields:[
         {name:"ebrcNo", label:"eBRC Number", type:"text", required:true, uppercase:true, placeholder:"eBRC-2026-004521", pattern:"^[A-Za-z0-9\\-\\/]{6,25}$", patternMsg:"Use letters, numbers, hyphens or slashes, 6-25 characters."},
         {name:"generationDate", label:"Generation Date", type:"date", required:true, help:"The date the bank generates this eBRC on the DGFT portal."},
-        {name:"iecNumber", label:"IEC Number", type:"text", uppercase:true, required:true, contextKey:"txn.sellerIEC", placeholder:"UYJPK1234L", pattern:"^[A-Z0-9]{10}$", patternMsg:"IEC must be 10 characters (letters and digits), e.g. UYJPK1234L."}
+        {name:"iecNumber", label:"IEC Number", type:"text", uppercase:true, required:true, contextKey:"txn.sellerIEC", placeholder:"AABCT4521K", pattern:"^[A-Z0-9]{10}$", patternMsg:"IEC must be 10 characters (letters and digits), e.g. AABCT4521K."}
       ]},
     { title:"AD Bank Details", est:6, sub:"Whose Inward Remittance Message this certificate is built from.",
       fields:[
@@ -15349,7 +15376,7 @@ const DOCUMENT_CONFIGS = {
       fields:[
         {name:"shippingBillNo", label:"Shipping Bill Number", type:"text", required:true, contextKey:"txn.shippingBillNo", uppercase:true, placeholder:"INNSA1/SB/2026/000001"},
         {name:"commercialInvoiceNo", label:"Commercial Invoice Number", type:"text", required:true, contextKey:"txn.commercialInvoiceNo", uppercase:true, placeholder:"CI-2026-00451"},
-        {name:"gstin", label:"GSTIN", type:"text", required:true, contextKey:"txn.sellerGSTIN", uppercase:true, placeholder:"27MCPPK1234L1Z1", pattern:"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$", patternMsg:"Enter a valid 15-character GSTIN, e.g. 27MCPPK1234L1Z1."},
+        {name:"gstin", label:"GSTIN", type:"text", required:true, contextKey:"txn.sellerGSTIN", uppercase:true, placeholder:"12AABCT4521K1ZM", pattern:"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$", patternMsg:"Enter a valid 15-character GSTIN, e.g. 12AABCT4521K1ZM."},
         {name:"gstInvoiceNo", label:"GST Invoice Number", type:"text", required:true, uppercase:true, placeholder:"GST-INV-2026-00451", help:"Mandatory since 13 January 2026 (DGFT Public Notice 42/2025-26), linking realization data to domestic GST filings."},
         {name:"gstInvoiceDate", label:"GST Invoice Date", type:"date", required:true, help:"The date of the GST invoice this export realization corresponds to."}
       ]},
@@ -15749,7 +15776,7 @@ const DOCUMENT_CONFIGS = {
           addLabel:"Add Product",
           cellPatterns:{ hsCode:{pattern:"^\\d{8}$"} },
           columns:[
-            {key:"productName", contextKey:"txn.itemDescription", label:"Product Name", placeholder:"Refined Sunflower Oil"},
+            {key:"productName", contextKey:"txn.itemProduct", label:"Product Name", placeholder:"Refined Sunflower Oil"},
             {key:"hsCode", contextKey:"txn.hsCode", label:"HS Code", placeholder:"15121900"},
             {key:"description", label:"Description / Variant", placeholder:"Packed in 1L PET bottles, 12 per carton"}
           ]
@@ -16109,7 +16136,7 @@ const DOCUMENT_CONFIGS = {
     { title:"Exporter Details", est:5, sub:"Who this license authorizes to export.",
       fields:[
         {name:"exporterName", contextKey:"txn.sellerName", label:"Exporter Name", type:"text", required:true, placeholder:"Meridian Exports Pvt. Ltd."},
-        {name:"exporterIEC", contextKey:"txn.sellerIEC", label:"Exporter IEC", type:"text", uppercase:true, required:true, placeholder:"UYJPK1234L", pattern:"^[A-Z0-9]{10}$", patternMsg:"IEC must be 10 characters (letters and digits), e.g. UYJPK1234L."},
+        {name:"exporterIEC", contextKey:"txn.sellerIEC", label:"Exporter IEC", type:"text", uppercase:true, required:true, placeholder:"AABCT4521K", pattern:"^[A-Z0-9]{10}$", patternMsg:"IEC must be 10 characters (letters and digits), e.g. AABCT4521K."},
         {name:"exporterAddress", contextKey:"txn.sellerAddress", label:"Exporter Address", type:"text", required:true, placeholder:"Plot 14, MIDC Industrial Area, Pune, Maharashtra, India"}
       ]},
     { title:"Restricted Goods & Category", est:8, sub:"What is being exported under this license, and why it needs one.",
@@ -16697,7 +16724,7 @@ const DOCUMENT_CONFIGS = {
       fields:[
         {name:"driverName", label:"Driver Name", type:"text", required:true, placeholder:"Suresh Pillai"},
         {name:"driverLicenseNo", label:"Driving License Number", type:"text", required:true, uppercase:true, placeholder:"KL07 20230012345"},
-        {name:"vehicleNumber", contextKey:"txn.vehicleNumber", label:"Vehicle Number", type:"text", required:true, uppercase:true, placeholder:"KL-07-AB-1234"},
+        {name:"vehicleNumber", contextKey:"txn.vehicleNumber", label:"Vehicle Number", type:"text", required:true, uppercase:true, placeholder:"KL07AB1234"},
         {name:"vehicleType", label:"Vehicle Type", type:"select", required:true, options:["Open Truck","Container Truck (20ft)","Container Truck (40ft)","Closed Body Van","Trailer"]}
       ]},
     { title:"Route & Stops", est:8, sub:"Where this trip starts, where it ends, and any stops in between.",
@@ -16777,7 +16804,7 @@ const DOCUMENT_CONFIGS = {
       fields:[
         {name:"slipNo", autoGenerate:true, label:"Weighbridge Slip Number", type:"text", required:true, uppercase:true, placeholder:"WB-2026-004521", pattern:"^[A-Z0-9\\-\\/]{6,25}$", patternMsg:"Use letters, numbers, hyphens or slashes, 6-25 characters."},
         {name:"weighmentDate", label:"Date", type:"date", required:true, help:"The date the vehicle/cargo is weighed at the weighbridge."},
-        {name:"vehicleNumber", contextKey:"txn.vehicleNumber", label:"Vehicle Number", type:"text", required:true, uppercase:true, placeholder:"KL-07-AB-1234"},
+        {name:"vehicleNumber", contextKey:"txn.vehicleNumber", label:"Vehicle Number", type:"text", required:true, uppercase:true, placeholder:"KL07AB1234"},
         {name:"containerNo", contextKey:"txn.containerNo", label:"Container Number (if applicable)", type:"text", required:false, uppercase:true, placeholder:"MSKU1234567"}
       ]},
     { title:"Weighbridge Location", est:4, sub:"Where this weighment was taken.",
@@ -16956,7 +16983,7 @@ const DOCUMENT_CONFIGS = {
     { title:"Gate Pass Reference & CFS Details", est:5, sub:"Which customs-bonded facility this cargo is actually sitting in.",
       intro:"A CFS operates under its own customs bond and license — its gate pass authority exists independently of the Customs House that cleared the Bill of Entry.",
       fields:[
-        {name:"gatePassNumber", autoGenerate:true, label:"Gate Pass Number", type:"text", required:true, uppercase:true, placeholder:"GP-2026-004521"},
+        {name:"gatePassNumber", contextKey:"txn.gatePassNo", autoGenerate:true, label:"Gate Pass Number", type:"text", required:true, uppercase:true, placeholder:"GP-2026-004521"},
         {name:"gatePassDate", label:"Date of Issue", type:"date", required:true, help:"The date the CFS issues this Gate Pass."},
         {name:"cfsNameGP", label:"Container Freight Station (CFS) Name", type:"text", required:true, placeholder:"Continental CFS, JNPT"},
         {name:"cfsLocationGP", label:"CFS Location", type:"text", required:true, placeholder:"Panvel, Navi Mumbai, Maharashtra"},
@@ -16965,7 +16992,7 @@ const DOCUMENT_CONFIGS = {
     { title:"Consignment Reference", est:5, sub:"The Customs clearance this gate pass is actually acting on.",
       intro:"No CFS will issue a gate pass without a valid Out of Charge order on file — this reference is what proves Customs clearance actually happened before the cargo can leave.",
       fields:[
-        {name:"billOfEntryNumberGP", autoGenerate:true, label:"Bill of Entry Number", type:"text", required:true, uppercase:true, showIf:d=>!skCfsIsExportJob(), placeholder:"BOE-2026-00845210"},
+        {name:"billOfEntryNumberGP", contextKey:"txn.billOfEntryNo", autoGenerate:true, label:"Bill of Entry Number", type:"text", required:true, uppercase:true, showIf:d=>!skCfsIsExportJob(), placeholder:"BOE-2026-00845210"},
         {name:"billOfEntryDateGP", label:"Bill of Entry Date", type:"date", required:true, showIf:d=>!skCfsIsExportJob(), help:"The date of the Bill of Entry this Gate Pass is issued against."},
         {name:"outOfChargeDateGP", label:"Out of Charge Date", type:"date", required:true, showIf:d=>!skCfsIsExportJob(), help:"The date Customs granted Out of Charge, allowing this Gate Pass to be issued."},
         {name:"igmNumberGP", label:"Import General Manifest (IGM) Number", type:"text", required:true, uppercase:true, showIf:d=>!skCfsIsExportJob(), placeholder:"IGM/INNSA1/2026/004521"},
@@ -17256,7 +17283,7 @@ const DOCUMENT_CONFIGS = {
     { title:"Supplier, Recipient & Document Identity", est:6, sub:"The exact invoice this registration is being requested for.",
       intro:"The IRN is mathematically derived from Supplier GSTIN + Document Number + Financial Year — get any of the three wrong and the IRP either rejects the upload or generates an IRN that won't match the printed invoice.",
       fields:[
-        {name:"supplierGSTINEINV", contextKey:"txn.sellerGSTIN", label:"Supplier GSTIN", type:"text", required:true, uppercase:true, placeholder:"27MCPPK1234L1Z1", pattern:"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$", patternMsg:"Enter a valid 15-character GSTIN.", reRenderOnChange:true},
+        {name:"supplierGSTINEINV", contextKey:"txn.sellerGSTIN", label:"Supplier GSTIN", type:"text", required:true, uppercase:true, placeholder:"12AABCT4521K1ZM", pattern:"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$", patternMsg:"Enter a valid 15-character GSTIN.", reRenderOnChange:true},
         {name:"recipientGSTINEINV", label:"Recipient GSTIN", type:"text", required:true, uppercase:true, placeholder:"29XYZAB5678L1Z3", pattern:"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$", patternMsg:"Enter a valid 15-character GSTIN."},
         {name:"documentTypeEINV", label:"Document Type", type:"select", required:true, options:["Invoice (INV)","Credit Note (CRN)","Debit Note (DBN)"]},
         {name:"documentNumberEINV", label:"Document Number", type:"text", required:true, uppercase:true, placeholder:"INV-2026-004521", reRenderOnChange:true},
@@ -17454,7 +17481,7 @@ const DOCUMENT_CONFIGS = {
       fields:[
         {name:"lutNumber", autoGenerate:true, label:"LUT Reference Number (internal)", type:"text", required:true, uppercase:true, placeholder:"LUT-2026-000451", pattern:"^LUT-\\d{4}-\\d{4,8}$", patternMsg:"Use the format LUT-YYYY-NNNN, e.g. LUT-2026-000451."},
         {name:"lutDate", label:"Date of Filing", type:"date", required:true, reRenderOnChange:true, help:"The date this Letter of Undertaking is filed with GST authorities (allows export without payment of IGST)."},
-        {name:"gstinLUT", contextKey:"txn.sellerGSTIN", label:"GSTIN", type:"text", required:true, uppercase:true, placeholder:"27MCPPK1234L1Z1", pattern:"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$", patternMsg:"Enter a valid 15-character GSTIN, e.g. 27MCPPK1234L1Z1.", reRenderOnChange:true},
+        {name:"gstinLUT", contextKey:"txn.sellerGSTIN", label:"GSTIN", type:"text", required:true, uppercase:true, placeholder:"12AABCT4521K1ZM", pattern:"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$", patternMsg:"Enter a valid 15-character GSTIN, e.g. 12AABCT4521K1ZM.", reRenderOnChange:true},
         {name:"legalNameLUT", contextKey:"txn.sellerName", label:"Legal Name of Registered Person", type:"text", required:true, placeholder:"Meridian Exports Private Limited"},
         {name:"tradeNameLUT", label:"Trade Name (if different)", type:"text", required:false, placeholder:"Meridian Exports"},
         {name:"registeredAddressLUT", contextKey:"txn.sellerAddress", label:"Registered Address", type:"textarea", required:true, full:true, placeholder:"Plot 14, MIDC Industrial Area, Pune, Maharashtra, India"}

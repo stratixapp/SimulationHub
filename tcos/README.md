@@ -202,4 +202,12 @@ Sidebar restyled to an ICEGATE-style navy menu with ICEGATE section names (e-Fil
 
 ## v21 additions
 - HSN table now has ~120 more high-value / controlled goods (defence & arms, aircraft, satellites and space equipment, capital machinery, precious metals/stones, SCOMET chemicals). Controlled lines carry a SCOMET flag (auto-ticks SCOMET in the Export Brief) and new PGA agencies (DGFT SCOMET, MoD, Dept of Space, AERB, NACWC, DGCA, PESO). Duty/drawback/RoDTEP figures are training approximations.
-- IEC accepts 10 letters/digits (e.g. UYJPK1234L); exporter PAN flows from the Document Simulator job into the filing and the Shipping Bill header.
+- IEC accepts 10 letters/digits (e.g. AABCT4521K); exporter PAN flows from the Document Simulator job into the filing and the Shipping Bill header.
+
+## Shipping Bill — "Submit & Sign" console (final filing step)
+The last step of an EXPORT filing is no longer two ticks and a button. `js/final-filing.js` runs an ICEGATE-style
+gauntlet: pre-submission validation → draft-checklist verification + re-keying IEC / invoice value / package count →
+five Section 50 declarations + signatory name → DSC (detect token, pick the right Class-3 certificate, token PIN, 3 wrong
+tries lock it) → OTP (3-minute, 3 tries) → submission to ICES (can answer "503 busy" — retry). No form fields were added.
+Tune or switch it off with `window.TCOS_FINAL_FILING = { export:false }` (or `import:true` to use it for the Bill of Entry)
+before the script loads. Typeface: Noto Sans (bundled, `fonts/`), set once via `--icg-font` in `css/final-filing.css`.

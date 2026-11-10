@@ -369,8 +369,41 @@ function renderStep(idx){
 /* ---------------------------------------------------------------------
    PROGRESS PERSISTENCE (offline, per-student, this computer only)
    --------------------------------------------------------------------- */
+/* FIX (v35): "system-generated" numbers (Bill of Entry No., Out of Charge No., Delivery Order No., Shipping Bill No.,
+   Sales Order No., AWB No., Warehouse Receipt No., Gate Pass No.) are computed fields. They were only ever shown on
+   screen and never written into formData, so the cross-document context (which reads saved formData) never saw them
+   and later documents could not autofill from them unless TCOS wrote the number for the student.
+   Every save now stores the computed value of each computed field that carries a contextKey.
+   - A placeholder result ("Not yet generated...") is never stored.
+   - A value the student/TCOS/bridge already placed there is never overwritten, unless it is still the value this
+     function stored last time (tracked in __autoComputed), so edits to the inputs keep the stored number current. */
+function skIsRealComputedValue(v){
+  if(typeof v !== "string") return false;
+  const t = v.trim();
+  return t !== "" && !/^(not yet|enter |select |pending|waiting|—|-)/i.test(t);
+}
+function skPersistComputedContextFields(){
+  if(typeof CONFIG === "undefined" || !CONFIG || typeof formData === "undefined" || !formData) return;
+  const auto = (formData.__autoComputed && typeof formData.__autoComputed === "object") ? formData.__autoComputed : {};
+  let touched = false;
+  (CONFIG.steps||[]).forEach(step=>{
+    (step.fields||[]).forEach(f=>{
+      if(f.type !== "computed" || !f.contextKey || !f.name || typeof f.compute !== "function") return;
+      if(f.showIf){ try{ if(!f.showIf(formData)) return; }catch(e){ return; } }
+      let v; try{ v = f.compute(formData); }catch(e){ return; }
+      if(!skIsRealComputedValue(v)) return;
+      const cur = formData[f.name];
+      if(cur === undefined || cur === null || cur === "" || cur === auto[f.name]){
+        formData[f.name] = v; auto[f.name] = v; touched = true;
+      }
+    });
+  });
+  if(touched) formData.__autoComputed = auto;
+}
+
 function saveProgressSnapshot(status){
   if(!CURRENT_USER || !CURRENT_SLUG) return;
+  skPersistComputedContextFields();
   skSaveDocProgress(CURRENT_USER.id, CURRENT_SLUG, {
     status,
     currentStep,
@@ -1223,10 +1256,24 @@ function validateStep(idx){
     if(f.required && !has){ fieldErrors.add(f.name); fieldErrorMsgs[f.name]=f.requiredMsg||"This field is required."; valid=false; return; }
     if(has && f.pattern){
       const re = new RegExp(f.pattern);
-      if(!re.test(String(v).trim())){ fieldErrors.add(f.name); fieldErrorMsgs[f.name]=f.patternMsg||"Invalid format."; valid=false; }
+      if(!re.test(String(v).trim())){ fieldErrors.add(f.name); fieldErrorMsgs[f.name]=f.patternMsg||"Invalid format."; valid=false; return; }
     }
+    // FIX (v35): a required quantity / weight / volume / price / value of 0 is not a real entry.
+    if(has && skNumberMustBePositive(f) && !(parseFloat(v) > 0)){ fieldErrors.add(f.name); fieldErrorMsgs[f.name]=f.positiveMsg||"Enter a value greater than zero."; valid=false; }
   });
   return valid;
+}
+/* Opt-in per field with positive:true / positive:false, otherwise decided from the label: required numeric
+   quantity / weight / volume / price / value fields must be > 0; tax, rate, charge, discount, freight, insurance,
+   allowance, free-days and similar fields may legitimately be 0 and are left alone. */
+const SK_POSITIVE_LABEL_RE = /(weight|quantity|\bqty\b|packages|no\. of (pieces|containers|items|boxes)|\bcbm\b|volume|unit price|assessable value|declared value|invoice value|total value|cif value|fob value|sum insured|cargo value|\bvalue\b)/i;
+const SK_ZERO_OK_LABEL_RE = /(tax|gst|igst|cgst|sgst|cess|duty|discount|rate|charge|fee|freight|insurance|demurrage|penalty|surcharge|%|percent|allowance|tolerance|free|advance|balance|outstanding|paid|variance|difference|damaged|shortage|rejected|defect|excess|deduct)/i;
+function skNumberMustBePositive(f){
+  if(!f || f.type !== "number" || !f.required) return false;
+  if(f.positive === true) return true;
+  if(f.positive === false) return false;
+  const text = (f.label||"") + " " + (f.name||"");
+  return SK_POSITIVE_LABEL_RE.test(f.label||"") && !SK_ZERO_OK_LABEL_RE.test(text);
 }
 
 /* ---------------------------------------------------------------------
@@ -1495,14 +1542,24 @@ function esc_sk(s){ const d=document.createElement("div"); d.textContent = s||""
    --------------------------------------------------------------------- */
 function renderTcosBridgeCompletion(ret, slug){
   clearInterval(timerInterval);
-  skSaveDocProgress(CURRENT_USER.id, slug, {
+  const _tcosPatch = {
     status: "completed",
     viaTcos: true,
     tcosRef: ret.refNo,
     currentStep: CONFIG.steps.length - 1,
     maxReached: CONFIG.steps.length - 1,
     docTitle: CONFIG.title
-  });
+  };
+  // Carry the document's own number (SB No, B/L No, Booking No ...) into Logistics so downstream
+  // documents autofill from it, same as a document filled in here.
+  if(typeof DotBridge !== "undefined" && DotBridge.formDataForDoc){
+    const _fd = DotBridge.formDataForDoc(slug, ret.refNo);
+    if(_fd){
+      const _prev = (typeof skGetDocProgress === "function" ? skGetDocProgress(CURRENT_USER.id, slug) : null) || {};
+      _tcosPatch.formData = Object.assign({}, _prev.formData || {}, _fd);
+    }
+  }
+  skSaveDocProgress(CURRENT_USER.id, slug, _tcosPatch);
   if(typeof skAppendAudit === "function"){
     skAppendAudit(CURRENT_USER.id, slug, "completed", {docTitle: CONFIG.title, viaTcos: true, tcosRef: ret.refNo});
   }
@@ -1686,6 +1743,16 @@ function boot(){
   document.getElementById("tbTitle2").textContent = CONFIG.subtitle;
   document.getElementById("bannerEyebrow").textContent = CONFIG.moduleLabel;
   document.getElementById("bannerTitle").textContent = CONFIG.heroTitle;
+  // v38: Mandatory / Optional label (Sea Export Jobs only) — label only, changes nothing else.
+  try{
+    if(typeof skGetActiveJob === "function" && typeof skMandatoryLabelHTML === "function" && CURRENT_USER && CURRENT_SLUG){
+      const _lblJob = skGetActiveJob(CURRENT_USER.id);
+      if(_lblJob && _lblJob.fields){
+        const _lbl = skMandatoryLabelHTML(CURRENT_SLUG, _lblJob.fields.mode);
+        if(_lbl) document.getElementById("bannerTitle").insertAdjacentHTML("beforeend", _lbl);
+      }
+    }
+  }catch(e){}
   document.getElementById("bannerDesc").textContent = CONFIG.heroDesc;
   document.getElementById("bannerObjectives").innerHTML = CONFIG.objectives.map(o=>
     `<li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20,6 9,17 4,12"/></svg>${o}</li>`

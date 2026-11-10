@@ -115,6 +115,7 @@ function xdDelContainer(i) { xdReadBriefDOM(); XD_BRIEF_DRAFT.containers.splice(
 
 function renderExportJobBrief() {
   const host = $('#screen-exportJobBrief');
+  if (!XD_BRIEF_DRAFT) XD_BRIEF_DRAFT = xdBlankBrief(); // reached by Back / a #exportJobBrief link with no draft in memory
   const b = xdEnsureBriefShape(XD_BRIEF_DRAFT);
   const openExportFilings = STATE.filings.filter(f => f.type === 'export');
   const bookings = STATE.bookings;

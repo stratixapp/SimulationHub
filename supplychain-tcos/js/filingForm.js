@@ -217,23 +217,48 @@ function bridgeMatchOption(value, list) {
   const hit = list.find(o => o.toLowerCase() === String(value).toLowerCase());
   return hit || '';
 }
-function bridgeMatchPort(name, list) {
+/* Ports: EXACT matching only (v41). The old version matched on any shared 4+-letter word, which silently filed the
+   WRONG port on a customs document (Mumbai Port -> Nhava Sheva, Kandla -> Mundra, Mumbai Airport -> a seaport,
+   Bahrain's Khalifa Bin Salman -> UAE's Khalifa Port ...). The Logistics Job and TCOS now share the same Indian port
+   names, and TCOS foreign labels are "<Job port name>, <country>", so a correct match is always exact. When nothing
+   matches exactly the field is left blank for the student to pick — never a guess. `countryHint` is optional. */
+function bridgeMatchPort(name, list, countryHint) {
   if (!name) return '';
-  // Generic words like "port"/"sea"/"cargo" appear in almost every option's
-  // label and would false-match the first list entry containing them
-  // (e.g. "Cochin Port, Kerala" wrongly matching "Chennai Sea Port" on the
-  // shared word "port") — stripped out so only a real place-name in common
-  // decides the match.
-  const STOP = new Set(['port','sea','air','cargo','airport','dock','seaport','harbour','harbor','terminal','city']);
-  const words = name.toLowerCase().split(/[^a-z]+/).filter(w => w.length >= 4 && !STOP.has(w));
-  if (!words.length) return '';
-  let best = '';
-  list.forEach(opt => {
-    if (best) return;
-    const label = (opt.split(' - ')[1] || opt).toLowerCase();
-    if (words.some(w => label.includes(w))) best = opt;
-  });
-  return best;
+  const norm = s => String(s).toLowerCase().replace(/\s+/g, ' ').trim();
+  const n = norm(name);
+  let hit = list.find(o => norm(o) === n);
+  if (hit) return hit;
+  if (countryHint) {
+    const hints = [norm(countryHint)];
+    if (BRIDGE_COUNTRY_ALIASES[countryHint]) hints.push(norm(BRIDGE_COUNTRY_ALIASES[countryHint]));
+    for (const h of hints) { hit = list.find(o => norm(o) === n + ', ' + h); if (hit) return hit; }
+  }
+  const pref = list.filter(o => norm(o).startsWith(n + ', '));
+  if (pref.length === 1) return pref[0];
+  const byName = list.filter(o => o.indexOf(' - ') > -1 && norm(o.split(' - ').slice(1).join(' - ')) === n);
+  if (byName.length === 1) return byName[0];
+  return '';
+}
+/* Logistics Job vocabulary -> TCOS vocabulary (units are the ICEGATE UQC codes; MT = metric tonnes = MTS, not MTR = metres). */
+const BRIDGE_UNIT_ALIAS = { PCS: 'PCS', SET: 'SET', KG: 'KGS', KGS: 'KGS', MT: 'MTS', MTS: 'MTS', DZN: 'DOZ', DOZ: 'DOZ', CTN: 'CTN', BOX: 'BOX', LTR: 'LTR', SQM: 'SQM', PAIR: 'PAIR', NOS: 'NOS', MTR: 'MTR' };
+function bridgeMatchUnit(u) {
+  const k = String(u || '').trim().toUpperCase();
+  const mapped = BRIDGE_UNIT_ALIAS[k];
+  return mapped && UNITS.includes(mapped) ? mapped : '';
+}
+const BRIDGE_PACKAGE_ALIAS = { carton: 'Carton', cartons: 'Carton', crate: 'Wooden Crate', crates: 'Wooden Crate', 'wooden crate': 'Wooden Crate', pallet: 'Pallet', pallets: 'Pallet', drum: 'Drum', drums: 'Drum', bag: 'Bag', bags: 'Bag', box: 'Box', boxes: 'Box', roll: 'Roll', rolls: 'Roll', case: 'Case', cases: 'Case' };
+function bridgeMatchPackageType(p) {
+  const k = String(p || '').trim().toLowerCase();
+  const mapped = BRIDGE_PACKAGE_ALIAS[k];
+  return mapped && PACKAGE_TYPES.includes(mapped) ? mapped : '';
+}
+/* PAN is embedded in a GSTIN (characters 3-12), so an importer's PAN can be carried over from the Job's GSTIN. */
+function bridgePanFromGstin(g) {
+  const m = /^\d{2}([A-Z]{5}\d{4}[A-Z])[1-9A-Z]Z[0-9A-Z]$/.exec(String(g || '').trim().toUpperCase());
+  return m ? m[1] : '';
+}
+function bridgeItemsValue(items) {
+  return (items || []).reduce((sum, it) => sum + (Number(it.quantity) || 0) * (Number(it.unitPrice) || 0) - (Number(it.discount) || 0), 0);
 }
 function skTcosPrefillFilingFromJobData(filing, type, jd) {
   if (!jd) return;
@@ -244,12 +269,12 @@ function skTcosPrefillFilingFromJobData(filing, type, jd) {
   // counterparty either way.
   const own = {
     name: isExport ? jd.sellerName : jd.buyerName, address: isExport ? jd.sellerAddress : jd.buyerAddress,
-    gstin: isExport ? jd.sellerGSTIN : jd.buyerGSTIN, iec: isExport ? jd.sellerIEC : '', pan: isExport ? (jd.sellerPAN || '') : '',
+    gstin: isExport ? jd.sellerGSTIN : jd.buyerGSTIN, iec: isExport ? jd.sellerIEC : (jd.buyerIEC || ''), pan: isExport ? (jd.sellerPAN || '') : bridgePanFromGstin(jd.buyerGSTIN),
     contact: isExport ? jd.sellerPhone : jd.buyerPhone
   };
   const counter = {
     name: isExport ? jd.buyerName : jd.sellerName, address: isExport ? jd.buyerAddress : jd.sellerAddress,
-    country: isExport ? (jd.destination || jd.portOfDischargeCountry) : jd.sellerCountry,
+    country: isExport ? (jd.destination || jd.portOfDischargeCountry) : (jd.destination || jd.sellerCountry),   // Import: the Job's Destination field is relabelled "Country of Origin" (the foreign country the goods come from)
     contact: isExport ? jd.buyerPhone : jd.sellerPhone
   };
   filing.party = Object.assign({}, filing.party, {
@@ -261,16 +286,16 @@ function skTcosPrefillFilingFromJobData(filing, type, jd) {
     address: counter.address || '', contact: counter.contact || '',
     country: bridgeMatchCountry(counter.country)
   });
-  if (isExport) filing.counterparty.port = bridgeMatchPort(jd.portOfDischarge, FOREIGN_PORTS);
+  if (isExport) filing.counterparty.port = bridgeMatchPort(jd.portOfDischarge, FOREIGN_PORTS, jd.portOfDischargeCountry || jd.destination);
   filing.shipment = Object.assign({}, filing.shipment, {
-    portOfLoading: bridgeMatchPort(jd.portOfLoading, isExport ? INDIAN_PORTS : FOREIGN_PORTS),
-    portOfDischarge: bridgeMatchPort(jd.portOfDischarge, isExport ? FOREIGN_PORTS : INDIAN_PORTS),
+    portOfLoading: isExport ? bridgeMatchPort(jd.portOfLoading, INDIAN_PORTS) : bridgeMatchPort(jd.portOfLoading, FOREIGN_PORTS, jd.destination),
+    portOfDischarge: isExport ? bridgeMatchPort(jd.portOfDischarge, FOREIGN_PORTS, jd.portOfDischargeCountry || jd.destination) : bridgeMatchPort(jd.portOfDischarge, INDIAN_PORTS),
     modeOfTransport: /^Sea/.test(jd.mode || '') ? 'Sea' : /^Air/.test(jd.mode || '') ? 'Air' : '',
     vesselFlight: jd.vesselName || '', voyageFlight: jd.voyageNo || ''
   });
   if (isExport) filing.shipment.countryOfDestination = bridgeMatchCountry(jd.destination || jd.portOfDischargeCountry);
-  else filing.shipment.countryOfOrigin = bridgeMatchCountry(jd.sellerCountry);
-  const itemsValue = (jd.items || []).reduce((sum, it) => sum + (Number(it.quantity) || 0) * (Number(it.unitPrice) || 0), 0);
+  else filing.shipment.countryOfOrigin = bridgeMatchCountry(jd.destination || jd.sellerCountry);
+  const itemsValue = bridgeItemsValue(jd.items);   // Σ (qty × unit price − discount) — the same goods value the Job validates Invoice Value against
   filing.invoice = Object.assign({}, filing.invoice, {
     currency: bridgeMatchOption(jd.currency, CURRENCIES),
     invoiceValue: itemsValue ? itemsValue.toFixed(2) : '',
@@ -281,13 +306,13 @@ function skTcosPrefillFilingFromJobData(filing, type, jd) {
   if (Array.isArray(jd.items) && jd.items.length) {
     filing.items = jd.items.map(it => ({
       description: it.description || '', hsCode: it.hsCode || '', qty: it.quantity || '',
-      unit: bridgeMatchOption(it.unit, UNITS) || '', unitPrice: it.unitPrice || '',
-      origin: it.countryOfManufacture || 'India', // free-text field on this row, not a constrained dropdown — pass through as typed
+      unit: bridgeMatchUnit(it.unit), unitPrice: it.unitPrice || '',
+      origin: it.countryOfManufacture || (isExport ? 'India' : (jd.destination || '')), // free-text field on this row, not a constrained dropdown — pass through as typed (blank on an import falls back to the foreign Country of Origin, never 'India')
       packages: '', grossWeight: it.weight || '', netWeight: it.netWeight || ''
     }));
   }
   filing.packages = Object.assign({}, filing.packages, {
-    packageType: bridgeMatchOption((jd.items && jd.items[0] && jd.items[0].packageType) || '', PACKAGE_TYPES),
+    packageType: bridgeMatchPackageType(jd.items && jd.items[0] && jd.items[0].packageType),
     numberOfPackages: jd.quantity || '', grossWeight: jd.grossWeight || '',
     netWeight: String((jd.items || []).reduce((s, it) => s + (Number(it.netWeight) || 0), 0) || '')
   });

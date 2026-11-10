@@ -231,21 +231,36 @@ function tcosComputeDuty(filing) {
   else if (term === 'CFR' || term === 'CNF' || term === 'CPT') cif += num(inv.insurance);
   else cif += num(inv.freight) + num(inv.insurance);
   const assessableValue = Math.max(0, cif * fx * 1.01);
-  const firstItem = (filing.items || [])[0];
-  const meta = firstItem && HS_CODE_TABLE[firstItem.hsCode];
-  let bcdRate = clampRate(meta ? meta.bcdRate : 0.10);
-  let cessRate = clampRate(meta ? (meta.cessRate || 0) : 0);
-  let addRate = clampRate(meta ? (meta.addRate || 0) : 0);
+  /* FIX: duty used to take BCD / cess / anti-dumping rates from the FIRST item's HS code only and apply them to the
+     whole invoice, so a Bill of Entry with several different HS codes was assessed at the wrong rate. Each item is now
+     assessed at its OWN HS rate, on its share of the assessable value (items weighted by qty x unit price). With one
+     item (or no usable item values) the result is exactly what it was before. */
+  const items = (filing.items || []).filter(Boolean);
   let ftaApplied = false;
+  let ftaPref = null;
   if (filing.ftaClaim) {
     const agreement = FTA_AGREEMENTS.find(a => a.code === filing.ftaClaim.code);
     const hasCOO = (filing.documents || []).some(d => d.type === 'Certificate of Origin' && d.status === 'ATTACHED TO FILING');
-    if (agreement && hasCOO) { bcdRate = clampRate(agreement.preferentialBcdRate); ftaApplied = true; }
+    if (agreement && hasCOO) ftaPref = clampRate(agreement.preferentialBcdRate);
   }
-  const bcd = assessableValue * bcdRate;
+  const lineVals = items.map(it => Math.max(0, num(it.qty) * num(it.unitPrice)));
+  const lineTotal = lineVals.reduce((x, y) => x + y, 0);
+  const lines = (items.length > 1 && lineTotal > 0)
+    ? items.map((it, i) => ({ meta: HS_CODE_TABLE[it.hsCode], av: assessableValue * lineVals[i] / lineTotal }))
+    : [{ meta: items[0] && HS_CODE_TABLE[items[0].hsCode], av: assessableValue }];
+  let bcd = 0, cess = 0, add = 0;
+  lines.forEach(L => {
+    let r = clampRate(L.meta ? L.meta.bcdRate : 0.10);
+    // A preferential (FTA) rate only ever LOWERS duty — it can never push an already-lower/nil MFN rate up.
+    if (ftaPref !== null) { if (ftaPref < r) ftaApplied = true; r = Math.min(r, ftaPref); }
+    bcd += L.av * r;
+    cess += L.av * clampRate(L.meta ? (L.meta.cessRate || 0) : 0);
+    add += L.av * clampRate(L.meta ? (L.meta.addRate || 0) : 0);
+  });
+  const bcdRate = assessableValue > 0 ? bcd / assessableValue : clampRate(lines[0].meta ? lines[0].meta.bcdRate : 0.10);
+  const cessRate = assessableValue > 0 ? cess / assessableValue : 0;
+  const addRate = assessableValue > 0 ? add / assessableValue : 0;
   const sws = bcd * SWS_RATE;
-  const cess = assessableValue * cessRate;
-  const add = assessableValue * addRate;
   const igst = (assessableValue + bcd + sws + cess + add) * IGST_RATE_DEFAULT;
   return { assessableValue, bcdRate, bcd, sws, cessRate, cess, addRate, add, igstRate: IGST_RATE_DEFAULT, igst, total: bcd + sws + cess + add + igst, ftaApplied };
 }
@@ -289,7 +304,11 @@ function initiatePayment(filingId, method) {
   if (!filing || !filing.duty) return;
   if (filing.payment && filing.payment.status === 'SUCCESS') { toast('Payment has already been completed for this filing.', 'info'); return; }
   if (filing.payment && filing.payment.status === 'INITIATED') { toast('A payment has already been initiated — confirm or wait for that one.', 'info'); return; }
-  filing.payment = { challanNo: uniqueId('CHLN', () => 'CHLN-' + Math.floor(100000 + Math.random() * 900000)), amount: filing.duty.total, method, status: 'INITIATED' };
+  /* v35: the Bill of Entry wizard already forced the student to type the Duty Payment Challan No. / CIN
+     (validation.js: dutyChallanNo is mandatory). Payment used to invent a second, different number (CHLN-xxxxxx), so the
+     same payment carried two challan numbers. The number the student entered is now the challan number. */
+  const typedChallan = filing.assessment && filing.assessment.dutyChallanNo ? String(filing.assessment.dutyChallanNo).trim() : '';
+  filing.payment = { challanNo: typedChallan || uniqueId('CHLN', () => 'CHLN-' + Math.floor(100000 + Math.random() * 900000)), amount: filing.duty.total, method, status: 'INITIATED' };
   pushTimeline(filing, 'DUTY_PENDING', `Payment initiated via ${method}. Challan ${filing.payment.challanNo}.`);
   saveState();
   renderFilingDetail(filing.id);
@@ -353,7 +372,17 @@ function grantOOC(filingId) {
     const wasBridged = DotBridge.markCompleted('import', filing.id, 'bill-of-entry');
     if (wasBridged) {
       const b = DotBridge.getBridge();
-      if (b && b.userId) DotBridge.silentCompleteLogisticsDoc(b.userId, 'out-of-charge', filing.id, 'Out of Charge Order');
+      if (b && b.userId) {
+        DotBridge.silentCompleteLogisticsDoc(b.userId, 'out-of-charge', filing.id, 'Out of Charge Order', filing.ooc && filing.ooc.refNo);
+        /* v35: TCOS also produced the assessment, duty calculation, challan and (if ordered) examination along the way,
+           so those Logistics documents are completed too instead of staying pending after the student returns. */
+        const challanNo = (filing.payment && filing.payment.challanNo) || (filing.assessment && filing.assessment.dutyChallanNo) || '';
+        const oocNo = (filing.ooc && filing.ooc.refNo) || '';
+        DotBridge.silentCompleteLogisticsDoc(b.userId, 'assessment-copy', filing.id, 'Assessment Copy', null, { originalDocType: 'Bill of Entry', originalDocNo: filing.id });
+        DotBridge.silentCompleteLogisticsDoc(b.userId, 'duty-calculation', filing.id, 'Duty Calculation', null, { boeNumber: filing.id, challanNo: challanNo, oocNumber: oocNo });
+        DotBridge.silentCompleteLogisticsDoc(b.userId, 'duty-challan', filing.id, 'Duty Challan', null, { boeNo: filing.id, cin: challanNo });
+        if (filing.examination) DotBridge.silentCompleteLogisticsDoc(b.userId, 'examination-report', filing.id, 'Examination Report', null, { boeNo: filing.id });
+      }
       showBridgeReturnPrompt(filing.id, 'Bill of Entry');
     }
   }

@@ -185,7 +185,7 @@
   ----------------------------------------------------------------------- */
   function consumeReturn(returnSlug) {
     const b = getBridge();
-    if (!b || !b.completed || b.returnSlug !== returnSlug) return null;
+    if (!b || !b.active || !b.completed || b.returnSlug !== returnSlug) return null;
     const result = { refNo: b.refNo, filingType: b.filingType };
     b.active = false;
     writeJSON(BRIDGE_KEY, b);
@@ -211,14 +211,52 @@
   const SKELORA_USERS_KEY = "skelora_users_v1";
   const SKELORA_PROGRESS_PREFIX = "skelora_progress_v1_";
 
-  function silentCompleteLogisticsDoc(loginUserId, slug, refNo, docTitle) {
+  /* GAP FIX: a document finished in TCOS used to reach Logistics as "completed" + a reference
+     number only, so downstream documents (Commercial Invoice No, B/L No, Booking No, Shipping
+     Bill No ...) never autofilled and cross-document checks skipped it. This maps each bridged
+     document to the Logistics field that holds ITS OWN number, so the number now flows forward
+     exactly as if the student had typed it into the Logistics document. Field names verified
+     against documents-data.js. */
+  const OWN_NUMBER_FIELD = {
+    "shipping-bill": "sbNumberGenerated",
+    "bill-of-entry": "beNumberGenerated",
+    "booking-confirmation": "bookingNo",
+    "bill-of-lading-sea": "blNumber",
+    "air-waybill": "awbNumber",
+    "delivery-order": "doNumberGenerated",
+    "commercial-invoice": "invoiceNo",
+    "packing-list": "plNumber",
+    "letter-of-credit": "lcNumber",
+    "out-of-charge": "oocNumberGenerated",
+  };
+  /* TCOS numbers its documents TRN-SB-2026-914852 / XDOC-INV-2026-123456 ... — fine for the Shipping Bill, but the
+     Logistics Commercial Invoice / Packing List / AWB fields downstream expect INV-2026-123456 / PL-2026-123456 /
+     123-12345678, so those are converted (or skipped) rather than forwarding a value the next document would reject. */
+  const NUMBER_FIX = {
+    "commercial-invoice": v => v.replace(/^XDOC-INV-/, "INV-"),
+    "packing-list": v => v.replace(/^XDOC-PKL-/, "PL-"),
+    "air-waybill": v => (/^\d{3}-\d{8}$/.test(v) ? v : ""),
+  };
+  function formDataForDoc(slug, ownNumber) {
+    const field = OWN_NUMBER_FIELD[slug];
+    if (!field || ownNumber == null || ownNumber === "") return null;
+    let v = String(ownNumber);
+    if (NUMBER_FIX[slug]) v = NUMBER_FIX[slug](v);
+    if (!v) return null;
+    const fd = {};
+    fd[field] = v;
+    return fd;
+  }
+
+  function silentCompleteLogisticsDoc(loginUserId, slug, refNo, docTitle, ownNumber, extraFields) {
     if (!loginUserId || !slug) return false;
     const users = readJSON(SKELORA_USERS_KEY) || [];
     const match = users.find((u) => (u.email || "").toUpperCase() === String(loginUserId).toUpperCase());
     if (!match) return false; // no Logistics account for this ID — nothing to update
     const progressKey = SKELORA_PROGRESS_PREFIX + match.id;
     const all = readJSON(progressKey) || {};
-    all[slug] = Object.assign({}, all[slug] || { startedAt: new Date().toISOString() }, {
+    const prev = all[slug] || { startedAt: new Date().toISOString() };
+    all[slug] = Object.assign({}, prev, {
       status: "completed",
       viaTcos: true,
       tcosRef: refNo,
@@ -227,6 +265,19 @@
       maxReached: 1,
       updatedAt: new Date().toISOString(),
     });
+    // out-of-charge's own number is NOT the filing id, so only use an explicitly passed number there.
+    const fd = formDataForDoc(slug, ownNumber != null ? ownNumber : (slug === "out-of-charge" ? null : refNo));
+    if (fd) all[slug].formData = Object.assign({}, prev.formData || {}, fd);
+    /* v35: optional extra field values for documents TCOS produces as a by-product but that have no single
+       "own number" field (Assessment Copy, Duty Calculation, Duty Challan, Examination Report). Empty values are skipped
+       and anything the student already typed into the Logistics document is kept. */
+    if (extraFields && typeof extraFields === "object") {
+      const cur = all[slug].formData || (all[slug].formData = {});
+      Object.keys(extraFields).forEach(function (k) {
+        const v = extraFields[k];
+        if (v !== undefined && v !== null && v !== "" && (cur[k] === undefined || cur[k] === null || cur[k] === "")) cur[k] = v;
+      });
+    }
     writeJSON(progressKey, all);
     return true;
   }
@@ -278,7 +329,7 @@
     return {
       mode: f.mode || "", sellerName: f.sellerName || "", sellerAddress: f.sellerAddress || "", sellerCountry: f.sellerCountry || "",
       sellerGSTIN: f.sellerGSTIN || "", sellerIEC: f.sellerIEC || "", sellerPAN: f.sellerPAN || "", sellerPhone: f.sellerPhone || "",
-      buyerName: f.buyerName || "", buyerAddress: f.buyerAddress || "", buyerGSTIN: f.buyerGSTIN || "", buyerPhone: f.buyerPhone || "",
+      buyerName: f.buyerName || "", buyerAddress: f.buyerAddress || "", buyerGSTIN: f.buyerGSTIN || "", buyerIEC: f.buyerIEC || "", buyerPhone: f.buyerPhone || "",
       destination: f.destination || "", portOfLoading: f.portOfLoading || "", portOfDischarge: f.portOfDischarge || "",
       portOfDischargeCountry: f.portOfDischargeCountry || "", vesselName: f.vesselName || "", voyageNo: f.voyageNo || "",
       incoterm: f.incoterm || "", currency: f.currency || "", paymentTerms: f.paymentTerms || "",
@@ -303,5 +354,6 @@
     retarget: retarget,
     consumeReturn: consumeReturn,
     silentCompleteLogisticsDoc: silentCompleteLogisticsDoc,
+    formDataForDoc: formDataForDoc,
   };
 })(window);

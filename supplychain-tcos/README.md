@@ -199,4 +199,4 @@ Sidebar restyled to an ICEGATE-style navy menu with ICEGATE section names (e-Fil
 
 ## v21 additions
 - HSN table now has ~120 more high-value / controlled goods (defence & arms, aircraft, satellites and space equipment, capital machinery, precious metals/stones, SCOMET chemicals). Controlled lines carry a SCOMET flag (auto-ticks SCOMET in the Export Brief) and new PGA agencies (DGFT SCOMET, MoD, Dept of Space, AERB, NACWC, DGCA, PESO). Duty/drawback/RoDTEP figures are training approximations.
-- IEC accepts 10 letters/digits (e.g. UYJPK1234L); exporter PAN flows from the Document Simulator job into the filing and the Shipping Bill header.
+- IEC accepts 10 letters/digits (e.g. AABCT4521K); exporter PAN flows from the Document Simulator job into the filing and the Shipping Bill header.
