@@ -1,5 +1,5 @@
 /* ============================================================
-   TCOS TRAINING SIMULATOR — TRAINING LAYER
+   ICEGATE TRAINING SIMULATOR — TRAINING LAYER
    Level System · Knowledge Panel · Certificate · Job Simulator ·
    Trainer Console · Error Resolution Lab · Compliance Lab
    ============================================================ */
@@ -125,7 +125,7 @@ function generateCertificate() {
   const cert = {
     id: uniqueId('CERT', () => 'CERT-' + new Date().getFullYear() + '-' + Math.floor(100000 + Math.random() * 900000)),
     ts: Date.now(), studentName: STATE.user.profile.name, levelId: level.id, levelName: level.name,
-    filingsCompleted: stats.completed, avgScore: stats.avg, institution: 'TCOS Training Simulator'
+    filingsCompleted: stats.completed, avgScore: stats.avg, institution: 'ICEGATE Training Simulator'
   };
   STATE.certificates.unshift(cert);
   saveState();
@@ -144,7 +144,7 @@ function certificateHTML(c) {
     .stamp{margin-top:34px;color:#a51818;font-weight:700;font-size:12px;border:2px solid #a51818;display:inline-block;padding:8px 16px}
   </style></head><body>
   <div class="frame">
-    <h1>TCOS TRAINING SIMULATOR COMPLETION</h1>
+    <h1>ICEGATE TRAINING SIMULATOR COMPLETION</h1>
     <h2>India Trade &amp; Customs Operations Simulator</h2>
     <p style="margin-top:30px">This is to certify that</p>
     <div class="line"></div><div class="name">${esc(c.studentName)}</div><div class="line"></div>

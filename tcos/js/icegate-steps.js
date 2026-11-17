@@ -1,9 +1,9 @@
 /* ============================================================
-   TCOS — FULL ICEGATE FILING STEPS (Shipping Bill / Bill of Entry)
+   ICEGATE — FULL ICEGATE FILING STEPS (Shipping Bill / Bill of Entry)
    ------------------------------------------------------------
    The Logistics Documentation Simulator walks a student through a 14-step Shipping Bill and a
-   15-step Bill of Entry, field-for-field like ICEGATE. TCOS now asks for exactly the same
-   particulars. The ones TCOS already collects in its own core steps (parties, shipment, invoice,
+   15-step Bill of Entry, field-for-field like ICEGATE. ICEGATE now asks for exactly the same
+   particulars. The ones ICEGATE already collects in its own core steps (parties, shipment, invoice,
    items, containers, documents) are NOT asked twice; every other ICEGATE field comes from
    icegate-config.js (generated from the Doc-Sim configs, same field names) and is stored in
    filing.icegate[name]  (flat field)  or  filing.icegate[name] = [rows]  (table).
@@ -26,7 +26,7 @@ const TCOS_ITEM_EXTRA_COLS = {
   ]
 };
 
-/* the steps that follow each core TCOS step, in Doc-Sim order */
+/* the steps that follow each core ICEGATE step, in Doc-Sim order */
 function tcosIcegateStepsAfter(type, coreKey) {
   const spec = (typeof TCOS_ICEGATE_SPEC !== 'undefined' && TCOS_ICEGATE_SPEC[type]) || [];
   const coreTitles = (typeof tcosCoreTitles === 'function') ? tcosCoreTitles(type) : [];

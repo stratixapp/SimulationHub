@@ -4,7 +4,7 @@
    An Export Job is a shipment-level wrapper. It LINKS to an existing
    Shipping Bill filing and/or freight booking by id — it never
    duplicates or reinterprets their fields (Section 5 of the
-   integration plan). Everything here is additive to TCOS.
+   integration plan). Everything here is additive to ICEGATE.
    ============================================================ */
 
 var XD_BRIEF_DRAFT = null; // in-progress Export Brief form state, before a job exists
@@ -355,9 +355,9 @@ function renderExportJobDetail(id) {
 
 function navToExportAudit(jobId) { CURRENT_EXPORT_JOB_ID = jobId; navTo('exportAudit'); }
 
-/* ---------------- Start from an existing TCOS scenario ----------------
+/* ---------------- Start from an existing ICEGATE scenario ----------------
    Interconnection point (not a new/duplicate scenario library): reuses
-   TCOS's own SCENARIOS data. Follows TCOS's own established rule (see
+   ICEGATE's own SCENARIOS data. Follows ICEGATE's own established rule (see
    startNewFiling's comment in filingForm.js) of never silently filling
    a document — the linked Shipping Bill filing stays blank exactly as
    a normal new filing does, and the Export Brief is pre-filled but
@@ -382,7 +382,7 @@ function startExportJobFromScenario(scenarioId) {
     mode: mappedMode, destinationCountry: p.shipment.countryOfDestination || '',
     ftaClaim: false, dangerousGoods: false, scomet: false, packagingMaterial: '',
     linkedFilingId: filing.id, linkedBookingId: '',
-    notes: `Started from TCOS scenario ${scenario.id} — ${scenario.title}. Review every field below before creating the job; nothing here was filled in silently.`
+    notes: `Started from ICEGATE scenario ${scenario.id} — ${scenario.title}. Review every field below before creating the job; nothing here was filled in silently.`
   };
   navTo('exportJobBrief');
 }
@@ -406,8 +406,8 @@ function renderExportDesk() {
       <div class="xd-stat"><b>${docsPending}</b><span>Documents Pending</span></div>
     </div>
     <div class="xd-card">
-      <h3>Start from a TCOS Scenario</h3>
-      <p class="hint">Reuses TCOS's own scenario library — creates a linked Shipping Bill filing (blank, exactly like a normal new filing) and pre-fills the Export Brief for you to review, not silently commit.</p>
+      <h3>Start from an ICEGATE Scenario</h3>
+      <p class="hint">Reuses ICEGATE's own scenario library — creates a linked Shipping Bill filing (blank, exactly like a normal new filing) and pre-fills the Export Brief for you to review, not silently commit.</p>
       <div class="grid">${SCENARIOS.filter(s => s.type === 'export').map(s => `
         <div class="field full" style="border:1px solid var(--xd-line);border-radius:2px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;gap:12px">
           <div><b>${esc(s.title)}</b><br><span class="hint">${esc(s.desc)}</span></div>

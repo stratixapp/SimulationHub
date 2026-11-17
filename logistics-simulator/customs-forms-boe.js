@@ -54,7 +54,7 @@
     if(!genNo && submitted && typeof findFieldByName === "function"){ try{ const gf = findFieldByName("beNumberGenerated"); if(gf && typeof gf.compute === "function") genNo = gf.compute(d); }catch(e){} }
     const beNo = (submitted && genNo) ? seqDigits(genNo, 7) : "";
     const tSub = stamp(d, "beSubmittedAt", submitted, 0);
-    /* Optional process timestamps supplied by a host app (TCOS): d.assessedAt / d.examAt (ISO). */
+    /* Optional process timestamps supplied by a host app (ICEGATE): d.assessedAt / d.examAt (ISO). */
     const optDt = k => { if(!has(d[k])) return null; const t = new Date(d[k]); return isNaN(t.getTime()) ? null : t; };
     const tAss = optDt("assessedAt") || (tSub ? new Date(tSub.getTime() + 2*60000) : null);
     const tExam = optDt("examAt") || ((tSub && yn(d.exam) === "Y") ? new Date(tSub.getTime() + 26*3600000) : null);

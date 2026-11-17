@@ -25,7 +25,8 @@ const TCOS_ICEGATE_PORT_CODES = [
   ['Visakhapatnam', 'INVTZ1'], ['Krishnapatnam', 'INKRI1'], ['Kolkata', 'INCCU1'], ['Paradip', 'INPBD1'],
   ['New Mangalore', 'INNML1'], ['Mumbai (BOM) Airport', 'INBOM4'], ['Delhi (DEL) Airport', 'INDEL4'],
   ['Chennai (MAA) Airport', 'INMAA4'], ['Bengaluru (BLR) Airport', 'INBLR4'], ['Kochi (COK) Airport', 'INCOK4'],
-  ['Hyderabad (HYD) Airport', 'INHYD4'], ['Ahmedabad (AMD) Airport', 'INAMD4'], ['Kolkata (CCU) Airport', 'INCCU4']
+  ['Hyderabad (HYD) Airport', 'INHYD4'], ['Ahmedabad (AMD) Airport', 'INAMD4'], ['Kolkata (CCU) Airport', 'INCCU4'],
+  ['Pipavav Port', 'INPAV1'], ['Hazira Port', 'INHZA1'], ['Dahej Port', 'INDAH1'], ['Mormugao Port', 'INMRM1'], ['Kakinada Port', 'INKAK1'], ['Gangavaram Port', 'INGGV1'], ['Kattupalli Port', 'INKAT1'], ['Goa (GOI) Airport', 'INGOI4'], ['Pune (PNQ) Airport', 'INPNQ4'], ['Jaipur (JAI) Airport', 'INJAI4'], ['Thiruvananthapuram (TRV) Airport', 'INTRV4'], ['Kozhikode (CCJ) Airport', 'INCCJ4'], ['Coimbatore (CJB) Airport', 'INCJB4']
 ];
 /* options shown in the wizard's "Customs House Code" dropdown ("CODE - location") */
 const TCOS_ICEGATE_CODE_OPTIONS = (function () {

@@ -10,14 +10,14 @@
         in the student's Job History, each with at least CFG.minDocsPerShipment
         documents actually completed)  — OR —  finished every document in the
         workbook (all Fill & Learn exercises), AND
-     2. Filed the Shipping Bill AND the Bill of Entry through TCOS
+     2. Filed the Shipping Bill AND the Bill of Entry through ICEGATE
         (progress record carries viaTcos) — the certificate text says
         "practical filing of Shipping Bill and Bill of Entry", so it is only
-        issued when that filing really happened in TCOS.
+        issued when that filing really happened in ICEGATE.
         Set CFG.requireTcos = false to drop rule 2.
 
    DATE ON THE CERTIFICATE: the day the LAST requirement was met (e.g. the
-   day the 5th Shipment Lot was finished, or the TCOS filing completed —
+   day the 5th Shipment Lot was finished, or the ICEGATE filing completed —
    whichever came later), not the day the PDF happens to be downloaded.
 
    LAYOUT: the original artwork is the background (assets/dot-certificate-
@@ -267,7 +267,7 @@
     const e = eligibility(userId, totalExercises);
     const tick = ok => ok ? '<span style="color:#7BE0A0;">✔</span>' : '<span style="opacity:.6;">○</span>';
     const tcosLine = CFG.requireTcos
-      ? e.tcos.map(t => tick(t.done) + " " + (t.slug === "shipping-bill" ? "Shipping Bill" : "Bill of Entry") + " filed in TCOS").join(" &nbsp;·&nbsp; ")
+      ? e.tcos.map(t => tick(t.done) + " " + (t.slug === "shipping-bill" ? "Shipping Bill" : "Bill of Entry") + " filed in ICEGATE").join(" &nbsp;·&nbsp; ")
       : "";
     el.style.display = "block";
     el.innerHTML =

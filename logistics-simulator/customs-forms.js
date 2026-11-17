@@ -54,7 +54,7 @@
   function seqDigits(str, len){          // trailing digits of a generated number, left-padded
     // FIX (v35): take only the trailing digit run (the sequence part). The old version stripped ALL non-digits,
     // so "INENR1/SB/2026/001123" became "2026001123" and the 7-digit SB/BE number picked up the year's last
-    // digit ("6001123") instead of "0001123"; a bridged "TRN-SB-2026-914852" gave "6914852" here but "0914852" in TCOS.
+    // digit ("6001123") instead of "0001123"; a bridged "TRN-SB-2026-914852" gave "6914852" here but "0914852" in ICEGATE.
     const m = String(str||"").match(/(\d+)\D*$/);
     const dg = m ? m[1] : "";
     return (dg.slice(-len) || "1").padStart(len,"0");
@@ -253,7 +253,7 @@
     const sbNo = (submitted && genNo) ? seqDigits(genNo, 7) : "";
     const tSub = stamp(d, "sbSubmittedAt", submitted, 0);
     const assessOn = yn(d.assess, "Y") === "Y";
-    /* Optional process timestamps supplied by a host app (TCOS): d.assessedAt / d.examAt / d.leoAt (ISO), d.leoNumber, d.brcDate. */
+    /* Optional process timestamps supplied by a host app (ICEGATE): d.assessedAt / d.examAt / d.leoAt (ISO), d.leoNumber, d.brcDate. */
     const optDt = k => { if(!has(d[k])) return null; const t = new Date(d[k]); return isNaN(t.getTime()) ? null : t; };
     const tAss = optDt("assessedAt") || (tSub && assessOn ? new Date(tSub.getTime() + (((+sbNo||7) % 17) + 4) * 3600000 + ((+sbNo||7) % 50) * 60000) : null);
     const tExmn = optDt("examAt"), tLeo = optDt("leoAt");

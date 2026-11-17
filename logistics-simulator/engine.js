@@ -372,10 +372,10 @@ function renderStep(idx){
 /* FIX (v35): "system-generated" numbers (Bill of Entry No., Out of Charge No., Delivery Order No., Shipping Bill No.,
    Sales Order No., AWB No., Warehouse Receipt No., Gate Pass No.) are computed fields. They were only ever shown on
    screen and never written into formData, so the cross-document context (which reads saved formData) never saw them
-   and later documents could not autofill from them unless TCOS wrote the number for the student.
+   and later documents could not autofill from them unless ICEGATE wrote the number for the student.
    Every save now stores the computed value of each computed field that carries a contextKey.
    - A placeholder result ("Not yet generated...") is never stored.
-   - A value the student/TCOS/bridge already placed there is never overwritten, unless it is still the value this
+   - A value the student/ICEGATE/bridge already placed there is never overwritten, unless it is still the value this
      function stored last time (tracked in __autoComputed), so edits to the inputs keep the stored number current. */
 function skIsRealComputedValue(v){
   if(typeof v !== "string") return false;
@@ -1303,26 +1303,38 @@ function goNext(){
     if(nextBtnEl) nextBtnEl.disabled = false;
   });
 }
-/* Brief ~1s wave overlay shown over the step body while advancing — just
-   enough motion to register that something happened between steps,
-   never a multi-second forced wait. Purely cosmetic: the actual step
-   change (the callback) always runs, wave or no wave. */
+/* v49: step transition. The DOT ECHOSYSTEM fade-reveal loader plays over a light frosted layer while the NEXT step
+   fades in behind it, so the student sees both at the same time (not a white screen).
+   Length: 2 s for every step; 4 s when the step being opened is the final document review.
+     0.0-0.3s  frosted layer + loader fade in over the current step
+     0.3s      next step is rendered and starts fading/de-blurring in (the callback)
+     last 0.6s the frosted layer and loader fade out, leaving the sharp next step
+   The overlay blocks clicks while it runs; the callback always runs. */
 function skPlayStepWave(then){
-  const body = stepBody();
-  const host = body ? body.closest(".content") : null;
-  if(!host){ then(); return; }
+  const nxt = (typeof CONFIG !== "undefined" && CONFIG.steps && CONFIG.steps[Math.min(currentStep+1, CONFIG.steps.length-1)]) || null;
+  const dur = (nxt && nxt.custom === "review") ? 4000 : 2000;
+  const outMs = 600, swapMs = 300;
   const overlay = document.createElement("div");
-  overlay.className = "sk-step-wave";
-  overlay.innerHTML = `<div class="sk-step-wave-inner">
-    <div class="sk-wave-sweep"></div>
-    <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M6 40c4-6 10-6 14 0s10 6 14 0 10-6 14 0 10 6 14 0" stroke="var(--accent)" stroke-width="3" stroke-linecap="round"/>
-      <path d="M6 48c4-6 10-6 14 0s10 6 14 0 10-6 14 0 10 6 14 0" stroke="var(--accent)" stroke-width="3" stroke-linecap="round" opacity=".5"/>
-      <rect x="28" y="10" width="8" height="20" rx="2" fill="var(--accent)" opacity=".85"/>
-    </svg>
-  </div>`;
-  host.appendChild(overlay);
-  setTimeout(()=>{ overlay.remove(); then(); }, 1000);
+  overlay.className = "sk-zb";
+  overlay.style.setProperty("--zbOut", outMs + "ms");
+  overlay.setAttribute("role", "status");
+  overlay.setAttribute("aria-live", "polite");
+  overlay.setAttribute("aria-label", "Saving and opening the next step");
+  overlay.innerHTML = `<div class="lockup"><div class="wordmark" aria-hidden="true"><span class="letter">D</span><span class="letter">O</span><span class="letter">T</span></div><div class="sub" aria-hidden="true">ECHOSYSTEM</div></div>`;
+  document.body.appendChild(overlay);
+  setTimeout(()=>{
+    try{ then(); }catch(e){ console.error("[step transition]", e); }
+    try{
+      const sb = stepBody();
+      if(sb){
+        sb.style.animation = "skStepReveal " + Math.max(400, dur - swapMs - 100) + "ms ease-out both";
+        /* clear BOTH: if only the inline animation were removed, the base .step-fade-in rule would restart and flash the step again */
+        setTimeout(()=>{ sb.style.animation = ""; sb.classList.remove("step-fade-in"); }, dur);
+      }
+    }catch(e){}
+  }, swapMs);
+  setTimeout(()=>overlay.classList.add("out"), dur - outMs);
+  setTimeout(()=>overlay.remove(), dur);
 }
 function goBack(){
   if(currentStep>0){ currentStep--; renderStep(currentStep); window.scrollTo({top:0,behavior:"smooth"}); }
@@ -1408,17 +1420,17 @@ function showToast(msg){
 }
 
 /* ---------------------------------------------------------------------
-   TCOS BRIDGE — pre-exercise choice popup
+   ICEGATE BRIDGE — pre-exercise choice popup
    Shown before Shipping Bill / Bill of Entry / any Freight Booking
    document starts as a fill-in exercise, offering the real thing in
-   TCOS's Customs Portal / Freight Booking module instead.
+   ICEGATE's Customs Portal / Freight Booking module instead.
    --------------------------------------------------------------------- */
 function showTcosBridgeChoice(slug, filingType, onContinueHere, consignaDocType){
   const docLabel = CONFIG.title;
   const portalLabel = filingType === "freight" ? "Freight Booking module" : filingType === "brc" ? "Export Incentives & Realisation Centre" : filingType === "consignia" ? "Consignia Desk" : "Customs Portal";
   const workflowLabel = filingType === "export" ? "the Shipping Bill" : filingType === "import" ? "the Bill of Entry" : filingType === "brc" ? "the Bank Realisation Certificate" : filingType === "consignia" ? ("the " + docLabel) : "this stage of the freight booking";
   const workflowVerb = filingType === "freight" ? "Take this booking through" : filingType === "brc" ? "Upload" : filingType === "consignia" ? "Prepare" : "File";
-  const closesWhen = filingType === "export" ? "genuinely filed and cleared" : filingType === "import" ? "genuinely assessed and cleared" : filingType === "brc" ? "genuinely uploaded and proceeds marked realized" : filingType === "consignia" ? "genuinely marked Ready in Consignia Desk" : "genuinely reached in TCOS";
+  const closesWhen = filingType === "export" ? "genuinely filed and cleared" : filingType === "import" ? "genuinely assessed and cleared" : filingType === "brc" ? "genuinely uploaded and proceeds marked realized" : filingType === "consignia" ? "genuinely marked Ready in Consignia Desk" : "genuinely reached in ICEGATE";
   /* Shipping Bill: Export Job (products / HSN / containers / consignment) first, then the real ICEGATE filing */
   const sbSpecial = slug === "shipping-bill";
   const portalLabel2 = sbSpecial ? "Export Desk &amp; Customs Portal" : portalLabel;
@@ -1432,7 +1444,7 @@ function showTcosBridgeChoice(slug, filingType, onContinueHere, consignaDocType)
     <div style="background:var(--surface,#fff);color:var(--text-1,#101828);border-radius:14px;max-width:520px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.35);overflow:hidden;font-family:var(--sans,sans-serif);">
       <div style="padding:22px 26px 16px;border-bottom:1px solid var(--border,#E3E8EF);">
         <h2 style="margin:0 0 6px;font-size:18px;">Two ways to do this one</h2>
-        <p style="margin:0;font-size:13px;color:var(--text-2,#5B6472);"><b>${docLabel}</b> is one of the documents that also exists as a real, complete workflow inside TCOS — the Trade &amp; Customs Operations Simulator.</p>
+        <p style="margin:0;font-size:13px;color:var(--text-2,#5B6472);"><b>${docLabel}</b> is one of the documents that also exists as a real, complete workflow inside ICEGATE — the Trade &amp; Customs Operations Simulator.</p>
       </div>
       <div style="padding:18px 26px;display:flex;flex-direction:column;gap:12px;">
         <button id="bridgeOptHere" type="button" style="text-align:left;border:1px solid var(--border,#E3E8EF);background:var(--surface-alt,#FAFBFC);border-radius:10px;padding:14px 16px;cursor:pointer;">
@@ -1440,16 +1452,20 @@ function showTcosBridgeChoice(slug, filingType, onContinueHere, consignaDocType)
           <div style="font-size:12px;color:var(--text-2,#5B6472);">Fill in the same ${docLabel} exercise you'd get for any other document — one page at a time, in the Logistics Document Simulator.</div>
         </button>
         <button id="bridgeOptTcos" type="button" style="text-align:left;border:1px solid var(--accent,#1F6FEB);background:var(--accent-soft,#EAF1FF);border-radius:10px;padding:14px 16px;cursor:pointer;">
-          <div style="font-weight:700;font-size:13.5px;margin-bottom:3px;">Do it for real, in TCOS's ${portalLabel2}</div>
-          <div style="font-size:12px;color:var(--text-2,#5B6472);">${workflowVerb2} ${workflowLabel2} through TCOS's actual workflow — signed in as you, automatically. Come back here the moment it's ${closesWhen2}, and this document is marked complete.</div>
+          <div style="font-weight:700;font-size:13.5px;margin-bottom:3px;">Do it for real, in ICEGATE's ${portalLabel2}</div>
+          <div style="font-size:12px;color:var(--text-2,#5B6472);">${workflowVerb2} ${workflowLabel2} through ICEGATE's actual workflow — signed in as you, automatically. Come back here the moment it's ${closesWhen2}, and this document is marked complete.</div>
         </button>
+        ${(typeof DotBridge !== "undefined" && DotBridge.UPLOADABLE_DOCS && DotBridge.UPLOADABLE_DOCS[slug]) ? `<button id="bridgeOptUpload" type="button" style="text-align:left;border:1px dashed var(--border-strong,#D2D9E3);background:var(--surface,#fff);border-radius:10px;padding:14px 16px;cursor:pointer;">
+          <div style="font-weight:700;font-size:13.5px;margin-bottom:3px;">Already done it in ICEGATE? Upload the PDF here</div>
+          <div style="font-size:12px;color:var(--text-2,#5B6472);">Didn't come back automatically? Upload the ${docLabel} PDF you downloaded from ICEGATE — it's checked (right document, your login, this Shipment Lot) and this document is marked complete.</div>
+        </button>` : ""}
         <div id="bridgePwPanel" style="display:none;border:1px solid var(--border,#E3E8EF);border-radius:10px;padding:14px 16px;background:var(--surface-alt,#FAFBFC);">
-          <label style="display:block;font-size:12px;font-weight:600;margin-bottom:6px;">Confirm your password to continue into TCOS as ${esc_sk(CURRENT_USER.name)}</label>
+          <label style="display:block;font-size:12px;font-weight:600;margin-bottom:6px;">Confirm your password to continue into ICEGATE as ${esc_sk(CURRENT_USER.name)}</label>
           <input id="bridgePwInput" type="password" autocomplete="current-password" style="width:100%;box-sizing:border-box;padding:9px 11px;border-radius:8px;border:1px solid var(--border-strong,#D2D9E3);font-size:13px;margin-bottom:10px;">
-          <label style="display:block;font-size:12px;font-weight:600;margin-bottom:6px;">TCOS Access ID <span style="font-weight:400;color:var(--text-2,#5B6472);">— the same one used to unlock TCOS on the Simulator Hub</span></label>
+          <label style="display:block;font-size:12px;font-weight:600;margin-bottom:6px;">ICEGATE Access ID <span style="font-weight:400;color:var(--text-2,#5B6472);">— the same one used to unlock ICEGATE on the Simulator Hub</span></label>
           <input id="bridgeAccessIdInput" type="text" inputmode="numeric" autocomplete="off" placeholder="Enter access ID" style="width:100%;box-sizing:border-box;padding:9px 11px;border-radius:8px;border:1px solid var(--border-strong,#D2D9E3);font-size:13px;font-family:monospace;margin-bottom:6px;">
           <div id="bridgePwError" style="color:var(--red,#C6362F);font-size:12px;min-height:16px;margin-bottom:8px;"></div>
-          <button id="bridgePwSubmit" type="button" style="width:100%;background:var(--accent,#1F6FEB);color:#fff;border:none;border-radius:8px;padding:10px;font-weight:700;font-size:13px;cursor:pointer;">Continue to TCOS →</button>
+          <button id="bridgePwSubmit" type="button" style="width:100%;background:var(--accent,#1F6FEB);color:#fff;border:none;border-radius:8px;padding:10px;font-weight:700;font-size:13px;cursor:pointer;">Continue to ICEGATE →</button>
         </div>
       </div>
     </div>`;
@@ -1464,15 +1480,17 @@ function showTcosBridgeChoice(slug, filingType, onContinueHere, consignaDocType)
     document.getElementById("bridgePwPanel").style.display = "block";
     document.getElementById("bridgePwInput").focus();
   });
-  // Same 9-digit code the Simulator Hub itself asks for before opening TCOS,
-  // Cadence, or the Cadence-suite TCOS copy — restricted-access simulators
+  const _upBtn = document.getElementById("bridgeOptUpload");
+  if(_upBtn) _upBtn.addEventListener("click", ()=>{ skShowTcosUploadModal(slug); });
+  // Same 9-digit code the Simulator Hub itself asks for before opening ICEGATE,
+  // Cadence, or the Cadence-suite ICEGATE copy — restricted-access simulators
   // require it there, so the bridge holds to the same rule rather than
-  // quietly slipping past a check TCOS's other entry points enforce.
+  // quietly slipping past a check ICEGATE's other entry points enforce.
   // The access ID itself lives (hashed) in shared/access-id.js -> DotAccess.check(); no plain-text copy here.
-  // Section: Logistics ⇄ TCOS bridge — pass the active Shipment Lot's
-  // already-typed details along so TCOS's New Filing wizard can start
+  // Section: Logistics ⇄ ICEGATE bridge — pass the active Shipment Lot's
+  // already-typed details along so ICEGATE's New Filing wizard can start
   // pre-filled instead of asking the student to re-type the same
-  // shipment a second time. Best-effort only: TCOS constrains several
+  // shipment a second time. Best-effort only: ICEGATE constrains several
   // fields (Port, Country, Currency, Incoterm) to its own dropdown
   // lists, which don't share a vocabulary with the Logistics
   // simulator's free-text/curated fields — skTcosPrefillFilingFromJobData
@@ -1486,7 +1504,7 @@ function showTcosBridgeChoice(slug, filingType, onContinueHere, consignaDocType)
     const job = skGetActiveJob(CURRENT_USER.id);
     if(!job || !job.fields) return null;
     // One shared builder (shared/tcos-bridge.js) so this and the dashboard's
-    // "Continue in TCOS" button always send the same, complete snapshot.
+    // "Continue in ICEGATE" button always send the same, complete snapshot.
     if(typeof DotBridge !== "undefined" && typeof DotBridge.buildJobSnapshot === "function") return DotBridge.buildJobSnapshot(job);
     const f = job.fields;
     return {
@@ -1513,7 +1531,7 @@ function showTcosBridgeChoice(slug, filingType, onContinueHere, consignaDocType)
       errEl.textContent = "Incorrect password. Try again.";
       return;
     }
-    if(!accessId){ errEl.textContent = "Enter the TCOS access ID to continue."; return; }
+    if(!accessId){ errEl.textContent = "Enter the ICEGATE access ID to continue."; return; }
     if(!(window.DotAccess && window.DotAccess.check(accessId))){
       errEl.textContent = "Incorrect access ID. Try again.";
       return;
@@ -1536,9 +1554,129 @@ function showTcosBridgeChoice(slug, filingType, onContinueHere, consignaDocType)
 function esc_sk(s){ const d=document.createElement("div"); d.textContent = s||""; return d.innerHTML; }
 
 /* ---------------------------------------------------------------------
-   TCOS BRIDGE — return screen
+   ICEGATE BRIDGE — UPLOAD BACKUP (v44)
+   If the automatic return from ICEGATE didn't happen, the student uploads
+   the PDF they downloaded from ICEGATE into THIS document's own place.
+   It is accepted only when (all checked, nothing skipped):
+     - it really is an ICEGATE PDF for exactly this document (not another one)
+     - it was made under this student's login
+     - the filing was finished in ICEGATE (LEO issued / Out of Charge granted)
+     - it belongs to the student's active Shipment Lot (export vs import too)
+     - the document is allowed for this Lot and its prerequisites are done
+   On success it ends exactly like the automatic return: this document is
+   completed, its own number flows to later documents, ICEGATE companion
+   documents are completed, and the next document is offered.
+   --------------------------------------------------------------------- */
+async function skCheckTcosUpload(slug, file){
+  const fail = (message, code)=>({ok:false, code: code||"fail", message});
+  if(typeof DotBridge === "undefined" || !DotBridge.verifyUpload) return fail("The ICEGATE bridge didn't load — reload the page and try again.");
+  if(!file) return fail("Choose the PDF you downloaded from ICEGATE first.");
+  if(file.size > 25*1024*1024) return fail("That file is too large to be an ICEGATE PDF (over 25 MB).");
+  let buf;
+  try{ buf = await file.arrayBuffer(); }catch(e){ return fail("Couldn't read that file. Try choosing it again."); }
+  const parsed = DotBridge.parsePdfStamp(buf);
+  const job = (typeof skGetActiveJob === "function") ? skGetActiveJob(CURRENT_USER.id) : null;
+  const res = DotBridge.verifyUpload(slug, parsed, {userLoginId: CURRENT_USER.email, job: job});
+  if(!res.ok) return res;
+  /* same gates the document page itself enforces — an upload must not be a way round them */
+  if(job && typeof skIsDocumentAllowedForJob === "function" && !skIsDocumentAllowedForJob(slug, job)){
+    return fail("This document isn't part of your active Shipment Lot / assignment, so it can't be completed here.", "not-in-scope");
+  }
+  if(typeof skCheckPrerequisites === "function"){
+    const gate = skCheckPrerequisites(CURRENT_USER.id, slug);
+    if(!gate.ok) return fail("Complete these first, then upload again: " + gate.missing.map(m=>m.title).join(", ") + ".", "prereq");
+  }
+  const already = skGetDocProgress(CURRENT_USER.id, slug);
+  if(already && already.status === "completed") return fail("This document is already marked complete.", "already");
+  return res;
+}
+
+function skCompleteFromTcosUpload(slug, d, file){
+  /* companion documents first (Out of Charge, Assessment Copy, Duty ... / EGM) — same as the live ICEGATE path */
+  let companions = [];
+  try{ companions = DotBridge.completeCompanions(CURRENT_USER.email, d) || []; }catch(e){ console.error("[tcos upload] companions", e); }
+  if(typeof skAppendAudit === "function"){
+    companions.forEach(c=>skAppendAudit(CURRENT_USER.id, c, "completed", {viaTcos: true, viaUpload: true, tcosRef: d.ref}));
+  }
+  try{ DotBridge.closeBridgeFor(slug); }catch(e){}
+  /* keep the accepted PDF so the ZIP export contains the real document */
+  if(file && DotBridge.savePdf){ try{ DotBridge.savePdf(CURRENT_USER.email, slug, file, {filename: file.name, ref: d.ref}); }catch(e){} }
+  /* then the document itself — the very same screen + progress write the automatic return uses */
+  renderTcosBridgeCompletion({refNo: d.ref, filingType: d.type, viaUpload: true}, slug);
+}
+
+function skShowTcosUploadModal(slug){
+  const label = (DotBridge.UPLOADABLE_DOCS && DotBridge.UPLOADABLE_DOCS[slug]) || CONFIG.title;
+  const old = document.getElementById("tcosUploadOverlay"); if(old) old.remove();
+  const bg = document.createElement("div");
+  bg.id = "tcosUploadOverlay";
+  bg.style.cssText = "position:fixed;inset:0;background:rgba(11,20,35,.6);z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px;";
+  bg.innerHTML = `
+    <div role="dialog" aria-modal="true" aria-labelledby="tcosUpTitle" style="background:var(--surface,#fff);color:var(--text-1,#101828);border-radius:14px;max-width:520px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.35);overflow:hidden;font-family:var(--sans,sans-serif);">
+      <div style="padding:20px 24px 14px;border-bottom:1px solid var(--border,#E3E8EF);display:flex;justify-content:space-between;gap:12px;">
+        <div>
+          <h2 id="tcosUpTitle" style="margin:0 0 4px;font-size:17px;">Upload your ${esc_sk(label)} from ICEGATE</h2>
+          <p style="margin:0;font-size:12.5px;color:var(--text-2,#5B6472);">Use the PDF that ICEGATE's own <b>Download PDF</b> button gave you. Printing or re-saving it removes the hidden ICEGATE stamp that proves where it came from.</p>
+        </div>
+        <button id="tcosUpClose" type="button" aria-label="Close" style="border:none;background:none;font-size:22px;line-height:1;cursor:pointer;color:var(--text-2,#5B6472);align-self:flex-start;">×</button>
+      </div>
+      <div style="padding:18px 24px 22px;">
+        <label for="tcosUpFile" style="display:block;border:2px dashed var(--border-strong,#D2D9E3);border-radius:10px;padding:22px 14px;text-align:center;cursor:pointer;font-size:13px;color:var(--text-2,#5B6472);background:var(--surface-alt,#FAFBFC);">
+          <span id="tcosUpPick"><b style="color:var(--text-1,#101828);">Choose the PDF</b> (or drop it here)</span>
+        </label>
+        <input id="tcosUpFile" type="file" accept=".pdf,application/pdf" style="position:absolute;left:-9999px;">
+        <div id="tcosUpResult" aria-live="polite" style="margin-top:14px;font-size:13px;"></div>
+        <div id="tcosUpActions" style="margin-top:14px;display:none;">
+          <button id="tcosUpConfirm" type="button" style="width:100%;background:var(--accent,#1F6FEB);color:#fff;border:none;border-radius:8px;padding:11px;font-weight:700;font-size:13.5px;cursor:pointer;">Mark ${esc_sk(label)} complete &amp; continue →</button>
+        </div>
+      </div>
+    </div>`;
+  document.body.appendChild(bg);
+  const input = bg.querySelector("#tcosUpFile"), result = bg.querySelector("#tcosUpResult"), actions = bg.querySelector("#tcosUpActions"), pick = bg.querySelector("#tcosUpPick"), dropZone = bg.querySelector("label");
+  let accepted = null, acceptedFile = null;
+  const close = ()=>bg.remove();
+  bg.querySelector("#tcosUpClose").addEventListener("click", close);
+  bg.addEventListener("click", (e)=>{ if(e.target === bg) close(); });
+  bg.addEventListener("keydown", (e)=>{ if(e.key === "Escape") close(); });
+  async function handle(file){
+    accepted = null; actions.style.display = "none";
+    pick.innerHTML = "<b style=\"color:var(--text-1,#101828);\">" + esc_sk(file ? file.name : "") + "</b> — change file";
+    result.innerHTML = "<span style=\"color:var(--text-2,#5B6472);\">Checking…</span>";
+    const res = await skCheckTcosUpload(slug, file);
+    if(!res.ok){
+      result.innerHTML = `<div data-up-state="rejected" style="border:1px solid var(--red,#C6362F);background:var(--red-soft,#FDECEC);color:var(--red,#C6362F);border-radius:9px;padding:11px 13px;"><b>Not accepted.</b> ${esc_sk(res.message)}</div>`;
+      return;
+    }
+    accepted = res.data; acceptedFile = file;
+    const d = res.data;
+    result.innerHTML = `<div data-up-state="verified" style="border:1px solid var(--green,#15803D);background:var(--green-soft,#E7F6ED);color:var(--text-1,#101828);border-radius:9px;padding:11px 13px;"><b style="color:var(--green,#15803D);">✔ Verified.</b> ${esc_sk(d.doc || label)} <b>${esc_sk(d.ref)}</b> — your login, this Shipment Lot, filing finished in ICEGATE.</div>`;
+    actions.style.display = "block";
+  }
+  input.addEventListener("change", ()=>{ if(input.files && input.files[0]) handle(input.files[0]); });
+  dropZone.addEventListener("dragover", (e)=>{ e.preventDefault(); });
+  dropZone.addEventListener("drop", (e)=>{ e.preventDefault(); const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]; if(f) handle(f); });
+  bg.querySelector("#tcosUpConfirm").addEventListener("click", ()=>{ if(accepted) skCompleteFromTcosUpload(slug, accepted, acceptedFile); });
+}
+
+/* Permanent upload place on the document page itself (so it is still there after "Do it here" was chosen). */
+function skInjectTcosUploadStrip(slug){
+  if(document.getElementById("tcosUploadStrip")) return;
+  const banner = document.querySelector(".banner");
+  if(!banner) return;
+  const label = (DotBridge.UPLOADABLE_DOCS && DotBridge.UPLOADABLE_DOCS[slug]) || CONFIG.title;
+  const strip = document.createElement("div");
+  strip.id = "tcosUploadStrip";
+  strip.style.cssText = "display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap;text-align:center;padding:9px 18px;font-size:12.5px;background:var(--accent-soft,#EAF1FF);color:var(--text-1,#101828);border-bottom:1px solid var(--border,#E3E8EF);";
+  strip.innerHTML = `<span>Filed this ${esc_sk(label)} in ICEGATE already? Upload the PDF from ICEGATE here and this document is marked complete.</span>
+    <button id="tcosUploadStripBtn" type="button" style="background:var(--accent,#1F6FEB);color:#fff;border:none;border-radius:7px;padding:6px 13px;font-weight:700;font-size:12.5px;cursor:pointer;white-space:nowrap;">Upload ICEGATE PDF</button>`;
+  banner.insertAdjacentElement("afterend", strip);
+  document.getElementById("tcosUploadStripBtn").addEventListener("click", ()=>skShowTcosUploadModal(slug));
+}
+
+/* ---------------------------------------------------------------------
+   ICEGATE BRIDGE — return screen
    Shown instead of the normal exercise when the student comes back
-   here having genuinely finished this filing/stage in TCOS.
+   here having genuinely finished this filing/stage in ICEGATE.
    --------------------------------------------------------------------- */
 function renderTcosBridgeCompletion(ret, slug){
   clearInterval(timerInterval);
@@ -1561,9 +1699,9 @@ function renderTcosBridgeCompletion(ret, slug){
   }
   skSaveDocProgress(CURRENT_USER.id, slug, _tcosPatch);
   if(typeof skAppendAudit === "function"){
-    skAppendAudit(CURRENT_USER.id, slug, "completed", {docTitle: CONFIG.title, viaTcos: true, tcosRef: ret.refNo});
+    skAppendAudit(CURRENT_USER.id, slug, "completed", {docTitle: CONFIG.title, viaTcos: true, tcosRef: ret.refNo, viaUpload: !!ret.viaUpload});
   }
-  document.title = `${CONFIG.title} — Completed via TCOS | Skelora Institute Logistics Simulator`;
+  document.title = `${CONFIG.title} — Completed via ICEGATE | Skelora Institute Logistics Simulator`;
 
   let jobNextHtml = "";
   if(CURRENT_USER && typeof skGetActiveJob === "function" && typeof skGetNextJobDocument === "function"){
@@ -1581,9 +1719,9 @@ function renderTcosBridgeCompletion(ret, slug){
 
   document.body.innerHTML = `<div style="max-width:640px;margin:70px auto;text-align:center;font-family:var(--sans,sans-serif);color:var(--text-2,#5B6472);padding:0 20px;">
     <div style="width:64px;height:64px;border-radius:50%;background:var(--green-soft,#E7F6ED);color:var(--green,#15803D);display:flex;align-items:center;justify-content:center;margin:0 auto 18px;">${ic("check")}</div>
-    <h2 style="color:var(--text-1,#101828);margin-bottom:8px;">${CONFIG.title} — Completed in TCOS</h2>
-    <p style="margin-bottom:6px;">This document is marked complete here, filed and cleared through TCOS's actual Customs Portal simulation.</p>
-    <p style="margin-bottom:28px;font-size:13px;">TCOS Reference: <b>${ret.refNo}</b></p>
+    <h2 style="color:var(--text-1,#101828);margin-bottom:8px;">${CONFIG.title} — Completed in ICEGATE</h2>
+    <p style="margin-bottom:6px;">${ret.viaUpload ? "Your ICEGATE PDF was checked and accepted — this document is marked complete here." : "This document is marked complete here, filed and cleared through ICEGATE's actual Customs Portal simulation."}</p>
+    <p style="margin-bottom:28px;font-size:13px;">ICEGATE Reference: <b>${ret.refNo}</b></p>
     <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
       ${jobNextHtml}
       <a class="btn-secondary" href="skelora-institute-dashboard.html">Back to Document Library</a>
@@ -1617,11 +1755,11 @@ function boot(){
   }
 
   // ---------------------------------------------------------------------
-  // TCOS BRIDGE — Shipping Bill (export), Bill of Entry (import), and the
+  // ICEGATE BRIDGE — Shipping Bill (export), Bill of Entry (import), and the
   // Freight Booking module's documents are real filing workflows inside
-  // TCOS, not just fill-in forms. A student opening any of these gets
+  // ICEGATE, not just fill-in forms. A student opening any of these gets
   // offered a choice before the exercise starts: do it here, or do the
-  // real thing in TCOS — signed in automatically, and sent back the
+  // real thing in ICEGATE — signed in automatically, and sent back the
   // moment it's genuinely finished there.
   // ---------------------------------------------------------------------
   const TCOS_BRIDGE_SLUGS = {
@@ -1638,7 +1776,7 @@ function boot(){
     "bank-realization-certificate": "brc",
     /* ---- Consignia Desk bridge (added): documents that exist as shallow
        fill-in exercises here AND as real, deep, cross-checked document
-       workstations inside TCOS's Consignia Desk module. Object form
+       workstations inside ICEGATE's Consignia Desk module. Object form
        {ft, doc} instead of a plain string — normalized right below. */
     "commercial-invoice": { ft: "consignia", doc: "COMMERCIAL_INVOICE" },
     "packing-list": { ft: "consignia", doc: "PACKING_LIST" },
@@ -1657,7 +1795,7 @@ function boot(){
   /* Normalize: every entry above resolves to a plain filingType string for
      everything that already worked (export/import/freight/brc), plus an
      optional consignaDocType for the new Consignia Desk entries. */
-  /* Export vs Import separation: TCOS's Consignia Desk / Shipping Bill / BRC are
+  /* Export vs Import separation: ICEGATE's Consignia Desk / Shipping Bill / BRC are
      export-side only and the Bill of Entry is import-side only (freight docs work
      both ways). A Lot whose Shipment Mode says Import must never be offered the
      Export Desk for its Commercial Invoice etc. (and vice versa for the Bill of
@@ -1758,6 +1896,14 @@ function boot(){
     `<li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20,6 9,17 4,12"/></svg>${o}</li>`
   ).join("");
   renderPhaseOverview();
+  // v44: permanent "upload the ICEGATE PDF" place on every document that ICEGATE also produces as a PDF
+  // (only here — i.e. after the prerequisite / scope gates above have passed — and never once it is completed).
+  try{
+    const _sp = skGetDocProgress(CURRENT_USER.id, slug);
+    if(typeof DotBridge !== "undefined" && DotBridge.UPLOADABLE_DOCS && DotBridge.UPLOADABLE_DOCS[slug] && bridgeSpecRaw && bridgeAllowedForJobDirection() && !(_sp && _sp.status === "completed")){
+      skInjectTcosUploadStrip(slug);
+    }
+  }catch(e){ console.error("[tcos upload strip]", e); }
 
   // Resume saved progress for this student, if any exists on this computer.
   const saved = skGetDocProgress(CURRENT_USER.id, slug);

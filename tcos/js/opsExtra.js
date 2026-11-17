@@ -1,5 +1,5 @@
 /* ============================================================
-   TCOS TRAINING SIMULATOR — CUSTOMS OPS EXTRAS & FREIGHT COMMERCIAL
+   ICEGATE TRAINING SIMULATOR — CUSTOMS OPS EXTRAS & FREIGHT COMMERCIAL
    Bond / Bank Guarantee Register · Container Track & Trace ·
    Freight Job Costing · Customer Invoice · Carrier Rate Comparison
    ============================================================ */

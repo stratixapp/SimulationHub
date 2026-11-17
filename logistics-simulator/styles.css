@@ -145,6 +145,25 @@
     100%{ transform:translateX(140%); opacity:0; }
   }
   @keyframes skWaveBob{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-3px); } }
+  /* v49: step transition = the DOT ECHOSYSTEM fade-reveal loader (supplied design) shown OVER a light frosted layer, not a white screen.
+     While it plays the next step is already fading in behind it (opacity + blur), so students see both at the same time. */
+  .sk-zb{position:fixed; inset:0; z-index:9999; display:flex; align-items:center; justify-content:center; cursor:progress;
+    background:rgba(255,255,255,.5); background:color-mix(in srgb, var(--surface,#fff) 52%, transparent);
+    -webkit-backdrop-filter:blur(7px); backdrop-filter:blur(7px); opacity:0; animation:skZbIn .3s ease-out forwards;}
+  .sk-zb.out{animation:skZbOut var(--zbOut,.6s) ease-in-out forwards;}
+  .sk-zb .lockup{display:flex; flex-direction:column; align-items:center; gap:13px;}
+  .sk-zb .wordmark{display:flex; align-items:center; font-family:Inter,Arial,Helvetica,sans-serif; font-size:clamp(64px,12vw,112px); font-weight:850; letter-spacing:-.085em; line-height:.9;}
+  .sk-zb .letter{display:inline-block; opacity:0; transform:translateY(9px) scale(.97); animation:zbFadeReveal 1.15s cubic-bezier(.2,.75,.25,1) infinite;}
+  .sk-zb .letter:nth-child(1){color:#159447; animation-delay:0s;}
+  .sk-zb .letter:nth-child(2){color:#159447; animation-delay:.13s;}
+  .sk-zb .letter:nth-child(3){color:#f28c28; animation-delay:.26s;}
+  .sk-zb .sub{color:var(--text-1,#253746); font-family:Inter,Arial,Helvetica,sans-serif; font-size:clamp(10px,1.6vw,14px); font-weight:650; letter-spacing:.42em; margin-left:.42em; opacity:0; animation:zbSubReveal 1.15s ease-in-out infinite; animation-delay:.35s;}
+  @keyframes skZbIn{to{opacity:1;}}
+  @keyframes skZbOut{from{opacity:1;} to{opacity:0;}}
+  @keyframes zbFadeReveal{0%{opacity:0; transform:translateY(9px) scale(.97); filter:blur(4px);} 32%,68%{opacity:1; transform:translateY(0) scale(1); filter:blur(0);} 100%{opacity:0; transform:translateY(-3px) scale(1.01); filter:blur(2px);}}
+  @keyframes zbSubReveal{0%,15%{opacity:0;} 45%,68%{opacity:.85;} 100%{opacity:0;}}
+  @keyframes skStepReveal{from{opacity:0; filter:blur(7px); transform:translateY(10px);} to{opacity:1; filter:blur(0); transform:none;}}
+  @media (prefers-reduced-motion: reduce){ .sk-zb .letter,.sk-zb .sub{animation:none; opacity:1; transform:none; filter:none;} }
   .sk-step-wave{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:var(--surface); border-radius:12px; z-index:5; overflow:hidden;}
   .sk-step-wave-inner{position:relative; width:100%; height:100%; display:flex; align-items:center; justify-content:center;}
   .sk-step-wave svg{width:64px; height:64px; animation:skWaveBob 1s ease-in-out infinite;}

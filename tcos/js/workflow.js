@@ -374,7 +374,7 @@ function grantOOC(filingId) {
       const b = DotBridge.getBridge();
       if (b && b.userId) {
         DotBridge.silentCompleteLogisticsDoc(b.userId, 'out-of-charge', filing.id, 'Out of Charge Order', filing.ooc && filing.ooc.refNo);
-        /* v35: TCOS also produced the assessment, duty calculation, challan and (if ordered) examination along the way,
+        /* v35: ICEGATE also produced the assessment, duty calculation, challan and (if ordered) examination along the way,
            so those Logistics documents are completed too instead of staying pending after the student returns. */
         const challanNo = (filing.payment && filing.payment.challanNo) || (filing.assessment && filing.assessment.dutyChallanNo) || '';
         const oocNo = (filing.ooc && filing.ooc.refNo) || '';

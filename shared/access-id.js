@@ -3,7 +3,7 @@
    ---------------------------------------------------------------------
    Used by:  index.html (hub: restricted simulators)
              logistics-simulator/engine.js + skelora-institute-dashboard.html
-               (Logistics -> TCOS bridge access ID)
+               (Logistics -> ICEGATE bridge access ID)
              logistics-simulator/lyra-lock.js (Lyra developer code)
    API:      DotAccess.check(value) -> true / false
    Change the code: compute h53(SALT + "NEWCODE") with the function below

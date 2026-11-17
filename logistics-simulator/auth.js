@@ -128,7 +128,7 @@ function skLogOut(){
    Working role (asked on every sign-in)
    The role the student picks on the sign-in screen for THIS session. It is
    printed next to the student's name on every document PDF ("Document Prepared
-   By - Name - Role"), on the certificate, and is handed to TCOS. It is separate
+   By - Name - Role"), on the certificate, and is handed to ICEGATE. It is separate
    from user.role ('student' | 'faculty'), which controls permissions.
    --------------------------------------------------------------------- */
 const SKELORA_WORKROLE_KEY = 'skelora_session_workrole_v1';

@@ -1,0 +1,54 @@
+/* ICEGATE login screen (v47) — layout and colours follow the ICEGATE Vizhinjam portal page supplied by the trainer.
+   Everything is scoped under #login / #gateLoader so it cannot leak into the rest of the simulator. */
+#gateLoader{position:fixed;inset:0;z-index:95;background:#fff;display:none;align-items:center;justify-content:center;padding:20px;font-family:Arial,Helvetica,sans-serif}
+#gateLoader.show{display:flex}
+#gateLoader .gl-box{text-align:center;width:min(420px,100%)}
+#gateLoader .gl-logo{display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:26px}
+#gateLoader .gl-brand{font-size:34px;font-weight:bold;letter-spacing:-1px;color:#ed8500}#gateLoader .gl-brand span{color:#174d91}
+#gateLoader .gl-spin{width:58px;height:58px;margin:0 auto 20px;border:5px solid #dfe8f3;border-top-color:#f28b00;border-right-color:#0b438d;border-radius:50%;animation:iglspin .9s linear infinite}
+#gateLoader .gl-text{font-size:15px;font-weight:bold;color:#0b397b;min-height:20px}
+#gateLoader .gl-bar{height:6px;background:#e4ebf4;border-radius:4px;overflow:hidden;margin:14px auto 12px;width:80%}
+#gateLoader .gl-bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#f28b00,#0b438d);border-radius:4px}
+#gateLoader.show .gl-bar i{animation:iglbar var(--glDur,3s) linear forwards}
+#gateLoader .gl-sub{font-size:12px;color:#66758b}#gateLoader .gl-foot{margin-top:34px;font-size:11px;color:#8a97ab}
+.igl-mark{width:62px;height:62px;background:linear-gradient(135deg,#0a3c77,#2676bd);clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%);display:grid;place-items:center;color:#fff;font-size:25px;flex:none}
+@keyframes iglspin{to{transform:rotate(360deg)}}@keyframes iglbar{to{width:100%}}
+
+#login.screen.active{display:block;position:fixed;inset:0;z-index:70;min-height:0;background:#0b3567;overflow:hidden}
+#login .igl-screen{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:20px;background:#0b3567 center/cover no-repeat;overflow-y:auto;font-family:Arial,Helvetica,sans-serif;color:#172b4d}
+#login .igl-screen:before{content:"";position:fixed;inset:0;background:rgba(3,25,56,.78)}
+#login .igl-back{position:fixed;top:16px;left:18px;z-index:2;background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.5);border-radius:4px;padding:8px 14px;font-weight:bold;cursor:pointer}
+#login .igl-back:hover{background:rgba(255,255,255,.26)}
+#login .igl-card{position:relative;width:min(400px,100%);background:#fff;border-radius:6px;border-top:4px solid #f28b00;box-shadow:0 18px 50px rgba(0,12,35,.55);overflow:hidden;margin:auto;right:auto;top:auto;padding:0}
+#login .igl-top{display:flex;justify-content:space-between;align-items:center;padding:14px 20px 12px}
+#login .igl-brand{display:flex;align-items:center;gap:10px}
+#login .igl-brand .igl-mark{width:38px;height:38px;font-size:16px}
+#login .igl-brand strong{font-size:22px;letter-spacing:-.5px;color:#ed8500;display:block;line-height:1}#login .igl-brand strong span{color:#174d91}
+#login .igl-brand small{font-size:10px;color:#214779;font-weight:bold}
+#login .igl-head{background:#f3f6fa;padding:11px 20px;font-weight:bold;font-size:17px;color:#0b397b;border-bottom:1px solid #d6dfeb;border-top:1px solid #d6dfeb}
+#login .igl-body{padding:16px 20px 14px}
+#login .igl-welcome{background:#eaf3ff;border:1px solid #b9d3f3;color:#0b397b;border-radius:5px;padding:9px 11px;font-size:12px;line-height:1.45;margin-bottom:12px}
+#login .igl-radio{display:flex;gap:16px;margin-bottom:11px;font-size:12px}#login .igl-radio label{display:flex;align-items:center;gap:5px;cursor:pointer;margin:0;font-weight:normal;font-size:12px}
+#login .igl-l{display:block;font-size:12px;font-weight:bold;margin:0 0 4px;color:#25395c}#login .igl-l span{color:#d32f2f}
+#login .igl-body input[type=text],#login .igl-body input[type=password]{width:100%;height:38px;border:1px solid #c5d0de;border-radius:4px;padding:0 10px;margin-bottom:10px;background:#fff;font-size:14px;box-sizing:border-box}
+#login .igl-body input[type=text]:focus,#login .igl-body input[type=password]:focus{outline:2px solid #f28b00;border-color:#f28b00}
+#login .igl-pw{position:relative}#login .igl-pw input{padding-right:58px!important}
+#login .igl-pw button{position:absolute;right:4px;top:5px;height:28px;border:0;background:transparent;color:#164d91;font-size:11px;font-weight:bold;cursor:pointer}
+#login .igl-caprow{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+#login .igl-captcha{margin:0;height:38px;font-size:18px;letter-spacing:3px;display:flex;align-items:center;justify-content:space-between;padding:0 8px 0 12px;border:1px solid #c5d0de;border-radius:4px;background:#eef2f8 repeating-linear-gradient(135deg,#0000 0 6px,#d6deea66 6px 8px);font-weight:bold;color:#1a3c6e;user-select:none;font-style:italic}
+#login .igl-captcha button{border:0;background:transparent;color:#164d91;font-size:16px;cursor:pointer;letter-spacing:0}
+#login .igl-caprow input{margin:0!important}
+#login .igl-error{color:#c62828;font-size:12px;min-height:16px;margin:-2px 0 8px}
+#login .igl-btn{height:40px;width:100%;background:#083b79;border:0;border-radius:5px;color:#fff;font-weight:bold;cursor:pointer;font-size:14px}
+#login .igl-btn:hover{filter:brightness(1.08)}
+#login .igl-links{display:flex;justify-content:space-between;gap:8px;margin:10px 0 4px;font-size:11px}
+#login .igl-links a{color:#0b5bb5;cursor:pointer;text-decoration:none}#login .igl-links a:hover{text-decoration:underline}
+#login .igl-or{text-align:center;position:relative;margin:8px 0;font-size:11px;color:#6b778a}
+#login .igl-or:before{content:"";position:absolute;left:0;right:0;top:50%;border-top:1px solid #dce4ee}#login .igl-or span{position:relative;background:#fff;padding:0 10px}
+#login .igl-dsc{height:38px;width:100%;background:#fff;border:1px solid #f28b00;color:#a95b00;border-radius:5px;font-weight:bold;cursor:pointer}
+#login .igl-note{background:#fff8e9;border-top:1px solid #f5dfb4;color:#81500b;font-size:11px;text-align:center;padding:8px;margin:14px -20px -14px}
+#login .igl-demo{margin-top:12px;font-size:11.5px;color:#25395c}
+#login .igl-demo summary{cursor:pointer;font-weight:bold;color:#164d91}
+#login .igl-demo .row{display:flex;justify-content:space-between;gap:8px;padding:5px 8px;border:1px solid #e1e8f1;border-radius:4px;margin-top:5px;cursor:pointer;background:#f8fafd}
+#login .igl-demo .row:hover{background:#eef4fc}
+@media(max-width:760px){#login .igl-screen{align-items:flex-start;padding-top:56px}#login .igl-back{top:10px;left:10px}}

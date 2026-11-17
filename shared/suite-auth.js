@@ -1,7 +1,7 @@
 /* ============================================================
    DOT ECOSYSTEM — shared suite account bridge
-   Both Cadence and TCOS include this file. It does not replace
-   either app's own login system — TCOS still owns real
+   Both Cadence and ICEGATE include this file. It does not replace
+   either app's own login system — ICEGATE still owns real
    authentication (its demo-credential login). This just mirrors
    "who is currently signed in" into a small, shared localStorage
    key so any app in the suite can recognize the same account
@@ -37,7 +37,7 @@
   function clearAccount() { setAccount(null); }
 
   // fires in OTHER tabs/windows when the account changes here — lets an
-  // already-open Cadence tab pick up a login that just happened in TCOS
+  // already-open Cadence tab pick up a login that just happened in ICEGATE
   function onAccountChange(handler) {
     window.addEventListener('storage', (e) => {
       if (e.key === KEY) handler(getAccount());

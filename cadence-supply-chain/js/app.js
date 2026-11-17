@@ -721,14 +721,14 @@
 
   renderAll();
 
-  // ---------- suite account badge (shared sign-in with TCOS) ----------
+  // ---------- suite account badge (shared sign-in with ICEGATE) ----------
   function renderAccountBadge() {
     const badge = document.getElementById('accountBadge');
     if (!badge || !window.DOT_SUITE_AUTH) return;
     const acc = window.DOT_SUITE_AUTH.getAccount();
     if (!acc) {
       badge.className = 'account-badge signed-out';
-      badge.innerHTML = 'Not signed in · <a href="../tcos/index.html">sign in via TCOS</a>';
+      badge.innerHTML = 'Not signed in · <a href="../tcos/index.html">sign in via ICEGATE</a>';
       return;
     }
     const initial = (acc.name || '?').trim().charAt(0).toUpperCase();

@@ -1,11 +1,11 @@
 /* ============================================================
-   TCOS — ICEGATE-FORMAT PRINT OF THE SHIPPING BILL / BILL OF ENTRY
+   ICEGATE — ICEGATE-FORMAT PRINT OF THE SHIPPING BILL / BILL OF ENTRY
    ------------------------------------------------------------
-   The Shipping Bill and Bill of Entry that TCOS files are printed with the SAME
+   The Shipping Bill and Bill of Entry that ICEGATE files are printed with the SAME
    renderers the Skelora Logistics Documentation Simulator uses
    (logistics-simulator/customs-forms.js -> renderShippingBillSpecimen,
     logistics-simulator/customs-forms-boe.js -> renderBillOfEntrySpecimen),
-   so the TCOS PDF is the same A4 ICEGATE printout (Parts I-V / I-VI).
+   so the ICEGATE PDF is the same A4 ICEGATE printout (Parts I-V / I-VI).
 
    This file is only the ADAPTER:
      tcosIcegateData(filing)  filing (+ timeline / duty / LEO / OOC / DSC)  ->  the formData
@@ -18,14 +18,15 @@
    filing's current status (assessment, examination, LEO, OOC, challan ...).
    ============================================================ */
 
-/* ICEGATE location codes for the Indian ports / airports offered in TCOS. */
+/* ICEGATE location codes for the Indian ports / airports offered in ICEGATE. */
 const TCOS_ICEGATE_PORT_CODES = [
   ['Nhava Sheva', 'INNSA1'], ['Mumbai Port', 'INBOM4'], ['Mundra', 'INMUN1'], ['Kandla', 'INKDL1'],
   ['Chennai Port', 'INMAA1'], ['Ennore', 'INENR1'], ['Tuticorin', 'INTUT1'], ['Cochin Port', 'INCOK1'],
   ['Visakhapatnam', 'INVTZ1'], ['Krishnapatnam', 'INKRI1'], ['Kolkata', 'INCCU1'], ['Paradip', 'INPBD1'],
   ['New Mangalore', 'INNML1'], ['Mumbai (BOM) Airport', 'INBOM4'], ['Delhi (DEL) Airport', 'INDEL4'],
   ['Chennai (MAA) Airport', 'INMAA4'], ['Bengaluru (BLR) Airport', 'INBLR4'], ['Kochi (COK) Airport', 'INCOK4'],
-  ['Hyderabad (HYD) Airport', 'INHYD4'], ['Ahmedabad (AMD) Airport', 'INAMD4'], ['Kolkata (CCU) Airport', 'INCCU4']
+  ['Hyderabad (HYD) Airport', 'INHYD4'], ['Ahmedabad (AMD) Airport', 'INAMD4'], ['Kolkata (CCU) Airport', 'INCCU4'],
+  ['Pipavav Port', 'INPAV1'], ['Hazira Port', 'INHZA1'], ['Dahej Port', 'INDAH1'], ['Mormugao Port', 'INMRM1'], ['Kakinada Port', 'INKAK1'], ['Gangavaram Port', 'INGGV1'], ['Kattupalli Port', 'INKAT1'], ['Goa (GOI) Airport', 'INGOI4'], ['Pune (PNQ) Airport', 'INPNQ4'], ['Jaipur (JAI) Airport', 'INJAI4'], ['Thiruvananthapuram (TRV) Airport', 'INTRV4'], ['Kozhikode (CCJ) Airport', 'INCCJ4'], ['Coimbatore (CJB) Airport', 'INCJB4']
 ];
 /* options shown in the wizard's "Customs House Code" dropdown ("CODE - location") */
 const TCOS_ICEGATE_CODE_OPTIONS = (function () {
@@ -351,11 +352,12 @@ async function tcosDownloadIcegatePdf(docId) {
   toast('Generating ICEGATE-format PDF…', 'info');
   try {
     const { pdf } = await tcosIcegatePdf(filing);
+    if (typeof tcosStampPdf === 'function') tcosStampPdf(pdf, doc);   // v44: hidden DOT stamp so Logistics can verify an upload of this PDF
     pdf.save(tcosIcegateFileName(doc, filing));
     toast('PDF downloaded.', 'success');
     if (typeof tcosBridgeSbPdfDone === 'function') { try { tcosBridgeSbPdfDone(filing); } catch (e) { console.warn(e); } }
   } catch (err) {
-    console.error('[TCOS ICEGATE PDF]', err);
+    console.error('[ICEGATE ICEGATE PDF]', err);
     toast('Could not generate the PDF — please try again.', 'error');
   }
 }

@@ -1,5 +1,5 @@
 /* ============================================================
-   TCOS TRAINING SIMULATOR — APP CONTROLLER
+   ICEGATE TRAINING SIMULATOR — APP CONTROLLER
    ============================================================ */
 
 var CURRENT_SCREEN = 'dashboard';
@@ -17,7 +17,7 @@ var CURRENT_LIST_FILTER = 'all';
    exception here means the last SAVED state is untouched. */
 var __lastErrorToastAt = 0;
 function reportUnexpectedError(err, context) {
-  console.error('[TCOS unexpected error]', context || '', err);
+  console.error('[ICEGATE unexpected error]', context || '', err);
   const now = Date.now();
   if (now - __lastErrorToastAt < 2000) return; // avoid stacking multiple toasts from one cascade
   __lastErrorToastAt = now;
@@ -40,22 +40,83 @@ updateLiveDateTime();
 setInterval(updateLiveDateTime, 1000);
 
 /* ---------------- HOME / LOGIN / REGISTRATION (preserved & wired) ---------------- */
-function showLogin() {
-  document.getElementById('loader').classList.add('show');
+/* ICEGATE login (v47): Sign In -> ICEGATE loading screen -> login page over a port photo (layout from the supplied
+   ICEGATE Vizhinjam portal page). opts.prefill = {uid, pwd, name} fills the form (used when a student arrives from the
+   Logistics Simulator, so they only have to click Login); opts.fast shortens the loading screen for that case. */
+function igNewCaptcha() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let c = '';
+  for (let i = 0; i < 5; i++) c += chars[Math.floor(Math.random() * chars.length)];
+  document.getElementById('captchaText').textContent = c;
+  document.getElementById('captchaInput').value = '';
+}
+function igOpenLoginScreen(opts) {
+  opts = opts || {};
+  const scr = document.getElementById('iglScreen');
+  scr.style.backgroundImage = 'url("assets/login/port' + (1 + Math.floor(Math.random() * 6)) + '.jpg")';
+  igNewCaptcha();
+  document.getElementById('loginError').textContent = '';
+  const pw = document.getElementById('pwd'); pw.type = 'password';
+  document.getElementById('pwBtn').textContent = 'SHOW';
+  const wel = document.getElementById('iglWelcome');
+  if (opts.prefill) {
+    document.getElementById('uid').value = opts.prefill.uid;
+    pw.value = opts.prefill.pwd;
+    document.getElementById('captchaInput').value = document.getElementById('captchaText').textContent;
+    const radios = document.querySelectorAll('input[name="ut"]');
+    if (radios.length === 2) { radios[0].checked = true; radios[1].checked = false; }
+    wel.innerHTML = 'Welcome, <b>' + esc(opts.prefill.name || opts.prefill.uid) + '</b> — your Logistics Simulator ID and password are already filled in. Just click <b>Login</b>.';
+    wel.style.display = 'block';
+    setTimeout(function () { const b = document.querySelector('#login .igl-btn'); if (b) b.focus(); }, 50);
+  } else {
+    wel.style.display = 'none';
+    setTimeout(function () { const u = document.getElementById('uid'); if (u && !u.value) u.focus(); }, 50);
+  }
+}
+function showLogin(opts) {
+  opts = opts || {};
+  const L = document.getElementById('gateLoader');
+  if (L.classList.contains('show')) return false;
+  const t = document.getElementById('glText');
+  const steps = ['Initialising secure connection…', 'Verifying portal services…', 'Loading login page…'];
+  const gap = opts.fast ? 500 : 1000;
+  t.textContent = steps[0];
+  L.style.setProperty('--glDur', (gap * 3) + 'ms');
+  L.classList.add('show');
+  setTimeout(function () { t.textContent = steps[1]; }, gap);
+  setTimeout(function () { t.textContent = steps[2]; }, gap * 2);
   setTimeout(function () {
-    document.getElementById('loader').classList.remove('show');
+    L.classList.remove('show');
     document.getElementById('home').classList.remove('active');
     document.getElementById('login').classList.add('active');
+    igOpenLoginScreen(opts);
     window.scrollTo(0, 0);
-  }, 900);
+  }, gap * 3);
+  return false;
+}
+/* Arrived from the Logistics Simulator (?bridge=1, bridge open, nobody signed in yet): show the ICEGATE login with the
+   student's own Logistics ID + password filled in. They click Login themselves — nothing signs them in silently. */
+function igStartBridgeLogin() {
+  try {
+    if (typeof DotBridge === 'undefined') return;
+    const b = DotBridge.getBridge();
+    if (!b || !b.active || b.completed || !/[?&]bridge=1/.test(location.search)) return;
+    const cred = findCredential(b.userId);
+    if (!cred) return;
+    showLogin({ fast: true, prefill: { uid: cred.userId, pwd: cred.password, name: cred.name } });
+  } catch (e) { console.warn('[ICEGATE login prefill]', e); }
 }
 function showHome() { document.getElementById('login').classList.remove('active'); document.getElementById('home').classList.add('active'); window.scrollTo(0, 0); }
-function togglePw() { document.getElementById('pwd').type = document.getElementById('showpw').checked ? 'text' : 'password'; }
+function togglePw() {
+  const p = document.getElementById('pwd'), b = document.getElementById('pwBtn'), show = p.type === 'password';
+  p.type = show ? 'text' : 'password'; if (b) b.textContent = show ? 'HIDE' : 'SHOW';
+}
 function moduleInfo(x) { toast(x + ' — Training simulator module.', 'info'); }
 function fillDemo(uid) {
   const cred = DEMO_CREDENTIALS.find(c => c.userId === uid);
   document.getElementById('uid').value = uid;
   document.getElementById('pwd').value = cred.password;
+  document.getElementById('captchaInput').value = document.getElementById('captchaText').textContent;   // demo rows fill everything
   const radios = document.querySelectorAll('input[name="ut"]');
   if (radios.length === 2) { radios[0].checked = !cred.isTrainerAccount; radios[1].checked = !!cred.isTrainerAccount; }
 }
@@ -64,21 +125,24 @@ function login() {
   const pwd = document.getElementById('pwd').value.trim();
   const errBox = document.getElementById('loginError');
   errBox.textContent = '';
-  if (!uid || !pwd) { errBox.textContent = 'Please enter both Simulator ID and Password.'; return; }
+  if (!uid || !pwd) { errBox.textContent = 'Please enter both User ID and Password.'; return; }
+  const capIn = document.getElementById('captchaInput'), capTx = document.getElementById('captchaText');
+  if (!capIn.value.trim()) { errBox.textContent = 'Please enter the captcha.'; return; }
+  if (capIn.value.trim().toUpperCase() !== capTx.textContent) { errBox.textContent = 'Captcha does not match. Please try again.'; igNewCaptcha(); return; }
   const cred = findCredential(uid);
   if (!cred || cred.password !== pwd) {
-    errBox.textContent = 'Invalid Simulator ID or Password. Use one of the training demo credentials shown below.';
+    errBox.textContent = 'Invalid User ID or Password. Use one of the training demo credentials listed below.'; igNewCaptcha();
     return;
   }
   const wantsTrainer = !!(document.querySelectorAll('input[name="ut"]')[1] && document.querySelectorAll('input[name="ut"]')[1].checked);
   /* Section 5 hardening: Trainer / Instructor is a distinct credential (TRAINER.ADMIN), not a
      privilege any trade-user account can grant itself by ticking a radio button. */
   if (wantsTrainer && !cred.isTrainerAccount) {
-    errBox.textContent = 'This Simulator ID is a trade-user account and cannot sign in as Trainer / Instructor. Use the Trainer demo credential shown below.';
+    errBox.textContent = 'This User ID is a trade-user account and cannot sign in as Trainer / Instructor. Use the Trainer demo credential shown below.';
     return;
   }
   if (!wantsTrainer && cred.isTrainerAccount) {
-    errBox.textContent = 'This Simulator ID is a Trainer / Instructor account — tick "Trainer / Instructor" above to continue.';
+    errBox.textContent = 'This User ID is a Trainer / Instructor account — tick "Trainer / Instructor" above to continue.';
     return;
   }
   const profile = Object.assign({}, cred);
@@ -108,7 +172,7 @@ function logout() {
     try { history.pushState(null, '', location.pathname + location.search); } catch (e) { /* ignore */ }
   });
 }
-/* ---------------- Logistics ⇄ TCOS bridge: completion prompt ----------------
+/* ---------------- Logistics ⇄ ICEGATE bridge: completion prompt ----------------
    Fired from fileEGM() (export) and grantOOC() (import) the moment a
    bridged filing genuinely finishes. A modal rather than an auto-redirect
    — the student just watched their EGM/OOC come through and may want a
@@ -124,10 +188,10 @@ function showBridgeReturnPrompt(refNo, docLabel, opts) {
   bg.innerHTML = '<div class="modal" role="dialog" aria-modal="true" aria-labelledby="bridgeDoneTitle" style="width:min(460px,92vw)">' +
     '<div class="modal-head" id="bridgeDoneTitle">' + esc(docLabel) + ' Complete <span class="close" role="button" tabindex="0" aria-label="Close dialog">×</span></div>' +
     '<div style="padding:22px">' +
-    (pdfDone ? '<p style="margin:0 0 10px">Your ' + esc(docLabel) + ' (<b>' + esc(refNo) + '</b>) is filed and the ICEGATE-format PDF is downloaded.</p>' : '<p style="margin:0 0 10px">This ' + esc(docLabel) + ' (<b>' + esc(refNo) + '</b>) is fully closed out in TCOS.</p>') +
-    '<p style="margin:0 0 18px;color:var(--muted,#667085)">Head back to the Logistics Document Simulator now, marked complete there too — or keep exploring this filing in TCOS first' + (pdfDone ? ' (Let Export Order and EGM can be finished here later)' : '') + '.</p>' +
+    (pdfDone ? '<p style="margin:0 0 10px">Your ' + esc(docLabel) + ' (<b>' + esc(refNo) + '</b>) is filed and the ICEGATE-format PDF is downloaded.</p>' : '<p style="margin:0 0 10px">This ' + esc(docLabel) + ' (<b>' + esc(refNo) + '</b>) is fully closed out in ICEGATE.</p>') +
+    '<p style="margin:0 0 18px;color:var(--muted,#667085)">Head back to the Logistics Document Simulator now, marked complete there too — or keep exploring this filing in ICEGATE first' + (pdfDone ? ' (Let Export Order and EGM can be finished here later)' : '') + '.</p>' +
     (icDoc ? '<p style="margin:0 0 14px;color:var(--muted,#667085)">Your <b>' + esc(docLabel) + '</b> is ready as a real ICEGATE-format PDF. Download it, and you will be taken back to the Document Simulator automatically.</p>' : '') +
-    '<div class="actions"><button class="back2" data-x="stay">Stay in TCOS</button>' + (icDoc ? '<button class="back2" data-x="return">Return without PDF</button><button class="next" data-x="dlreturn">⬇ Download PDF &amp; return to Document Simulator</button>' : '<button class="next" data-x="return">← Return to Logistics Simulator</button>') + '</div>' +
+    '<div class="actions"><button class="back2" data-x="stay">Stay in ICEGATE</button>' + (icDoc ? '<button class="back2" data-x="return">Return without PDF</button><button class="next" data-x="dlreturn">⬇ Download PDF &amp; return to Document Simulator</button>' : '<button class="next" data-x="return">← Return to Logistics Simulator</button>') + '</div>' +
     '</div></div>';
   document.body.appendChild(bg);
   bg.addEventListener('click', function (e) {
@@ -143,9 +207,9 @@ function showBridgeReturnPrompt(refNo, docLabel, opts) {
   });
 }
 
-/* ---------------- Logistics ⇄ TCOS bridge: Freight Booking stages ----------------
+/* ---------------- Logistics ⇄ ICEGATE bridge: Freight Booking stages ----------------
    The Freight Booking module has several documents (Booking Confirmation,
-   BL/AWB, Arrival Notice, Delivery Order, EIR, POD) that TCOS generates
+   BL/AWB, Arrival Notice, Delivery Order, EIR, POD) that ICEGATE generates
    one after another as a single booking progresses, unlike Shipping
    Bill/Bill of Entry which are each their own filing. So a freight bridge
    tracks ONE booking (bridge.bookingId) across its whole lifecycle: every
@@ -176,7 +240,7 @@ function freightBridgeStage(booking, slug, refNo, docLabel) {
   }
 }
 
-/* ---------------- Logistics ⇄ TCOS bridge: BRC eligibility notice ----------------
+/* ---------------- Logistics ⇄ ICEGATE bridge: BRC eligibility notice ----------------
    BRC (and RoDTEP/Duty Drawback, though neither has a matching Logistics
    exercise to bridge from) only apply to an export filing that's already
    reached LEO or fully closed — there's nothing to realize proceeds
@@ -188,7 +252,7 @@ function showBrcNoEligibleFilingNotice() {
   bg.innerHTML = '<div class="modal" role="dialog" aria-modal="true" style="width:min(460px,92vw)">' +
     '<div class="modal-head">No export filing to realize yet <span class="close" role="button" tabindex="0">×</span></div>' +
     '<div style="padding:22px">' +
-    '<p style="margin:0 0 10px">A Bank Realisation Certificate confirms payment against an <b>already-filed export shipment</b> — TCOS needs one that\'s reached LEO or fully closed before there\'s anything to realize proceeds against.</p>' +
+    '<p style="margin:0 0 10px">A Bank Realisation Certificate confirms payment against an <b>already-filed export shipment</b> — ICEGATE needs one that\'s reached LEO or fully closed before there\'s anything to realize proceeds against.</p>' +
     '<p style="margin:0 0 18px;color:var(--muted,#667085)">File a Shipping Bill first (through LEO + EGM), then come back to Bank Realisation from the Export Incentives &amp; Realisation Centre.</p>' +
     '<div class="actions"><button class="back2" data-x="stay">Stay Here</button><button class="next" data-x="file">File a Shipping Bill →</button></div>' +
     '</div></div>';
@@ -211,7 +275,7 @@ function enterApp() {
   }
   if (typeof tcosBackfillIcegateDocs === 'function') tcosBackfillIcegateDocs();   // older filings get their ICEGATE-format Shipping Bill / Bill of Entry
   renderBridgeBanner();
-  // Section: Logistics ⇄ TCOS bridge — a student who came from the
+  // Section: Logistics ⇄ ICEGATE bridge — a student who came from the
   // Logistics Document Simulator (Shipping Bill / Bill of Entry) lands
   // straight in the matching New Filing flow instead of the dashboard,
   // so the handoff feels like one continuous task, not two apps.
@@ -255,7 +319,7 @@ function enterApp() {
 }
 
 /* Shipping Bill filed + ICEGATE PDF downloaded -> the Document Simulator exercise is done; offer the way back
-   (LEO / EGM can still be completed afterwards in TCOS). */
+   (LEO / EGM can still be completed afterwards in ICEGATE). */
 function tcosBridgeSbPdfDone(filing) {
   if (typeof DotBridge === 'undefined' || !filing || filing.type !== 'export' || !filing.ack) return;
   const br = DotBridge.getBridge();
@@ -264,7 +328,7 @@ function tcosBridgeSbPdfDone(filing) {
   showBridgeReturnPrompt(filing.id, 'Shipping Bill', { pdfDone: true });
 }
 
-/* ---------------- Logistics ⇄ TCOS bridge banner ----------------
+/* ---------------- Logistics ⇄ ICEGATE bridge banner ----------------
    A small persistent strip while a bridge is in progress, so the student
    always knows how they got here and can bail out cleanly instead of
    getting stuck if they change their mind. Purely a UI affordance — it
@@ -277,7 +341,7 @@ function renderBridgeBanner() {
     const done = document.createElement('div');
     done.id = 'bridgeBanner';
     done.style.cssText = 'background:#0B6B3A;color:#fff;font-size:12.5px;padding:8px 18px;display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap;text-align:center';
-    done.innerHTML = '<span>✔ Completed in TCOS — your Document Simulator exercise is marked done.</span><a href="../logistics-simulator/workstation.html?doc=' + encodeURIComponent(bridge.returnSlug || '') + '&bridgeReturn=1" style="color:#fff;font-weight:700;text-decoration:underline;white-space:nowrap">← Return to Document Simulator</a>';
+    done.innerHTML = '<span>✔ Completed in ICEGATE — your Document Simulator exercise is marked done.</span><a href="../logistics-simulator/workstation.html?doc=' + encodeURIComponent(bridge.returnSlug || '') + '&bridgeReturn=1" style="color:#fff;font-weight:700;text-decoration:underline;white-space:nowrap">← Return to Document Simulator</a>';
     document.body.insertBefore(done, document.body.firstChild);
     return;
   }
@@ -295,7 +359,7 @@ function renderBridgeBanner() {
   document.body.insertBefore(banner, document.body.firstChild);
   document.getElementById('bridgeCancelLink').addEventListener('click', function (e) {
     e.preventDefault();
-    confirmDialog('Cancel this filing and go back to the Logistics Document Simulator? Your TCOS progress on this filing (if any) is kept — you can finish it from TCOS directly later.', function () {
+    confirmDialog('Cancel this filing and go back to the Logistics Document Simulator? Your ICEGATE progress on this filing (if any) is kept — you can finish it from ICEGATE directly later.', function () {
       if (typeof DotBridge !== 'undefined') DotBridge.clearBridge();
       window.location.href = '../logistics-simulator/skelora-institute-dashboard.html';
     });
@@ -510,7 +574,7 @@ function submitReg() {
   document.getElementById('form').style.display = 'none';
   document.querySelector('#reg .steps').style.display = 'none';
   document.getElementById('success').classList.add('on');
-  document.getElementById('ref').textContent = 'TRAIN-TCOS-' + Math.floor(100000 + Math.random() * 900000);
+  document.getElementById('ref').textContent = 'TRAIN-ICEGATE-' + Math.floor(100000 + Math.random() * 900000);
   document.getElementById('regNewUid').textContent = newCred.userId;
   document.getElementById('regNewPwd').textContent = newCred.password;
 }
@@ -578,7 +642,7 @@ function navTo(screen) {
     /* Section 30: a render function throwing must never leave a blank/half-built screen
        with no way back — log it, tell the user plainly, and fall back to the dashboard,
        which is the one screen we can render with no external inputs. */
-    console.error('[TCOS render error]', screen, e);
+    console.error('[ICEGATE render error]', screen, e);
     if (target) target.innerHTML = '<div class="alert alert-error" style="margin:20px">Unable to load this screen. Your saved training data is unaffected — use the sidebar to go back to the Dashboard.</div>';
     toast('Unable to load that screen.', 'error');
   }
@@ -1635,7 +1699,7 @@ function handleImportFile(input) {
       return;
     }
     if (!payload || typeof payload !== 'object' || !payload.state || typeof payload.schemaVersion !== 'number') {
-      toast('Import failed — this file does not look like a TCOS training data backup.', 'error');
+      toast('Import failed — this file does not look like an ICEGATE training data backup.', 'error');
       input.value = '';
       return;
     }
@@ -1690,8 +1754,12 @@ function init() {
     }
   }
   STATE = defaultState(); // keep STATE non-null while the login/home screens are showing
+  igStartBridgeLogin();
 }
 document.addEventListener('DOMContentLoaded', init);
+document.addEventListener('keydown', function (e) {
+  if (e.key === 'Enter' && e.target && e.target.tagName === 'INPUT' && e.target.closest && e.target.closest('#login .igl-body')) login();
+});
 
 /* Section 48: role="button" elements (demo-row, feature-card, scenario-card — plain <div>s
    made clickable with onclick, since they're rendered as data-driven cards rather than real

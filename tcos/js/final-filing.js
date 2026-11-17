@@ -1,5 +1,5 @@
 /* =========================================================================
-   TCOS — ICEGATE "SUBMIT & SIGN" CONSOLE  (final step of a Shipping Bill)
+   ICEGATE — ICEGATE "SUBMIT & SIGN" CONSOLE  (final step of a Shipping Bill)
    =========================================================================
    Filing a Shipping Bill used to end with two ticks and a button. On the real
    ICEGATE portal the last stretch is much harder: you finish the form, then

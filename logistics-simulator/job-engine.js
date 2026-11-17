@@ -60,17 +60,34 @@ const INDIA_LOADING_PORTS = [
   {name:"Kochi (COK) Airport", type:"air"},
   {name:"Hyderabad (HYD) Airport", type:"air"},
   {name:"Ahmedabad (AMD) Airport", type:"air"},
-  {name:"Kolkata (CCU) Airport", type:"air"}
+  {name:"Kolkata (CCU) Airport", type:"air"},
+  {name:"Pipavav Port, Gujarat", type:"sea"},
+  {name:"Hazira Port, Gujarat", type:"sea"},
+  {name:"Dahej Port, Gujarat", type:"sea"},
+  {name:"Mormugao Port, Goa", type:"sea"},
+  {name:"Kakinada Port, Andhra Pradesh", type:"sea"},
+  {name:"Gangavaram Port, Andhra Pradesh", type:"sea"},
+  {name:"Kattupalli Port, Tamil Nadu", type:"sea"},
+  {name:"Goa (GOI) Airport", type:"air"},
+  {name:"Pune (PNQ) Airport", type:"air"},
+  {name:"Jaipur (JAI) Airport", type:"air"},
+  {name:"Thiruvananthapuram (TRV) Airport", type:"air"},
+  {name:"Kozhikode (CCJ) Airport", type:"air"},
+  {name:"Coimbatore (CJB) Airport", type:"air"}
 ];
 const DISCHARGE_PORTS_BY_COUNTRY = {
   "UAE": [
     {name:"Jebel Ali Port, Dubai", type:"sea"}, {name:"Port Rashid, Dubai", type:"sea"},
     {name:"Khalifa Port, Abu Dhabi", type:"sea"}, {name:"Port Khalid, Sharjah", type:"sea"},
-    {name:"Dubai (DXB) Airport", type:"air"}, {name:"Abu Dhabi (AUH) Airport", type:"air"}
+    {name:"Dubai (DXB) Airport", type:"air"}, {name:"Abu Dhabi (AUH) Airport", type:"air"},
+    {name:"Port of Fujairah", type:"sea"},
+    {name:"Saqr Port, Ras Al Khaimah", type:"sea"},
+    {name:"Sharjah (SHJ) Airport", type:"air"}
   ],
   "Sri Lanka": [
     {name:"Port of Colombo", type:"sea"}, {name:"Hambantota Port", type:"sea"},
-    {name:"Colombo (CMB) Airport", type:"air"}
+    {name:"Colombo (CMB) Airport", type:"air"},
+    {name:"Trincomalee Port", type:"sea"}
   ],
   "Singapore": [
     {name:"Port of Singapore (PSA)", type:"sea"}, {name:"Jurong Port", type:"sea"},
@@ -80,33 +97,51 @@ const DISCHARGE_PORTS_BY_COUNTRY = {
     {name:"Port of Shanghai", type:"sea"}, {name:"Port of Shenzhen", type:"sea"},
     {name:"Ningbo-Zhoushan Port", type:"sea"}, {name:"Port of Guangzhou", type:"sea"},
     {name:"Port of Qingdao", type:"sea"}, {name:"Port of Tianjin", type:"sea"},
-    {name:"Shanghai Pudong (PVG) Airport", type:"air"}, {name:"Guangzhou (CAN) Airport", type:"air"}
+    {name:"Shanghai Pudong (PVG) Airport", type:"air"}, {name:"Guangzhou (CAN) Airport", type:"air"},
+    {name:"Port of Xiamen", type:"sea"},
+    {name:"Port of Dalian", type:"sea"},
+    {name:"Beijing Capital (PEK) Airport", type:"air"},
+    {name:"Shenzhen Bao'an (SZX) Airport", type:"air"}
   ],
   "USA": [
     {name:"Port of Los Angeles", type:"sea"}, {name:"Port of Long Beach", type:"sea"},
     {name:"Port of New York/New Jersey", type:"sea"}, {name:"Port of Savannah", type:"sea"},
     {name:"Port of Houston", type:"sea"}, {name:"Port of Oakland", type:"sea"},
-    {name:"New York (JFK) Airport", type:"air"}, {name:"Los Angeles (LAX) Airport", type:"air"}
+    {name:"New York (JFK) Airport", type:"air"}, {name:"Los Angeles (LAX) Airport", type:"air"},
+    {name:"Port of Seattle", type:"sea"},
+    {name:"Port of Charleston", type:"sea"},
+    {name:"Port of Baltimore", type:"sea"},
+    {name:"Chicago O'Hare (ORD) Airport", type:"air"},
+    {name:"Atlanta (ATL) Airport", type:"air"}
   ],
   "Egypt": [
     {name:"Port Said", type:"sea"}, {name:"Port of Alexandria", type:"sea"},
-    {name:"Damietta Port", type:"sea"}, {name:"Cairo (CAI) Airport", type:"air"}
+    {name:"Damietta Port", type:"sea"}, {name:"Cairo (CAI) Airport", type:"air"},
+    {name:"Ain Sokhna Port", type:"sea"}
   ],
   "Germany": [
     {name:"Port of Hamburg", type:"sea"}, {name:"Port of Bremerhaven", type:"sea"},
-    {name:"Frankfurt (FRA) Airport", type:"air"}
+    {name:"Frankfurt (FRA) Airport", type:"air"},
+    {name:"Port of Bremen", type:"sea"},
+    {name:"Munich (MUC) Airport", type:"air"}
   ],
   "UK": [
     {name:"Port of Felixstowe", type:"sea"}, {name:"Port of Southampton", type:"sea"},
-    {name:"Port of London Tilbury", type:"sea"}, {name:"London Heathrow (LHR) Airport", type:"air"}
+    {name:"Port of London Tilbury", type:"sea"}, {name:"London Heathrow (LHR) Airport", type:"air"},
+    {name:"Port of Liverpool", type:"sea"},
+    {name:"Manchester (MAN) Airport", type:"air"}
   ],
   "France": [
     {name:"Port of Le Havre", type:"sea"}, {name:"Port of Marseille-Fos", type:"sea"},
-    {name:"Paris Charles de Gaulle (CDG) Airport", type:"air"}
+    {name:"Paris Charles de Gaulle (CDG) Airport", type:"air"},
+    {name:"Port of Dunkirk", type:"sea"},
+    {name:"Lyon Saint-Exupery (LYS) Airport", type:"air"}
   ],
   "Spain": [
     {name:"Port of Valencia", type:"sea"}, {name:"Port of Barcelona", type:"sea"},
-    {name:"Port of Algeciras", type:"sea"}, {name:"Madrid-Barajas (MAD) Airport", type:"air"}
+    {name:"Port of Algeciras", type:"sea"}, {name:"Madrid-Barajas (MAD) Airport", type:"air"},
+    {name:"Port of Bilbao", type:"sea"},
+    {name:"Barcelona El Prat (BCN) Airport", type:"air"}
   ],
   "Argentina": [
     {name:"Port of Buenos Aires", type:"sea"}, {name:"Port of Rosario", type:"sea"},
@@ -114,46 +149,64 @@ const DISCHARGE_PORTS_BY_COUNTRY = {
   ],
   "Brazil": [
     {name:"Port of Santos", type:"sea"}, {name:"Port of Rio de Janeiro", type:"sea"},
-    {name:"Port of Paranaguá", type:"sea"}, {name:"São Paulo Guarulhos (GRU) Airport", type:"air"}
+    {name:"Port of Paranaguá", type:"sea"}, {name:"São Paulo Guarulhos (GRU) Airport", type:"air"},
+    {name:"Port of Itajai", type:"sea"},
+    {name:"Port of Salvador", type:"sea"}
   ],
   "Japan": [
     {name:"Port of Yokohama", type:"sea"}, {name:"Port of Tokyo", type:"sea"},
     {name:"Port of Kobe", type:"sea"}, {name:"Port of Nagoya", type:"sea"}, {name:"Port of Osaka", type:"sea"},
-    {name:"Tokyo Narita (NRT) Airport", type:"air"}, {name:"Osaka Kansai (KIX) Airport", type:"air"}
+    {name:"Tokyo Narita (NRT) Airport", type:"air"}, {name:"Osaka Kansai (KIX) Airport", type:"air"},
+    {name:"Port of Hakata, Fukuoka", type:"sea"},
+    {name:"Port of Chiba", type:"sea"}
   ],
   "South Korea": [
     {name:"Port of Busan", type:"sea"}, {name:"Port of Incheon", type:"sea"},
-    {name:"Seoul Incheon (ICN) Airport", type:"air"}
+    {name:"Seoul Incheon (ICN) Airport", type:"air"},
+    {name:"Port of Gwangyang", type:"sea"},
+    {name:"Port of Ulsan", type:"sea"}
   ],
   "Vietnam": [
     {name:"Port of Ho Chi Minh (Cat Lai)", type:"sea"}, {name:"Port of Hai Phong", type:"sea"},
-    {name:"Ho Chi Minh Tan Son Nhat (SGN) Airport", type:"air"}
+    {name:"Ho Chi Minh Tan Son Nhat (SGN) Airport", type:"air"},
+    {name:"Port of Da Nang", type:"sea"},
+    {name:"Hanoi Noi Bai (HAN) Airport", type:"air"}
   ],
   "Thailand": [
     {name:"Laem Chabang Port", type:"sea"}, {name:"Port of Bangkok (Khlong Toei)", type:"sea"},
-    {name:"Bangkok Suvarnabhumi (BKK) Airport", type:"air"}
+    {name:"Bangkok Suvarnabhumi (BKK) Airport", type:"air"},
+    {name:"Map Ta Phut Port", type:"sea"}
   ],
   "Malaysia": [
     {name:"Port Klang", type:"sea"}, {name:"Port of Tanjung Pelepas", type:"sea"},
-    {name:"Kuala Lumpur (KUL) Airport", type:"air"}
+    {name:"Kuala Lumpur (KUL) Airport", type:"air"},
+    {name:"Port of Penang (Georgetown)", type:"sea"},
+    {name:"Johor Port, Pasir Gudang", type:"sea"},
+    {name:"Penang (PEN) Airport", type:"air"}
   ],
   "Indonesia": [
     {name:"Tanjung Priok Port, Jakarta", type:"sea"}, {name:"Port of Tanjung Perak, Surabaya", type:"sea"},
-    {name:"Jakarta Soekarno-Hatta (CGK) Airport", type:"air"}
+    {name:"Jakarta Soekarno-Hatta (CGK) Airport", type:"air"},
+    {name:"Port of Belawan, Medan", type:"sea"},
+    {name:"Port of Semarang", type:"sea"}
   ],
   "Bangladesh": [
     {name:"Port of Chittagong", type:"sea"}, {name:"Port of Mongla", type:"sea"},
-    {name:"Dhaka (DAC) Airport", type:"air"}
+    {name:"Dhaka (DAC) Airport", type:"air"},
+    {name:"Port of Payra", type:"sea"}
   ],
   "Nepal": [
     {name:"Birgunj ICD (Dry Port)", type:"sea"}, {name:"Kathmandu Tribhuvan (KTM) Airport", type:"air"}
   ],
   "Saudi Arabia": [
     {name:"Jeddah Islamic Port", type:"sea"}, {name:"King Abdulaziz Port, Dammam", type:"sea"},
-    {name:"Jeddah (JED) Airport", type:"air"}, {name:"Riyadh (RUH) Airport", type:"air"}
+    {name:"Jeddah (JED) Airport", type:"air"}, {name:"Riyadh (RUH) Airport", type:"air"},
+    {name:"Port of Yanbu", type:"sea"},
+    {name:"Dammam King Fahd (DMM) Airport", type:"air"}
   ],
   "Qatar": [
-    {name:"Hamad Port, Doha", type:"sea"}, {name:"Doha Hamad (DOH) Airport", type:"air"}
+    {name:"Hamad Port, Doha", type:"sea"}, {name:"Doha Hamad (DOH) Airport", type:"air"},
+    {name:"Ras Laffan Port", type:"sea"}
   ],
   "Kuwait": [
     {name:"Shuwaikh Port", type:"sea"}, {name:"Shuaiba Port", type:"sea"},
@@ -161,7 +214,9 @@ const DISCHARGE_PORTS_BY_COUNTRY = {
   ],
   "Oman": [
     {name:"Port of Salalah", type:"sea"}, {name:"Port Sultan Qaboos, Muscat", type:"sea"},
-    {name:"Muscat (MCT) Airport", type:"air"}
+    {name:"Muscat (MCT) Airport", type:"air"},
+    {name:"Port of Sohar", type:"sea"},
+    {name:"Port of Duqm", type:"sea"}
   ],
   "Bahrain": [
     {name:"Khalifa Bin Salman Port", type:"sea"}, {name:"Bahrain (BAH) Airport", type:"air"}
@@ -172,11 +227,16 @@ const DISCHARGE_PORTS_BY_COUNTRY = {
   ],
   "Italy": [
     {name:"Port of Genoa", type:"sea"}, {name:"Port of Gioia Tauro", type:"sea"},
-    {name:"Port of La Spezia", type:"sea"}, {name:"Milan Malpensa (MXP) Airport", type:"air"}
+    {name:"Port of La Spezia", type:"sea"}, {name:"Milan Malpensa (MXP) Airport", type:"air"},
+    {name:"Port of Naples", type:"sea"},
+    {name:"Port of Trieste", type:"sea"},
+    {name:"Rome Fiumicino (FCO) Airport", type:"air"}
   ],
   "Turkey": [
     {name:"Port of Ambarli, Istanbul", type:"sea"}, {name:"Port of Mersin", type:"sea"},
-    {name:"Istanbul (IST) Airport", type:"air"}
+    {name:"Istanbul (IST) Airport", type:"air"},
+    {name:"Port of Izmir", type:"sea"},
+    {name:"Port of Gemlik", type:"sea"}
   ],
   "Russia": [
     {name:"Port of Novorossiysk (RUNVS)", type:"sea"}, {name:"Port of St. Petersburg (RULED)", type:"sea"},
@@ -184,28 +244,37 @@ const DISCHARGE_PORTS_BY_COUNTRY = {
   ],
   "South Africa": [
     {name:"Port of Durban (ZADUR)", type:"sea"}, {name:"Port of Cape Town (ZACPT)", type:"sea"},
-    {name:"Johannesburg O.R. Tambo (JNB) Airport", type:"air"}
+    {name:"Johannesburg O.R. Tambo (JNB) Airport", type:"air"},
+    {name:"Port of Richards Bay", type:"sea"},
+    {name:"Port of Gqeberha (Port Elizabeth)", type:"sea"}
   ],
   "Australia": [
     {name:"Port of Sydney (AUSYD)", type:"sea"}, {name:"Port of Melbourne (AUMEL)", type:"sea"},
-    {name:"Sydney Kingsford Smith (SYD) Airport", type:"air"}
+    {name:"Sydney Kingsford Smith (SYD) Airport", type:"air"},
+    {name:"Port of Brisbane", type:"sea"},
+    {name:"Port of Fremantle", type:"sea"}
   ],
   "Canada": [
     {name:"Port of Vancouver (CAVAN)", type:"sea"}, {name:"Port of Montreal (CAMTR)", type:"sea"},
-    {name:"Toronto Pearson (YYZ) Airport", type:"air"}
+    {name:"Toronto Pearson (YYZ) Airport", type:"air"},
+    {name:"Port of Halifax", type:"sea"},
+    {name:"Port of Prince Rupert", type:"sea"}
   ],
   "Mexico": [
     {name:"Port of Veracruz (MXVER)", type:"sea"}, {name:"Port of Manzanillo (MXZLO)", type:"sea"},
-    {name:"Mexico City (MEX) Airport", type:"air"}
+    {name:"Mexico City (MEX) Airport", type:"air"},
+    {name:"Port of Lazaro Cardenas", type:"sea"}
   ],
   "Kenya": [
     {name:"Port of Mombasa (KEMBA)", type:"sea"}, {name:"Nairobi Jomo Kenyatta (NBO) Airport", type:"air"}
   ],
   "Nigeria": [
-    {name:"Port of Lagos, Apapa (NGAPP)", type:"sea"}, {name:"Lagos Murtala Muhammed (LOS) Airport", type:"air"}
+    {name:"Port of Lagos, Apapa (NGAPP)", type:"sea"}, {name:"Lagos Murtala Muhammed (LOS) Airport", type:"air"},
+    {name:"Tin Can Island Port, Lagos", type:"sea"}
   ],
   "Iran": [
-    {name:"Port of Bandar Abbas (IRBND)", type:"sea"}, {name:"Tehran Imam Khomeini (IKA) Airport", type:"air"}
+    {name:"Port of Bandar Abbas (IRBND)", type:"sea"}, {name:"Tehran Imam Khomeini (IKA) Airport", type:"air"},
+    {name:"Port of Chabahar", type:"sea"}
   ],
   "Israel": [
     {name:"Port of Haifa (ILHFA)", type:"sea"}, {name:"Port of Ashdod (ILASH)", type:"sea"},
@@ -230,7 +299,8 @@ const VESSEL_NAMES = [
   "Maersk Edinburgh", "CMA CGM Marco Polo", "CMA CGM Antoine de Saint Exupéry",
   "COSCO Shipping Universe", "Ever Given", "Ever Ace", "Hapag-Lloyd Berlin Express",
   "ONE Innovation", "NYK Constellation", "OOCL Hong Kong", "Yang Ming Wellhead",
-  "HMM Algeciras", "APL Temasek", "Wan Hai 307"
+  "HMM Algeciras", "APL Temasek", "Wan Hai 307",
+  "MSC Irina", "MSC Oscar", "MSC Tessa", "MSC Mia", "Maersk Mc-Kinney Moller", "Maersk Essex", "Maersk Halifax", "CMA CGM Jacques Saade", "CMA CGM Bougainville", "CMA CGM Tigris", "COSCO Shipping Taurus", "COSCO Shipping Aries", "Ever Alot", "Ever Aim", "Hamburg Express", "ONE Apus", "ONE Trust", "YM Warranty", "HMM Oslo", "HMM Copenhagen", "APL Raffles", "NYK Blue Jay", "NYK Swan"
 ];
 // Real-world operator for each VESSEL_NAMES entry — feeds the "Available
 // Vessels" ship-picker's Carrier column below.
@@ -249,7 +319,30 @@ const VESSEL_CARRIER_MAP = {
   "Yang Ming Wellhead": "Yang Ming Marine Transport",
   "HMM Algeciras": "HMM Co. Ltd.",
   "APL Temasek": "APL (a CMA CGM company)",
-  "Wan Hai 307": "Wan Hai Lines"
+  "Wan Hai 307": "Wan Hai Lines",
+  "MSC Irina": "Mediterranean Shipping Company (MSC)",
+  "MSC Oscar": "Mediterranean Shipping Company (MSC)",
+  "MSC Tessa": "Mediterranean Shipping Company (MSC)",
+  "MSC Mia": "Mediterranean Shipping Company (MSC)",
+  "Maersk Mc-Kinney Moller": "Maersk Line",
+  "Maersk Essex": "Maersk Line",
+  "Maersk Halifax": "Maersk Line",
+  "CMA CGM Jacques Saade": "CMA CGM",
+  "CMA CGM Bougainville": "CMA CGM",
+  "CMA CGM Tigris": "CMA CGM",
+  "COSCO Shipping Taurus": "COSCO Shipping Lines",
+  "COSCO Shipping Aries": "COSCO Shipping Lines",
+  "Ever Alot": "Evergreen Marine",
+  "Ever Aim": "Evergreen Marine",
+  "Hamburg Express": "Hapag-Lloyd",
+  "ONE Apus": "Ocean Network Express (ONE)",
+  "ONE Trust": "Ocean Network Express (ONE)",
+  "YM Warranty": "Yang Ming Marine Transport",
+  "HMM Oslo": "HMM Co. Ltd.",
+  "HMM Copenhagen": "HMM Co. Ltd.",
+  "APL Raffles": "APL (a CMA CGM company)",
+  "NYK Blue Jay": "NYK Line",
+  "NYK Swan": "NYK Line"
 };
 function skCarrierForVessel(vessel){ return VESSEL_CARRIER_MAP[vessel] || "Independent Carrier"; }
 
@@ -816,7 +909,7 @@ function skGetActiveJob(userId){
    =========================================================================
    A Sea Export shipment does not need all 49 documents of the full practice set. These 36 are the ones a Sea Export
    Shipment Lot genuinely needs end to end: the commercial chain (Proforma -> Sales Order -> LC -> Commercial Invoice
-   -> Packing List), the export clearance chain (Export Declaration -> Shipping Bill filed in TCOS -> EGM, plus the
+   -> Packing List), the export clearance chain (Export Declaration -> Shipping Bill filed in ICEGATE -> EGM, plus the
    Export Licence / RCMC / LUT / ICEGATE registration the exporter needs), the booking + container chain (Shipping
    Instructions -> Booking -> Shipping Order -> CLP -> Container Packing Certificate -> Seal Report -> VGM -> Weight
    Certificate -> EIR), the road-leg chain the simulator makes a prerequisite of the Dock Receipt (Delivery Challan,
@@ -870,11 +963,11 @@ function skIsDocMandatory(slug, mode){
   return SK_MANDATORY_DOCS_SEA_EXPORT.indexOf(slug) >= 0;
 }
 function skMandatoryLabelHTML(slug, mode){
+  /* v45: no "Mandatory"/"Optional" pills any more — a mandatory document just carries one small fluorescent-yellow star
+     (an optional one carries nothing). The dark thin outline keeps the yellow readable on a white background. */
   const m = skIsDocMandatory(slug, mode);
-  if(m === null) return "";
-  return m
-    ? ' <span class="sk-doc-req sk-doc-mandatory" title="Needed to complete a Sea Export shipment" style="display:inline-block;vertical-align:middle;margin-left:6px;padding:1px 7px;border-radius:999px;font-size:10px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;background:color-mix(in srgb, var(--green) 15%, white);color:var(--green);">Mandatory</span>'
-    : ' <span class="sk-doc-req sk-doc-optional" title="Not needed to complete a Sea Export shipment \u2014 extra practice" style="display:inline-block;vertical-align:middle;margin-left:6px;padding:1px 7px;border-radius:999px;font-size:10px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;background:var(--surface-alt);color:var(--text-3);">Optional</span>';
+  if(m !== true) return "";
+  return ' <span class="sk-doc-req sk-doc-mandatory" title="Mandatory \u2014 needed to complete a ' + mode + ' shipment" aria-label="Mandatory document" style="display:inline-block;vertical-align:middle;margin-left:5px;font-size:13px;line-height:1;color:#F2FF00;-webkit-text-stroke:.5px #8C8A00;text-shadow:0 0 3px rgba(242,255,0,.95),0 0 1px #8C8A00;">\u2605</span>';
 }
 
 /* Walks the PREREQUISITES chain (workflow-rules.js) and returns `slugs`
@@ -1107,7 +1200,62 @@ function skGetJobScopeProgress(userId, job){
    own picks included those prerequisites or not. Slugs outside `slugs`
    (or ones skGetPrerequisites doesn't know about) are simply not chased
    further. */
+/* v50: the guided order is the Recommended Document Workflow (WORKFLOW_ORDER, workflow-rules.js — the same chain the Shipments page
+   shows), NOT the order the documents happened to be ticked in the picker (which is alphabetical inside each category and made
+   "Next" jump e.g. from Commercial Invoice to Bill of Exchange, or start an import with Bill of Exchange). Prerequisites are still
+   pulled in front of the document that needs them. Slugs the chain doesn't list keep their given order, after the listed ones. */
+let _skWfIndex = null;
+function skWorkflowIndex(){
+  if(_skWfIndex) return _skWfIndex;
+  const idx = {};
+  try{
+    if(typeof WORKFLOW_ORDER !== "undefined" && typeof EXERCISES !== "undefined"){
+      WORKFLOW_ORDER.forEach((title, i)=>{
+        const url = EXERCISES[title];
+        const mm = url ? /[?&]doc=([^&#]+)/.exec(url) : null;
+        const slug = mm ? decodeURIComponent(mm[1]) : null;
+        if(slug && idx[slug] === undefined) idx[slug] = i;
+      });
+    }
+  }catch(e){}
+  if(Object.keys(idx).length) _skWfIndex = idx;
+  return idx;
+}
+/* The Recommended Document Workflow chain is export-led (e.g. it puts the inland-transport documents - Vehicle Inspection, Dispatch Note,
+   Lorry Receipt - in the middle, before the import documents). For IMPORT shipments those belong AFTER customs clearance, and the
+   importer's own paperwork (authorization, LC, import invoice / packing list) comes before the freight documents. So imports use this
+   chain instead; any document it doesn't list falls back to the general chain, after the listed ones. */
+const SK_IMPORT_CHAIN = [
+  "icegate-registration-form","registration-cum-membership-certificate","vendor-master","supplier-evaluation","purchase-requisition",
+  "request-for-quotation","vendor-comparison-statement","purchase-order","import-permit","import-license","importer-authorization",
+  "letter-of-credit","bank-guarantee","ocean-freight-quotation","flight-schedule","cargo-acceptance","import-invoice","import-packing-list",
+  "marine-insurance-policy","insurance-certificate","certificate-of-origin","gsp-certificate-of-origin","certificate-of-analysis",
+  "fumigation-certificate","phytosanitary-certificate","weight-certificate","health-certificate","halal-kosher-certificate",
+  "dangerous-goods-declaration","msds","master-bill-of-lading","house-bill-of-lading","bill-of-lading-sea","sea-waybill","multimodal-transport-document",
+  "air-waybill","air-freight-invoice","uld-manifest","freight-invoice-sea","bill-of-exchange","cargo-manifest","transshipment-permit",
+  "importer-security-filing","arrival-notice","container-destuffing","import-checklist","bill-of-entry","customs-declaration","assessment-copy",
+  "duty-calculation","duty-challan","examination-report","out-of-charge","delivery-order","customs-gate-pass","demurrage-detention-invoice",
+  "equipment-interchange-receipt","cfs-gate-pass","vehicle-inspection-report","road-permit","trip-sheet","delivery-challan","dispatch-note",
+  "lorry-receipt","e-way-bill","weighbridge-slip","dock-receipt","fuel-slip","toll-receipt","freight-memo","transport-invoice",
+  "goods-receipt-note","put-away-slip","warehouse-receipt","bin-card","damage-report","cargo-survey-damage-claim-report",
+  "marine-insurance-claim-form","proof-of-delivery","letter-of-indemnity","vendor-bill","payment-voucher","credit-note","debit-note",
+  "bank-realization-certificate","inventory-valuation-report"
+];
+let _skImpIndex = null;
+function skSortSlugsByWorkflow(slugs, mode){
+  const idx = skWorkflowIndex();
+  let imp = null;
+  if(mode && /import/i.test(String(mode))){
+    if(!_skImpIndex){ _skImpIndex = {}; SK_IMPORT_CHAIN.forEach((s, i)=>{ _skImpIndex[s] = i; }); }
+    imp = _skImpIndex;
+  }
+  const rank = s => imp ? (imp[s] !== undefined ? imp[s] : 1000 + (idx[s] === undefined ? 1e6 : idx[s]))
+                        : (idx[s] === undefined ? 1e6 : idx[s]);
+  return (slugs || []).map((s, i)=>({s, i, w: rank(s)}))
+    .sort((a, b)=>(a.w - b.w) || (a.i - b.i)).map(x=>x.s);
+}
 function skTopologicalOrderDocs(slugs, mode, keepSet){
+  slugs = skSortSlugsByWorkflow(slugs, mode);
   const inScope = new Set(slugs || []);
   const visited = new Set();
   const order = [];
@@ -2038,7 +2186,7 @@ function skCompanyFieldMatch(company, keywords){
    where it failed. Every rule below is the INTERSECTION of the document
    rules for the same contextKey, so a value that passes here is accepted
    by every document it autofills into. skValidateJobConsistency adds the
-   cross-field checks that TCOS (customs filing) enforces anyway.
+   cross-field checks that ICEGATE (customs filing) enforces anyway.
    =================================================================== */
 function skJobFieldPatternFor(fd, mode){
   if(!fd) return null;
@@ -2087,7 +2235,7 @@ function skValidateJobConsistency(fields, items, mode){
     });
     if(inv !== null && complete && Math.abs(inv - total) > SK_JOB_MONEY_TOL)
       out.push({scope:"field", key:"invoiceValue", message:"Invoice Value (" + inv.toFixed(2) + ") must equal the item total (" + total.toFixed(2) + ") = Σ (Quantity × Unit Price − Discount)."});
-    // 3. Gross Weight must equal the sum of item weights (TCOS hard-validates this).
+    // 3. Gross Weight must equal the sum of item weights (ICEGATE hard-validates this).
     const gw = _sk_num(fields.grossWeight);
     let wsum = 0, wcomplete = items.length > 0;
     items.forEach(it=>{ const w = _sk_num(it.weight); if(w === null) wcomplete = false; else wsum += w; });

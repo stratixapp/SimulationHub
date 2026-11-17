@@ -1,5 +1,5 @@
 /* ============================================================
-   CONSIGNIA DESK — Logistics ⇄ TCOS bridge (receiving side)
+   CONSIGNIA DESK — Logistics ⇄ ICEGATE bridge (receiving side)
    ------------------------------------------------------------
    Mirrors the same fuzzy-match-or-leave-blank philosophy as
    skTcosPrefillFilingFromJobData (tcos/js/filingForm.js) for the
@@ -8,7 +8,7 @@
    or leave it for the student to pick. The Export Brief still
    lands on screen for review before a job is created (Section 43
    — no silent autofill), it just starts from real Job data
-   instead of a blank form or a TCOS scenario pick.
+   instead of a blank form or an ICEGATE scenario pick.
    ============================================================ */
 
 var XD_BRIDGE_TARGET_DOC_TYPE = null;
@@ -37,7 +37,7 @@ function xdFuzzyMatchFromList(list, value) {
 }
 
 
-/* Units the Logistics simulator allows but TCOS has no equivalent for (MT, LTR, SQM...) — tell
+/* Units the Logistics simulator allows but ICEGATE has no equivalent for (MT, LTR, SQM...) — tell
    the student instead of letting a default silently read "20 PCS". */
 function xdUnmappedUnits(jd) {
   const seen = [];
@@ -89,7 +89,7 @@ function beginConsigniaFromBridge(jobData, docType) {
     ftaClaim: false, dangerousGoods: xdAnyDG(jd), scomet: false, packagingMaterial: '',
     linkedFilingId: '', linkedBookingId: '',
     items: parts.items, containers: parts.containers, consignment: parts.consignment,
-    notes: `Started from the Logistics Document Simulator via the TCOS bridge, for: ${EXPORT_DOC_CATALOG[docType] ? EXPORT_DOC_CATALOG[docType].label : (docType || 'your full Export Job')}. Review every field below - matched values come from your Shipment Lot; anything it could not match confidently is left blank for you.`
+    notes: `Started from the Logistics Document Simulator via the ICEGATE bridge, for: ${EXPORT_DOC_CATALOG[docType] ? EXPORT_DOC_CATALOG[docType].label : (docType || 'your full Export Job')}. Review every field below - matched values come from your Shipment Lot; anything it could not match confidently is left blank for you.`
   };
   navTo('exportJobBrief');
 }
@@ -160,7 +160,7 @@ function xdOpenShippingBill(jobId) {
    is seeded from it THE FIRST TIME it is opened.
 
    Rules (same cautious philosophy as the rest of this file):
-   - Only ever fills EMPTY values; never overwrites a TCOS default or
+   - Only ever fills EMPTY values; never overwrites an ICEGATE default or
      anything the student typed.
    - Constrained dropdowns (country / port / unit / package type /
      incoterm / currency) are filled only on a confident match, otherwise
@@ -169,7 +169,7 @@ function xdOpenShippingBill(jobId) {
      / LC numbers, dates, insured value, certificate numbers, botanical
      name, ...) are NOT invented here.
    - No-op for jobs that were not created through the bridge, so normal
-     TCOS use is completely unchanged.
+     ICEGATE use is completely unchanged.
    ============================================================ */
 
 function xdSet(obj, key, val) {
@@ -181,8 +181,8 @@ function xdSet(obj, key, val) {
 function xdCountry(name) { return (typeof bridgeMatchCountry === 'function') ? bridgeMatchCountry(name) : ''; }
 function xdPort(name, list) { return (typeof bridgeMatchPort === 'function') ? bridgeMatchPort(name, list) : ''; }
 function xdNorm(x) { return String(x || '').toLowerCase().replace(/[^a-z]/g, '').replace(/s$/, ''); }
-/* Logistics unit / package vocabulary -> TCOS vocabulary. Every Job unit now has
-   a TCOS equivalent (KG->KGS, MT->MTS, DZN->DOZ, LTR, SQM); only an unknown unit is left blank. */
+/* Logistics unit / package vocabulary -> ICEGATE vocabulary. Every Job unit now has
+   an ICEGATE equivalent (KG->KGS, MT->MTS, DZN->DOZ, LTR, SQM); only an unknown unit is left blank. */
 const XD_UNIT_ALIAS = (typeof BRIDGE_UNIT_ALIAS !== 'undefined') ? BRIDGE_UNIT_ALIAS : { PCS: 'PCS', SET: 'SET', KG: 'KGS', KGS: 'KGS', MT: 'MTS', DZN: 'DOZ', DOZ: 'DOZ', CTN: 'CTN', BOX: 'BOX', LTR: 'LTR', SQM: 'SQM', PAIR: 'PAIR', MTR: 'MTR' };
 function xdUnit(u) { const k = String(u || '').trim().toUpperCase(); return XD_UNIT_ALIAS[k] && UNITS.includes(XD_UNIT_ALIAS[k]) ? XD_UNIT_ALIAS[k] : ''; }
 function xdPkgType(p) { return (typeof bridgeMatchPackageType === 'function') ? bridgeMatchPackageType(p) : ''; }
@@ -316,6 +316,7 @@ function xdSeedTransport(f, jd) {
 function skTcosPrefillBookingFromJobData(booking, jd) {
   try {
     if (!booking || !jd) return;
+    if (jd.jobId) booking.bridgeJobId = String(jd.jobId);   // v44: Shipment Lot id, stamped into the booking's PDFs
     const isImport = jd.direction === 'import' || (!jd.direction && /import/i.test(jd.mode || ''));
     xdSet(booking, 'shipperName', jd.sellerName); xdSet(booking, 'shipperAddress', jd.sellerAddress); xdSet(booking, 'shipperContact', jd.sellerPhone);
     xdSet(booking, 'consigneeName', jd.buyerName); xdSet(booking, 'consigneeAddress', jd.buyerAddress); xdSet(booking, 'consigneeContact', jd.buyerPhone);

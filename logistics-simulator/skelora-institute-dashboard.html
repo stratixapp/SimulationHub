@@ -539,8 +539,12 @@
   /* Job creation - A/B/C autofill tier picker */
   .autofill-tier-box{cursor:pointer;}
   .autofill-tier-box input{position:absolute;opacity:0;width:0;height:0;}
-  .autofill-tier-box .atb-inner{display:flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface);}
-  .autofill-tier-box .atb-inner b{font-size:15px;font-weight:700;color:var(--text-3);}
+  .autofill-tier-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+  .autofill-tier-box{display:block;}
+  .autofill-tier-box .atb-inner{display:flex;flex-direction:column;gap:4px;height:100%;padding:9px 10px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface);}
+  .autofill-tier-box .atb-inner b{font-size:13px;font-weight:700;color:var(--text-2);}
+  .autofill-tier-box .atb-inner small{font-size:10.8px;line-height:1.35;color:var(--text-3);}
+  @media (max-width:640px){.autofill-tier-row{grid-template-columns:1fr;}}
   .autofill-tier-box input:checked + .atb-inner{border-color:var(--accent);background:var(--accent-soft);}
   .autofill-tier-box input:checked + .atb-inner b{color:var(--accent);}
   .autofill-tier-box input:focus-visible + .atb-inner{outline:2px solid var(--accent);outline-offset:1px;}
@@ -1187,26 +1191,12 @@
       <circle cx="0" cy="60" r="3" fill="#0B2A4A"/><circle cx="160" cy="30" r="3" fill="#0B2A4A"/><circle cx="340" cy="45" r="3" fill="#0B2A4A"/>
     </svg>
     <div>
-      <h1>Active Shipment</h1>
-      <div class="sub" id="shipmentSub">Your assigned shipment scenario for this account</div>
+      <h1>Shipments</h1>
+      <div class="sub" id="shipmentSub">Every Shipment Lot you create — full details and history</div>
     </div>
   </div>
 
-  <div class="panel" style="margin-bottom:22px;">
-    <div class="panel-head">
-      <h2 id="shipmentIdHeading">Shipment</h2>
-      <div class="shipment-status-badge" id="shipmentStatusBadge">Status</div>
-    </div>
-    <div class="panel-body">
-      <div class="shipment-info-grid" id="shipmentInfoGrid"></div>
-      <div style="margin-top:18px;">
-        <div style="display:flex;align-items:center;justify-content:space-between;font-size:12px;color:var(--text-2);margin-bottom:6px;">
-          <span>Documentation Progress</span><span id="shipmentPct" style="font-weight:700;"></span>
-        </div>
-        <div class="task-progress-track" style="height:9px;"><div class="task-progress-fill" id="shipmentPctFill" style="height:100%;"></div></div>
-      </div>
-    </div>
-  </div>
+  <div id="shipmentLots"></div>
 
   <div class="panel">
     <div class="panel-head"><h2>Recommended Document Workflow</h2><div class="sub">A guide, not a gate — every document in the library is always open to jump into directly</div></div>
@@ -1248,9 +1238,9 @@
 <script src="../shared/vendor/jspdf.umd.min.js"></script>
 <script src="../shared/vendor/jszip.min.js"></script>
 <script src="../shared/vendor/chart.umd.min.js"></script>
-<!-- Same Logistics ⇄ TCOS bridge used inside a single document's exercise
+<!-- Same Logistics ⇄ ICEGATE bridge used inside a single document's exercise
      (workstation.html) — loaded here too so the dashboard can offer a
-     direct "continue this Shipment Lot in TCOS" entry point that isn't
+     direct "continue this Shipment Lot in ICEGATE" entry point that isn't
      gated behind first opening one specific document. -->
 <script src="../shared/tcos-bridge.js"></script>
 <!-- DOT Ecosystem Trade & Customs certificate (auto-issued PDF) -->
@@ -1775,6 +1765,33 @@ function exportOneDocAsPdf(slug){
     document.body.appendChild(iframe);
   });
 }
+/* v46: one document -> into the ZIP.
+   - done through ICEGATE  -> the REAL ICEGATE PDF kept in the PDF vault (Logistics only stores that document's number, so
+                           rendering it here would give a mostly blank form). No vault copy (e.g. Out of Charge / Duty Challan,
+                           which ICEGATE completes as part of the Bill of Entry) -> not zipped, listed in a README instead.
+   - done in Logistics  -> rendered from the student's own answers, as before.
+   returns 'ok' | 'tcos-skipped' | 'failed' */
+async function skZipAddDoc(zip, slug, tcosNotes){
+  const prog = (typeof skGetDocProgress === 'function') ? skGetDocProgress(CURRENT_USER.id, slug) : null;
+  const title = (typeof _sk_slugToTitle === 'function') ? _sk_slugToTitle(slug) : slug;
+  if(prog && prog.viaTcos){
+    let rec = null;
+    try{ if(typeof DotBridge !== 'undefined' && DotBridge.getPdf) rec = await DotBridge.getPdf(CURRENT_USER.email, slug); }catch(e){}
+    if(rec && rec.blob){
+      zip.file(rec.filename || (slug + '.pdf'), rec.blob);
+      return 'ok';
+    }
+    tcosNotes.push(title + ' (' + slug + ') - completed in ICEGATE; no separate PDF is kept for it here' + ((prog.formData && Object.values(prog.formData)[0]) ? ' (ref ' + Object.values(prog.formData)[0] + ')' : '') + '.');
+    return 'tcos-skipped';
+  }
+  const result = await exportOneDocAsPdf(slug);
+  if(result && result.dataUri){ zip.file(result.filename, result.dataUri.split(',')[1], {base64:true}); return 'ok'; }
+  return 'failed';
+}
+function skZipTcosReadme(zip, tcosNotes){
+  if(!tcosNotes.length) return;
+  zip.file('README_ICEGATE_documents.txt', 'Documents completed in ICEGATE that have no separate PDF in this pack:\r\n\r\n' + tcosNotes.map(n=>'- ' + n).join('\r\n') + '\r\n\r\nTheir details are part of the main ICEGATE PDF (Shipping Bill / Bill of Entry) or can be re-opened in ICEGATE.\r\n');
+}
 async function bulkExportAllCompletedPdfs(){
   if(typeof JSZip === "undefined"){ showToast("ZIP tool didn't load — check your internet connection and try again."); return; }
   const slugs = getCompletedSlugs();
@@ -1788,18 +1805,14 @@ async function bulkExportAllCompletedPdfs(){
   const shipShownAt = Date.now();
   const MIN_SHIP_MS = 3000;
   const zip = new JSZip();
-  let ok = 0, failed = 0;
+  let ok = 0, failed = 0, tcosSkipped = 0;
+  const tcosNotes = [];
   for(let i=0; i<slugs.length; i++){
     progressEl.textContent = `Generating PDF ${i+1} of ${slugs.length}…`;
-    const result = await exportOneDocAsPdf(slugs[i]);
-    if(result && result.dataUri){
-      const base64 = result.dataUri.split(',')[1];
-      zip.file(result.filename, base64, {base64:true});
-      ok++;
-    } else {
-      failed++;
-    }
+    const r = await skZipAddDoc(zip, slugs[i], tcosNotes);
+    if(r === 'ok') ok++; else if(r === 'tcos-skipped') tcosSkipped++; else failed++;
   }
+  skZipTcosReadme(zip, tcosNotes);
   progressEl.textContent = 'Packaging ZIP…';
   const blob = await zip.generateAsync({type:'blob'});
   const url = URL.createObjectURL(blob);
@@ -1808,7 +1821,7 @@ async function bulkExportAllCompletedPdfs(){
   a.download = `skelora-completed-documents-${(CURRENT_USER.name||'student').replace(/[^a-zA-Z0-9_-]+/g,'-')}.zip`;
   document.body.appendChild(a); a.click(); a.remove();
   URL.revokeObjectURL(url);
-  progressEl.textContent = failed ? `Done — ${ok} PDF(s) zipped, ${failed} skipped (couldn't render).` : `Done — ${ok} PDF(s) zipped and downloaded.`;
+  progressEl.textContent = `Done — ${ok} PDF(s) zipped and downloaded.` + (failed ? ` ${failed} skipped (couldn't render).` : '') + (tcosSkipped ? ` ${tcosSkipped} ICEGATE-completed document(s) have no separate PDF — see README_ICEGATE_documents.txt in the ZIP.` : '');
   { const elapsed = Date.now() - shipShownAt; if(elapsed < MIN_SHIP_MS) await new Promise(r=>setTimeout(r, MIN_SHIP_MS - elapsed)); }
   if(shipEl) shipEl.style.display = 'none';
   btn.disabled = false;
@@ -1837,18 +1850,14 @@ async function bulkExportJobPdfs(job){
   const shipShownAt = Date.now();
   const MIN_SHIP_MS = 3000;
   const zip = new JSZip();
-  let ok = 0, failed = 0;
+  let ok = 0, failed = 0, tcosSkipped = 0;
+  const tcosNotes = [];
   for(let i=0; i<slugs.length; i++){
     if(progressEl) progressEl.textContent = `Generating PDF ${i+1} of ${slugs.length}…`;
-    const result = await exportOneDocAsPdf(slugs[i]);
-    if(result && result.dataUri){
-      const base64 = result.dataUri.split(',')[1];
-      zip.file(result.filename, base64, {base64:true});
-      ok++;
-    } else {
-      failed++;
-    }
+    const r = await skZipAddDoc(zip, slugs[i], tcosNotes);
+    if(r === 'ok') ok++; else if(r === 'tcos-skipped') tcosSkipped++; else failed++;
   }
+  skZipTcosReadme(zip, tcosNotes);
   if(progressEl) progressEl.textContent = 'Packaging ZIP…';
   const blob = await zip.generateAsync({type:'blob'});
   const url = URL.createObjectURL(blob);
@@ -1857,7 +1866,7 @@ async function bulkExportJobPdfs(job){
   a.download = `skelora-job-${(job.jobId||'job').replace(/[^a-zA-Z0-9_-]+/g,'-')}-documents.zip`;
   document.body.appendChild(a); a.click(); a.remove();
   URL.revokeObjectURL(url);
-  if(progressEl) progressEl.textContent = failed ? `Done — ${ok} PDF(s) zipped, ${failed} skipped (couldn't render).` : `Done — ${ok} PDF(s) zipped and downloaded.`;
+  if(progressEl) progressEl.textContent = `Done — ${ok} PDF(s) zipped and downloaded.` + (failed ? ` ${failed} skipped (couldn't render).` : '') + (tcosSkipped ? ` ${tcosSkipped} ICEGATE-completed document(s) have no separate PDF — see README_ICEGATE_documents.txt in the ZIP.` : '');
   { const elapsed = Date.now() - shipShownAt; if(elapsed < MIN_SHIP_MS) await new Promise(r=>setTimeout(r, MIN_SHIP_MS - elapsed)); }
   if(shipEl) shipEl.style.display = 'none';
   if(btn) btn.disabled = false;
@@ -2254,24 +2263,120 @@ function skGetOrCreateShipment(){
   return fresh;
 }
 
+/* v45: the Shipments page shows the REAL Shipment Lots the student created — the active one (with every detail,
+   items and per-document status) and the history of finished / closed ones (each expandable to the same detail).
+   The old randomly generated "assigned scenario" is gone. */
+function skShEsc(v){ return String(v == null ? '' : v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function skShDate(iso){ if(!iso) return '—'; const d = new Date(iso); return isNaN(d.getTime()) ? '—' : d.toLocaleDateString([], {day:'2-digit', month:'short', year:'numeric'}) + ' ' + d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}); }
+function skShLotDetailHTML(job, opts){
+  const f = job.fields || {};
+  const sections = [];
+  (typeof JOB_FIELD_MAP !== 'undefined' ? JOB_FIELD_MAP : []).forEach(def=>{
+    const v = f[def.key];
+    if(v === undefined || v === null || String(v).trim() === '') return;
+    const sec = def.section || 'Other';
+    let g = sections.find(x=>x.name === sec);
+    if(!g){ g = {name: sec, rows: []}; sections.push(g); }
+    g.rows.push([def.label, v]);
+  });
+  const secHTML = sections.map(g=>`
+    <div style="margin-top:16px;">
+      <div style="font-size:11.5px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;">${skShEsc(g.name)}</div>
+      <div class="shipment-info-grid">${g.rows.map(([l,v])=>`<div class="shipment-info-item"><div class="l">${skShEsc(l)}</div><div class="v">${skShEsc(v)}</div></div>`).join('')}</div>
+    </div>`).join('');
+  const items = Array.isArray(f.items) ? f.items : (Array.isArray(job.items) ? job.items : []);   // items live in job.fields.items[]
+  const itemFields = (typeof JOB_ITEM_FIELD_MAP !== 'undefined' ? JOB_ITEM_FIELD_MAP : []).filter(d=>items.some(it=>it && String(it[d.key] == null ? '' : it[d.key]).trim() !== ''));
+  const itemsHTML = items.length ? `
+    <div style="margin-top:18px;">
+      <div style="font-size:11.5px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;">Items (${items.length})</div>
+      <div style="overflow-x:auto;border:1px solid var(--border);border-radius:10px;">
+        <table style="border-collapse:collapse;width:100%;font-size:12px;">
+          <thead><tr>${itemFields.map(d=>`<th style="text-align:left;padding:7px 10px;background:var(--surface-alt);white-space:nowrap;border-bottom:1px solid var(--border);">${skShEsc(d.label)}</th>`).join('')}</tr></thead>
+          <tbody>${items.map(it=>`<tr>${itemFields.map(d=>`<td style="padding:7px 10px;border-bottom:1px solid var(--border);white-space:nowrap;">${skShEsc(it[d.key])}</td>`).join('')}</tr>`).join('')}</tbody>
+        </table>
+      </div>
+    </div>` : '';
+  const scope = (typeof skGetJobDocScope === 'function') ? skGetJobDocScope(job) : (job.docSlugs || []);
+  const mode = f.mode;
+  const docRows = scope.map(slug=>{
+    const p = (myProgressAll && myProgressAll[slug]) || null;
+    const done = (typeof skIsDocCompletedForJob === 'function') ? skIsDocCompletedForJob(CURRENT_USER.id, slug, job) : !!(p && p.status === 'completed');
+    const status = opts.live ? (done ? 'Completed' : (p && p.status === 'in-progress' ? 'In progress' : 'Not started')) : null;
+    const col = status === 'Completed' ? 'var(--green)' : status === 'In progress' ? 'var(--navy)' : 'var(--text-3)';
+    const title = (typeof _sk_slugToTitle === 'function') ? _sk_slugToTitle(slug) : slug;
+    const star = (typeof skMandatoryLabelHTML === 'function') ? skMandatoryLabelHTML(slug, mode) : '';
+    const link = opts.live ? `<a href="workstation.html?doc=${encodeURIComponent(slug)}" style="color:inherit;text-decoration:none;font-weight:600;">${skShEsc(title)}</a>` : `<span style="font-weight:600;">${skShEsc(title)}</span>`;
+    return `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);font-size:12.5px;"><span>${link}${star}</span>${status ? `<span style="font-size:11.5px;font-weight:700;color:${col};">${status}</span>` : ''}</div>`;
+  }).join('');
+  const docsHTML = scope.length ? `
+    <div style="margin-top:18px;">
+      <div style="font-size:11.5px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;">Documents in this Lot (${scope.length})</div>
+      ${docRows}
+    </div>` : '';
+  return secHTML + itemsHTML + docsHTML;
+}
+function skShBadge(label, kind){
+  const c = kind === 'active' ? ['var(--navy)', 'var(--surface-alt)'] : kind === 'completed' ? ['var(--green)', 'var(--surface-alt)'] : ['var(--text-2)', 'var(--surface-alt)'];
+  return `<span style="font-size:11px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;color:${c[0]};background:${c[1]};border:1px solid ${c[0]};border-radius:999px;padding:2px 9px;white-space:nowrap;">${label}</span>`;
+}
+function skShRoute(job){
+  const f = job.fields || {};
+  const a = f.portOfLoading || f.origin || '', b = f.portOfDischarge || f.destination || '';
+  return (a || b) ? `${skShEsc(a)} → ${skShEsc(b)}` : '';
+}
 function renderShipmentView(){
-  const s = skGetOrCreateShipment();
-  const pct = myStats.pct || 0;
-  document.getElementById('shipmentIdHeading').textContent = s.shipmentId;
-  document.getElementById('shipmentSub').textContent = `${s.supplier} → ${s.customer} · Container ${s.containerNo}`;
-  const statusLabel = pct>=100 ? 'Documentation Complete' : pct>0 ? 'Documentation In Progress' : 'Awaiting Documentation';
-  document.getElementById('shipmentStatusBadge').textContent = statusLabel;
-  document.getElementById('shipmentPct').textContent = pct + '%';
-  document.getElementById('shipmentPctFill').style.width = pct + '%';
-  const info = [
-    ['Booking Number', s.bookingNo], ['Container Number', s.containerNo], ['Container Type', s.containerType],
-    ['Customer', s.customer + ' (' + s.customerCountry + ')'], ['Supplier', s.supplier + ' (' + s.supplierCountry + ')'],
-    ['Origin Port', s.origin], ['Destination Port', s.destination], ['Incoterm', s.incoterm],
-    ['Carrier', s.carrier], ['Mode', s.mode], ['Commodity', s.product], ['Weight / Packages', s.weight + ' · ' + s.packages + ' pkgs']
-  ];
-  document.getElementById('shipmentInfoGrid').innerHTML = info.map(([l,v])=>
-    `<div class="shipment-info-item"><div class="l">${l}</div><div class="v">${v}</div></div>`
-  ).join('');
+  const el = document.getElementById('shipmentLots');
+  if(!el) return;
+  const uid = CURRENT_USER.id;
+  const active = (uid && typeof skGetActiveJob === 'function') ? skGetActiveJob(uid) : null;
+  const history = (uid && typeof skGetJobHistory === 'function') ? skGetJobHistory(uid).slice().reverse() : [];
+  let html = '';
+  if(active){
+    const prog = skGetJobScopeProgress(uid, active);
+    const pct = prog.total ? Math.round(prog.completed / prog.total * 100) : 0;
+    html += `
+    <div class="panel" style="margin-bottom:22px;" id="shipmentActiveLot">
+      <div class="panel-head">
+        <h2>${skShEsc(active.jobId)}</h2>
+        ${skShBadge('Active', 'active')}
+      </div>
+      <div class="panel-body">
+        <div style="font-size:13px;color:var(--text-2);margin-bottom:4px;">${skShRoute(active)}</div>
+        <div style="font-size:12px;color:var(--text-3);">Created ${skShDate(active.createdAt)} · ${skShEsc((active.fields || {}).mode || '')}</div>
+        <div style="margin-top:14px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;font-size:12px;color:var(--text-2);margin-bottom:6px;">
+            <span>Documents completed</span><span style="font-weight:700;">${prog.completed} / ${prog.total} · ${pct}%</span>
+          </div>
+          <div class="task-progress-track" style="height:9px;"><div class="task-progress-fill" style="height:100%;width:${pct}%;"></div></div>
+        </div>
+        ${skShLotDetailHTML(active, {live: true})}
+      </div>
+    </div>`;
+  } else {
+    html += `
+    <div class="panel" style="margin-bottom:22px;">
+      <div class="panel-head"><h2>No active Shipment Lot</h2></div>
+      <div class="panel-body"><div style="font-size:13px;color:var(--text-2);margin-bottom:12px;">Create a Shipment Lot from the dashboard to start a shipment — it will appear here with all its details.</div>
+      <button class="btn-secondary" type="button" id="shipmentCreateLotBtn">+ Create a Shipment Lot</button></div>
+    </div>`;
+  }
+  html += `<div class="panel" style="margin-bottom:22px;" id="shipmentHistory">
+    <div class="panel-head"><h2>Shipment History</h2><div class="sub">${history.length ? history.length + ' finished or closed Shipment Lot' + (history.length === 1 ? '' : 's') : 'Finished and closed Shipment Lots will be listed here'}</div></div>
+    <div class="panel-body">${history.length ? history.map(j=>{
+      const kind = j.status === 'completed' ? 'completed' : 'closed';
+      return `<details style="border:1px solid var(--border);border-radius:10px;padding:10px 14px;margin-bottom:10px;">
+        <summary style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+          <span><b>${skShEsc(j.jobId)}</b> <span style="font-size:12px;color:var(--text-2);">${skShRoute(j)}</span></span>
+          <span style="display:flex;gap:8px;align-items:center;">${skShBadge(kind === 'completed' ? 'Completed' : 'Closed', kind)}<span style="font-size:11.5px;color:var(--text-3);">${j.documentsCompleted != null ? j.documentsCompleted + ' / ' + j.documentsTotal + ' docs' : ''}</span></span>
+        </summary>
+        <div style="font-size:12px;color:var(--text-3);margin-top:8px;">Created ${skShDate(j.createdAt)} · Finished ${skShDate(j.finishedAt)}</div>
+        ${skShLotDetailHTML(j, {live: false})}
+      </details>`;
+    }).join('') : ''}</div>
+  </div>`;
+  el.innerHTML = html;
+  const cb = document.getElementById('shipmentCreateLotBtn');
+  if(cb) cb.addEventListener('click', ()=>{ if(typeof openJobModal === 'function') openJobModal(null); });
   renderWorkflowChain();
 }
 
@@ -2882,7 +2987,6 @@ function skJobDocPickerHTML(selectedSlugs, modeGroup, mode){
       <span id="jobDocSelectedCount" style="font-size:12px;font-weight:700;color:var(--navy);">${selected.size} selected</span>
     </div>
     <div style="font-size:11.5px;color:var(--text-3);margin-bottom:10px;line-height:1.5;">Only the documents you pick here will be unlocked for this Shipment Lot — everything else stays locked until you start a new Shipment Lot.</div>
-    ${(typeof skIsDocMandatory==='function' && mode && skIsDocMandatory('commercial-invoice', mode) !== null) ? `<div style="font-size:11.5px;color:var(--text-2);margin-bottom:10px;line-height:1.5;background:var(--surface-alt);border-radius:8px;padding:8px 10px;"><b>${SK_MANDATORY_DOCS_SEA_EXPORT.length} documents are labelled <span style="color:var(--green);">Mandatory</span></b> for a ${mode} shipment \u2014 they cover the whole shipment from order to payment. Every other document is <b>Optional</b> practice; tick it only if your assignment asks for it. The label does not lock or hide anything.</div>` : ''}
     <label style="display:flex;align-items:flex-start;gap:9px;padding:11px 12px;border-radius:9px;background:var(--surface-alt);margin-bottom:10px;cursor:pointer;">
       <input type="checkbox" id="jobDocAutoAddToggle" style="margin-top:2px;">
       <span style="font-size:12.3px;color:var(--text-1);line-height:1.5;"><b>Auto-add prerequisite documents</b> — off by default. With this off, only the documents you tick below are included, exactly as picked. If one of them needs another document finished first and that other document isn't in your selection, you'll be warned when you save. Turn this on to have those prerequisites added for you automatically.</span>
@@ -3106,7 +3210,7 @@ function openJobModal(existingJob){
   const currentAssignment = currentAssignmentId && typeof skGetAssignment === 'function' ? skGetAssignment(currentAssignmentId) : null;
   // Backward compatible with jobs saved before the A/B/C tier system - an
   // older job only has the boolean job.fullAutofill.
-  const currentAutofillTier = job ? (job.autofillTier || (job.fullAutofill ? 'full' : 'basic')) : ((draft && (draft.tier==='half'||draft.tier==='full')) ? draft.tier : 'basic');
+  const currentAutofillTier = job ? (job.autofillTier || (job.fullAutofill ? 'full' : 'basic')) : ((draft && (draft.tier==='basic'||draft.tier==='half'||draft.tier==='full')) ? draft.tier : 'full');   // v50: new lots default to Full (C) - the Practice Workbook assumes it
   // Lyra (assistant.js) switch, stored with the Lot: job.fields.lyra = 'on' | 'off' (default on). Works for edit + draft restore.
   const currentLyra = (fields && fields.lyra === 'off') ? 'off' : 'on';
   const currentWorkMode = job ? (job.fields.workMode || 'simulator') : ((draft && draft.workMode==='tcos') ? 'tcos' : 'simulator');
@@ -3122,18 +3226,18 @@ function openJobModal(existingJob){
     <div style="padding:12px;border-radius:9px;background:var(--surface-alt);margin:12px 0;">
       <div style="font-size:12.3px;color:var(--text-1);font-weight:700;margin-bottom:2px;">How much should auto-fill into your selected documents?</div>
       <div style="font-size:11.5px;color:var(--text-2);margin-bottom:10px;line-height:1.5;">Item description, HSN code, quantity, unit, unit price and weight always auto-fill into every item table regardless of which box you pick below — everything else depends on the tier.</div>
-      <div style="display:flex;gap:8px;">
+      <div class="autofill-tier-row">
         <label class="autofill-tier-box">
           <input type="radio" name="jobAutofillTier" value="basic" ${currentAutofillTier==='basic'?'checked':''}>
-          <span class="atb-inner"><b>A</b></span>
+          <span class="atb-inner"><b>A · Basic</b><small>Exporter / importer name, address, signatory + item name, quantity, unit. Everything else you type yourself.</small></span>
         </label>
         <label class="autofill-tier-box">
           <input type="radio" name="jobAutofillTier" value="half" ${currentAutofillTier==='half'?'checked':''}>
-          <span class="atb-inner"><b>B</b></span>
+          <span class="atb-inner"><b>B · Half</b><small>Basic + IEC, GSTIN, PAN, phone, e-mail, PO number, currency, incoterm, ports, item HS code, price, weight.</small></span>
         </label>
         <label class="autofill-tier-box">
           <input type="radio" name="jobAutofillTier" value="full" ${currentAutofillTier==='full'?'checked':''}>
-          <span class="atb-inner"><b>C</b></span>
+          <span class="atb-inner"><b>C · Full</b><small>Everything on this form flows into every document that asks for it (vessel, voyage, container, seal, dates ...). Use this for the Practice Workbook.</small></span>
         </label>
       </div>
     </div>
@@ -3148,11 +3252,11 @@ function openJobModal(existingJob){
       <div style="display:flex;gap:10px;">
         <label class="work-mode-box">
           <input type="radio" name="jobWorkModeRadio" value="simulator" id="jobWorkModeSimulator" ${currentWorkMode!=='tcos'?'checked':''}>
-          <span class="wmb-inner"><b>📄 Document Simulator</b><span>Fill in every document yourself here, start to finish — including the ones TCOS doesn't have.</span></span>
+          <span class="wmb-inner"><b>📄 Document Simulator</b><span>Fill in every document yourself here, start to finish — including the ones ICEGATE doesn't have.</span></span>
         </label>
         <label class="work-mode-box">
           <input type="radio" name="jobWorkModeRadio" value="tcos" id="jobWorkModeTcos" ${currentWorkMode==='tcos'?'checked':''}>
-          <span class="wmb-inner"><b>🔗 TCOS (Core Filing)</b><span>Auto-ticks every document TCOS supports for this shipment's direction (Export or Import), for real filing there — everything you type in this Lot is carried into TCOS automatically. The rest stay here as supporting documents.</span></span>
+          <span class="wmb-inner"><b>🔗 ICEGATE (Core Filing)</b><span>Auto-ticks every document ICEGATE supports for this shipment's direction (Export or Import), for real filing there — everything you type in this Lot is carried into ICEGATE automatically. The rest stay here as supporting documents.</span></span>
         </label>
       </div>
     </div>
@@ -3175,7 +3279,7 @@ function openJobModal(existingJob){
   // Whichever of the 2 boxes is picked, the student gets a complete,
   // sensible starting document set for their whole shipment — the
   // difference between the boxes isn't WHICH documents get selected, it's
-  // which ones get a 🔗 TCOS tag telling the student to file that specific
+  // which ones get a 🔗 ICEGATE tag telling the student to file that specific
   // one for real over there instead of filling it in here. Categories are
   // the same ones already driving the picker's own section headers (CATS,
   // above) — export/import + sea/air (whichever applies) + transport +
@@ -3198,7 +3302,7 @@ function openJobModal(existingJob){
     // Deliberately NOT 'finance' or 'procurement' — finance mixes in generic
     // accounting vouchers (Payment/Receipt/Cash/Journal Voucher, Outstanding
     // Report) and even Purchase Order/Sales Order under the same bucket, none
-    // of which are specific to executing *this* shipment. The explicit TCOS
+    // of which are specific to executing *this* shipment. The explicit ICEGATE
     // bridge list is unioned in below instead, so genuinely relevant finance
     // documents (Commercial Invoice, BRC, LC, Bill of Exchange...) are still
     // guaranteed to be included without sweeping in the noisy rest of that
@@ -3248,10 +3352,13 @@ function openJobModal(existingJob){
       // before, and teaching it as valid would be teaching something wrong.
       else if(excludeForThisMode.includes(slug)) cb.checked = false;
     });
+    // v45: ticking boxes in code fires no 'change' event, so the "N selected" counter stayed at 0 — refresh it here.
+    const _cntEl = document.getElementById('jobDocSelectedCount');
+    if(_cntEl) _cntEl.textContent = document.querySelectorAll('.jobdoc-check:checked').length + ' selected';
     refreshTcosTags();
   }
-  // Small "🔗 File in TCOS" tag next to any checkbox whose document has a
-  // real TCOS bridge — only while the TCOS box itself is selected, since the
+  // Small "🔗 File in ICEGATE" tag next to any checkbox whose document has a
+  // real ICEGATE bridge — only while the ICEGATE box itself is selected, since the
   // tag's whole point is "file this one over there instead"; showing it
   // while "Document Simulator" is selected would suggest a routing that
   // isn't actually the current plan, so tags clear immediately on switching
@@ -3264,14 +3371,14 @@ function openJobModal(existingJob){
     const dirLabel = !/^(Sea|Air) /.test(info.mode||'') ? '' : (info.isImport ? 'Import' : 'Export');
     box.style.display = 'block';
     box.innerHTML = dirLabel
-      ? ('<b>🔗 TCOS · ' + dirLabel + ' documents</b> — ' + ticked + ' of this Lot\'s documents will be done in TCOS\'s ' + (info.isImport ? 'Import side (Bill of Entry + import freight documents)' : 'Export Documentation Desk, Customs Portal &amp; freight module') + '. ' + (info.isImport ? 'Export-only documents (Commercial Invoice, Packing List…) are not offered here.' : 'Import-only documents (Bill of Entry…) are not offered here.') + ' Your shipment details auto-fill into each one.')
-      : '<b>🔗 TCOS</b> — pick a Sea or Air Shipment Mode above to see which documents TCOS will handle for this Lot.';
+      ? ('<b>🔗 ICEGATE · ' + dirLabel + ' documents</b> — ' + ticked + ' of this Lot\'s documents will be done in ICEGATE\'s ' + (info.isImport ? 'Import side (Bill of Entry + import freight documents)' : 'Export Documentation Desk, Customs Portal &amp; freight module') + '. ' + (info.isImport ? 'Export-only documents (Commercial Invoice, Packing List…) are not offered here.' : 'Import-only documents (Bill of Entry…) are not offered here.') + ' Your shipment details auto-fill into each one.')
+      : '<b>🔗 ICEGATE</b> — pick a Sea or Air Shipment Mode above to see which documents ICEGATE will handle for this Lot.';
   }
   function refreshTcosTags(){
     const useTcos = !!(document.getElementById('jobWorkModeTcos') && document.getElementById('jobWorkModeTcos').checked);
     const info = shipmentModeInfo();
-    // TCOS only has Export/Import documents — Road / Domestic and Warehouse
-    // Transfer Lots have no TCOS direction, so no TCOS tags for them.
+    // ICEGATE only has Export/Import documents — Road / Domestic and Warehouse
+    // Transfer Lots have no ICEGATE direction, so no ICEGATE tags for them.
     const hasDirection = /^(Sea|Air) /.test(info.mode || '');
     const tcosSlugs = hasDirection ? info.tcosSlugs : new Set();
     refreshTcosSummary(useTcos, {mode: info.mode, isImport: info.isImport, tcosSlugs});
@@ -3283,7 +3390,7 @@ function openJobModal(existingJob){
         if(!tag){
           tag = document.createElement('span');
           tag.className = 'jobdoc-tcos-tag';
-          tag.textContent = '🔗 TCOS · ' + (shipmentModeInfo().isImport ? 'Import' : 'Export');
+          tag.textContent = '🔗 ICEGATE · ' + (shipmentModeInfo().isImport ? 'Import' : 'Export');
           tag.style.cssText = 'margin-left:6px;font-size:9.5px;font-weight:700;color:var(--accent);background:var(--accent-soft);padding:1px 5px;border-radius:5px;white-space:nowrap;';
           label.querySelector('span').appendChild(tag);
         }
@@ -3615,7 +3722,7 @@ function openJobModal(existingJob){
   // where the direction is reversed. Only the on-screen label/placeholder/
   // help text changes here — the underlying data-jobfield key and
   // contextKey (txn.destinationCountry, txn.portOfLoading, etc.) never
-  // change, so nothing downstream (documents, autofill, TCOS bridge,
+  // change, so nothing downstream (documents, autofill, ICEGATE bridge,
   // saved Job data) is affected — a student just gets told the right
   // thing to type in each box for the Mode they picked.
   const SK_JOB_LABELS_EXPORT = {
@@ -4244,69 +4351,17 @@ function openJobModal(existingJob){
    required. Building a custom Shipment Lot by hand is still one click
    away either way. */
 function renderEmptyJobPanel(el){
-  const track = (typeof skGetStudentTrack === 'function') ? skGetStudentTrack(CURRENT_USER.id) : null;
-  const allAssignments = (typeof skGetAssignments === 'function') ? skGetAssignments() : [];
-  const hasTracks = allAssignments.some(a=>a.track);
-
-  if(!hasTracks || !track){
-    el.innerHTML = `
-      <div class="panel-head">
-        <h2>Shipment Lot</h2>
-        <div class="sub">Start a job to handle one real shipment end-to-end — pick which documents it covers, and only those unlock until you finish it.</div>
-      </div>
-      <div style="padding:16px 22px;">
-        ${hasTracks ? `
-        <div style="margin-bottom:12px;font-size:13px;font-weight:700;color:var(--text-2);">Are you a 1-Year or 6-Month student?</div>
-        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;">
-          <button class="btn-secondary" id="trackBtn1y" type="button" style="background:var(--navy);color:#fff;border:none;">1-Year Track (Advanced — 102 documents)</button>
-          <button class="btn-secondary" id="trackBtn6m" type="button" style="background:var(--navy);color:#fff;border:none;">6-Month Track (Foundational — 60 documents)</button>
-        </div>
-        <div style="font-size:12px;color:var(--text-3);margin-bottom:10px;">Or skip this and build your own from scratch:</div>` : ''}
-        <button class="btn-secondary" id="startJobBtn" type="button">+ Start New Shipment Lot</button>
-      </div>`;
-    document.getElementById('startJobBtn').addEventListener('click', ()=>openJobModal(null));
-    const b1 = document.getElementById('trackBtn1y');
-    const b2 = document.getElementById('trackBtn6m');
-    if(b1) b1.addEventListener('click', ()=>{ skSetStudentTrack(CURRENT_USER.id, '1-year'); renderJobPanel(); });
-    if(b2) b2.addEventListener('click', ()=>{ skSetStudentTrack(CURRENT_USER.id, '6-months'); renderJobPanel(); });
-    return;
-  }
-
-  const trackAssignments = allAssignments.filter(a=>a.track===track);
-  const trackLabel = track === '1-year' ? '1-Year Track (Advanced)' : '6-Month Track (Foundational)';
+  /* v45: the 1-Year / 6-Month track picker and its assignment cards are gone. With no active Shipment Lot the
+     panel shows one thing only: Create a Shipment Lot. */
   el.innerHTML = `
     <div class="panel-head">
       <h2>Shipment Lot</h2>
-      <div class="sub">${trackLabel} — pick a scenario below to start, or build your own. <button id="switchTrackBtn" type="button" style="background:none;border:none;color:var(--navy);font-weight:700;cursor:pointer;padding:0;font-size:12.5px;text-decoration:underline;">Switch track</button></div>
+      <div class="sub">Create a Shipment Lot to handle one shipment end-to-end — pick which documents it covers, and only those unlock until you finish it.</div>
     </div>
-    <div style="padding:0 22px 16px;display:grid;grid-template-columns:1fr 1fr;gap:12px;max-height:440px;overflow-y:auto;">
-      ${trackAssignments.map(a=>{
-        const excerpt = a.question.length > 155 ? a.question.slice(0,155).trim()+'…' : a.question;
-        return `<div style="border:1.5px solid var(--border);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:8px;">
-          <div style="font-weight:700;font-size:13px;">${a.title}</div>
-          <div style="font-size:12px;color:var(--text-2);line-height:1.5;flex:1;">${excerpt}</div>
-          <div style="font-size:11px;color:var(--text-3);">${a.docSlugs.length} documents</div>
-          <button class="btn-secondary start-assignment-btn" data-asgid="${a.id}" type="button" style="background:var(--navy);color:#fff;border:none;">Start This Job</button>
-        </div>`;
-      }).join('')}
-    </div>
-    <div style="padding:0 22px 16px;">
-      <button class="btn-secondary" id="startJobBtnCustom" type="button">+ Or Build Your Own Custom Shipment Lot</button>
+    <div style="padding:16px 22px;">
+      <button class="btn-secondary" id="startJobBtn" type="button">+ Create a Shipment Lot</button>
     </div>`;
-  document.getElementById('startJobBtnCustom').addEventListener('click', ()=>openJobModal(null));
-  document.getElementById('switchTrackBtn').addEventListener('click', ()=>{ skSetStudentTrack(CURRENT_USER.id, null); renderJobPanel(); });
-  document.querySelectorAll('.start-assignment-btn').forEach(btn=>{
-    btn.addEventListener('click', ()=>{
-      const asg = skGetAssignment(btn.getAttribute('data-asgid'));
-      if(!asg) return;
-      skCreateJob(CURRENT_USER.id, {}, asg.id, [], false);
-      renderJobPanel();
-      renderCrossDocPanel();
-      renderJobAuditPanel();
-      renderDocs();
-      showToast(`Started: ${asg.title}`);
-    });
-  });
+  document.getElementById('startJobBtn').addEventListener('click', ()=>openJobModal(null));
 }
 
 /* Student-typed Lot values go into innerHTML below; escape them (plain text is unchanged). */
@@ -4337,7 +4392,7 @@ function renderJobPanel(){
   // the same prerequisite-aware ordering skGetNextJobDocument already uses
   // for the "Continue — Next" button above, so this list and that button
   // now agree on what "next" means instead of contradicting each other.
-  const orderedScopeSlugs = (typeof skTopologicalOrderDocs === 'function') ? skTopologicalOrderDocs(jobScopeSlugs) : jobScopeSlugs;
+  const orderedScopeSlugs = (typeof skTopologicalOrderDocs === 'function') ? skTopologicalOrderDocs(jobScopeSlugs, job.fields && job.fields.mode) : jobScopeSlugs;
   // BUGFIX (requested): use skIsDocCompletedForJob instead of a raw global
   // progress check — a document slug shared with an earlier, already-
   // archived Job (e.g. Insurance Certificate on both an Export and an
@@ -4368,7 +4423,7 @@ function renderJobPanel(){
     <a href="workstation.html?doc=${encodeURIComponent(nextSlug)}" style="display:inline-flex;align-items:center;gap:8px;height:42px;padding:0 18px;border-radius:9px;background:var(--navy);color:#fff;font-weight:700;font-size:13px;text-decoration:none;">
       ${ic('chev')} ${scopeProgress.completed>0 ? 'Continue' : 'Start Working'} — Next: ${nextTitle}
     </a>
-    <button class="btn-secondary" id="tcosDirectBtn" type="button" style="height:42px;">🔗 Continue This Shipment Lot in TCOS</button>` : '';
+    <button class="btn-secondary" id="tcosDirectBtn" type="button" style="height:42px;">🔗 Continue This Shipment Lot in ICEGATE</button>` : '';
   const completeBannerHtml = scopeProgress.done ? `
     <div style="margin:0 22px 16px;padding:14px 16px;border-radius:10px;background:var(--green-soft);border:1px solid #A9DDBB;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;">
       <div style="display:flex;align-items:center;gap:10px;font-weight:700;font-size:13.5px;color:#0F5D34;">${ic('check')} Every document in this Shipment Lot is done — scenario complete!</div>
@@ -4437,11 +4492,11 @@ function renderJobPanel(){
   }
 }
 /* ---------------------------------------------------------------------
-   Direct-to-TCOS entry point for the active Shipment Lot — same underlying
+   Direct-to-ICEGATE entry point for the active Shipment Lot — same underlying
    DotBridge.startHandoff() used inside a single document's exercise
    (engine.js, workstation.html), just triggered from the dashboard instead
    of being gated behind first opening Shipping Bill/Bill of Entry. Lands
-   on TCOS's Consignia Desk Export Brief, pre-filled from this Job's data;
+   on ICEGATE's Consignia Desk Export Brief, pre-filled from this Job's data;
    submitting it (with no specific target document set) takes the student
    straight to the full ordered Document Plan rather than one document —
    see js/app.js + js/export-job.js in tcos/ for the receiving side.
@@ -4466,7 +4521,7 @@ function skBuildBridgeJobDataFromJob(job){
   };
 }
 function openTcosDirectModal(job){
-  if(typeof DotBridge === "undefined"){ showToast("TCOS bridge didn't load — try reloading the page."); return; }
+  if(typeof DotBridge === "undefined"){ showToast("ICEGATE bridge didn't load — try reloading the page."); return; }
   const escName = (s)=>{ const d=document.createElement("div"); d.textContent = s||""; return d.innerHTML; };
   const bg = document.createElement("div");
   bg.id = "tcosDirectOverlay";
@@ -4474,18 +4529,18 @@ function openTcosDirectModal(job){
   bg.innerHTML = `
     <div style="background:var(--surface,#fff);color:var(--text-1,#101828);border-radius:14px;max-width:460px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.35);overflow:hidden;font-family:var(--sans,sans-serif);">
       <div style="padding:22px 26px 16px;border-bottom:1px solid var(--border,#E3E8EF);">
-        <h2 style="margin:0 0 6px;font-size:18px;">Continue this Shipment Lot in TCOS</h2>
-        <p style="margin:0;font-size:13px;color:var(--text-2,#5B6472);">Signs you into TCOS's Consignia Desk as yourself, with this Job's party/shipment/item details carried over — you'll land on the full ordered Document Plan for this shipment, not one single document.</p>
+        <h2 style="margin:0 0 6px;font-size:18px;">Continue this Shipment Lot in ICEGATE</h2>
+        <p style="margin:0;font-size:13px;color:var(--text-2,#5B6472);">Signs you into ICEGATE's Consignia Desk as yourself, with this Job's party/shipment/item details carried over — you'll land on the full ordered Document Plan for this shipment, not one single document.</p>
       </div>
       <div style="padding:18px 26px;">
-        <label style="display:block;font-size:12px;font-weight:600;margin-bottom:6px;">Confirm your password to continue into TCOS as ${escName(CURRENT_USER.name)}</label>
+        <label style="display:block;font-size:12px;font-weight:600;margin-bottom:6px;">Confirm your password to continue into ICEGATE as ${escName(CURRENT_USER.name)}</label>
         <input id="tcosDirectPwInput" type="password" autocomplete="current-password" style="width:100%;box-sizing:border-box;padding:9px 11px;border-radius:8px;border:1px solid var(--border-strong,#D2D9E3);font-size:13px;margin-bottom:10px;">
-        <label style="display:block;font-size:12px;font-weight:600;margin-bottom:6px;">TCOS Access ID <span style="font-weight:400;color:var(--text-2,#5B6472);">— the same one used to unlock TCOS on the Simulator Hub</span></label>
+        <label style="display:block;font-size:12px;font-weight:600;margin-bottom:6px;">ICEGATE Access ID <span style="font-weight:400;color:var(--text-2,#5B6472);">— the same one used to unlock ICEGATE on the Simulator Hub</span></label>
         <input id="tcosDirectAccessIdInput" type="text" inputmode="numeric" autocomplete="off" placeholder="Enter access ID" style="width:100%;box-sizing:border-box;padding:9px 11px;border-radius:8px;border:1px solid var(--border-strong,#D2D9E3);font-size:13px;font-family:var(--mono);margin-bottom:6px;">
         <div id="tcosDirectPwError" style="color:var(--red,#C6362F);font-size:12px;min-height:16px;margin-bottom:8px;"></div>
         <div style="display:flex;gap:10px;">
           <button id="tcosDirectCancel" type="button" class="btn-secondary" style="flex:1;">Cancel</button>
-          <button id="tcosDirectSubmit" type="button" style="flex:1;background:var(--accent,#1F6FEB);color:#fff;border:none;border-radius:8px;padding:10px;font-weight:700;font-size:13px;cursor:pointer;">Continue to TCOS →</button>
+          <button id="tcosDirectSubmit" type="button" style="flex:1;background:var(--accent,#1F6FEB);color:#fff;border:none;border-radius:8px;padding:10px;font-weight:700;font-size:13px;cursor:pointer;">Continue to ICEGATE →</button>
         </div>
       </div>
     </div>`;
@@ -4501,12 +4556,12 @@ function openTcosDirectModal(job){
       errEl.textContent = "Incorrect password. Try again.";
       return;
     }
-    if(!accessId){ errEl.textContent = "Enter the TCOS access ID to continue."; return; }
+    if(!accessId){ errEl.textContent = "Enter the ICEGATE access ID to continue."; return; }
     if(!(window.DotAccess && window.DotAccess.check(accessId))){
       errEl.textContent = "Incorrect access ID. Try again.";
       return;
     }
-    // Import Lots go to TCOS's Import side (Bill of Entry filing, pre-filled);
+    // Import Lots go to ICEGATE's Import side (Bill of Entry filing, pre-filled);
     // everything else keeps the Export Documentation Desk route exactly as before.
     const isImportLot = /import/i.test((job && job.fields && job.fields.mode) || "");
     DotBridge.startHandoff(isImportLot ? {

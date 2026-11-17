@@ -124,5 +124,61 @@ const snap = BS.DotBridge.buildJobSnapshot;
   if (imp) t(filing.party.iec === 'AABCT4521K' && filing.party.pan === 'AABCT4521K' && filing.shipment.countryOfOrigin === country, `${mode}: importer IEC/PAN + country of origin (${filing.shipment.countryOfOrigin}) carried over`);
 });
 
+console.log('\n[6] TCOS PDF stamp + upload verification (v44, pure logic - the real-browser flow is in tests/ui/tcos_upload_*.js)');
+{
+  const sb = mk(); sb.TextEncoder = TextEncoder; sb.TextDecoder = TextDecoder; sb.atob = atob; sb.btoa = btoa;
+  load(sb, path.join(ROOT, 'shared') + path.sep, 'tcos-bridge.js');
+  const D = sb.DotBridge;
+  /* a minimal PDF whose Info dictionary carries the stamp, exactly where jsPDF puts it */
+  const fakePdf = (info, tamper) => { let st = D.buildStampString(info); if (tamper) st = st.replace(/\|([A-Za-z0-9_-])/, (m, c) => '|' + (c === 'A' ? 'B' : 'A')); return Buffer.from('%PDF-1.3\n1 0 obj\n<</Length 4>>stream\nabcd\nendstream\nendobj\n9 0 obj\n<</Title (x) /Keywords (' + st + ') /Creator (y)>>\nendobj\ntrailer\n%%EOF'); };
+  const base = { slug: 'shipping-bill', doc: 'Shipping Bill', type: 'export', ref: 'TRN-SB-2026-123456', user: 'SKELORA2026001', job: 'SKL-2026-00001', final: true, iec: 'AABCT4521K' };
+  const lot = { jobId: 'SKL-2026-00001', fields: { mode: 'Sea Export', sellerIEC: 'AABCT4521K', buyerIEC: 'BUYER00001' } };
+  const V = (slug, info, ctx, tamper) => D.verifyUpload(slug, D.parsePdfStamp(fakePdf(info, tamper)), ctx || { userLoginId: 'skelora2026001', job: lot });
+  t(V('shipping-bill', base).ok, 'valid Shipping Bill stamp accepted (login id compared case-insensitively)');
+  t(V('shipping-bill', base).data.ref === 'TRN-SB-2026-123456', 'document number round-trips through the stamp');
+  t(V('bill-of-entry', base).code === 'wrong-doc', 'Shipping Bill PDF refused in the Bill of Entry place');
+  t(V('shipping-bill', Object.assign({}, base, { slug: 'bill-of-entry', type: 'import' })).code === 'wrong-doc', 'Bill of Entry PDF refused in the Shipping Bill place');
+  t(V('shipping-bill', Object.assign({}, base, { user: 'SKELORA2026777' })).code === 'wrong-user', "another student's PDF refused");
+  t(V('shipping-bill', Object.assign({}, base, { final: false, need: 'LEO' })).code === 'not-final', 'PDF from before LEO / OOC refused');
+  t(V('shipping-bill', Object.assign({}, base, { job: 'SKL-2026-00002' })).code === 'wrong-lot', 'PDF of another Shipment Lot refused');
+  t(V('shipping-bill', Object.assign({}, base, { job: '', iec: 'OTHERIEC99' })).code === 'wrong-lot', 'no lot id: different exporter IEC refused');
+  t(V('shipping-bill', Object.assign({}, base, { job: '' })).ok, 'no lot id: matching exporter IEC accepted');
+  t(V('bill-of-entry', Object.assign({}, base, { slug: 'bill-of-entry', type: 'import', job: '', iec: 'BUYER00001' }), { userLoginId: 'SKELORA2026001', job: { jobId: 'J', fields: { mode: 'Sea Import', buyerIEC: 'BUYER00001' } } }).ok, 'import: importer IEC is compared with the Lot buyer IEC');
+  t(V('shipping-bill', base, { userLoginId: 'SKELORA2026001', job: { jobId: 'SKL-2026-00001', fields: { mode: 'Sea Import' } } }).code === 'wrong-direction', 'Export PDF refused for an Import Lot');
+  t(V('shipping-bill', base, { userLoginId: 'SKELORA2026001', job: null }).ok, 'free-play (no active Lot) still accepts a valid stamp');
+  t(V('shipping-bill', base, null, true).code === 'tampered', 'edited stamp -> checksum failure');
+  t(D.verifyUpload('shipping-bill', D.parsePdfStamp(Buffer.from('%PDF-1.4\nplain pdf, no stamp\n')), { userLoginId: 'X' }).code === 'no-stamp', 'PDF without a stamp refused');
+  t(D.verifyUpload('shipping-bill', D.parsePdfStamp(Buffer.from('hello world, not a pdf')), { userLoginId: 'X' }).code === 'not-pdf', 'non-PDF refused');
+  t(D.verifyUpload('vgm-certificate', D.parsePdfStamp(fakePdf(base)), { userLoginId: 'SKELORA2026001' }).code === 'not-uploadable', 'documents TCOS has no PDF for (VGM) cannot be uploaded');
+  t(['shipping-bill', 'bill-of-entry', 'booking-confirmation', 'bill-of-lading-sea', 'air-waybill', 'arrival-notice', 'delivery-order', 'equipment-interchange-receipt', 'proof-of-delivery', 'bank-realization-certificate'].every((k) => D.UPLOADABLE_DOCS[k]) && Object.keys(D.UPLOADABLE_DOCS).length === 10, 'upload list = the 10 documents TCOS produces as stamped PDFs');
+  t(Object.keys(D.UPLOADABLE_DOCS).every((k) => L.DC[k]), 'every uploadable slug is a real Logistics document');
+}
+
+console.log('\n[7] Guided document order (v50): follows the Recommended Document Workflow, imports have their own chain, prerequisites always first');
+{
+  const sb = mk(); ['documents-data.js', 'air-patches.js', 'job-engine.js', 'workflow-rules.js', 'customs-forms-config.js', 'bill-of-lading-forms-config.js', 'multi-consistency.js', 'field-references.js'].forEach((f) => load(sb, path.join(ROOT, 'logistics-simulator') + path.sep, f));
+  const run = (code) => vm.runInContext(code, sb);
+  const order = (slugs, mode) => run('(a,m)=>skTopologicalOrderDocs(a,m,new Set(a))')(slugs, mode);
+  const idx = (o, s) => o.indexOf(s);
+  const exp = ['proforma-invoice', 'sales-order', 'commercial-invoice', 'packing-list', 'icegate-registration-form', 'booking-confirmation', 'weight-certificate', 'shipping-bill', 'are-1', 'container-load-plan', 'seal-report', 'vehicle-inspection-report', 'delivery-challan', 'lorry-receipt'];
+  const eo = order(exp, 'Sea Export');
+  t(idx(eo, 'commercial-invoice') === idx(eo, 'sales-order') + 1, 'Sea Export: Commercial Invoice is offered right after the Sales Order');
+  t(idx(eo, 'weight-certificate') > idx(eo, 'booking-confirmation'), 'Sea Export: Weight Certificate comes after the Booking Confirmation (its booking number is filled)');
+  t(idx(eo, 'shipping-bill') < idx(eo, 'container-load-plan') && idx(eo, 'shipping-bill') < idx(eo, 'seal-report'), 'Sea Export: Shipping Bill is filed before the Container Load Plan / Seal Report (they quote its number)');
+  const eo2 = order(exp.slice().reverse(), 'Sea Export');
+  t(JSON.stringify(eo2) === JSON.stringify(eo), 'the order does not depend on the order the documents were ticked in');
+  if (JSON.stringify(eo2) !== JSON.stringify(eo)) console.log('    A:', eo.join(' > '), '\n    B:', eo2.join(' > '));
+  const imp = ['import-invoice', 'import-packing-list', 'insurance-certificate', 'letter-of-credit', 'bill-of-entry', 'delivery-order', 'vehicle-inspection-report', 'lorry-receipt', 'dispatch-note', 'arrival-notice', 'master-bill-of-lading', 'proof-of-delivery'];
+  const io = order(imp, 'Sea Import');
+  t(idx(io, 'vehicle-inspection-report') > idx(io, 'delivery-order') && idx(io, 'lorry-receipt') > idx(io, 'delivery-order'), 'Sea Import: inland transport documents come AFTER customs clearance / delivery order');
+  t(idx(io, 'import-invoice') < idx(io, 'insurance-certificate'), 'Sea Import: import invoice comes before the insurance certificate that quotes it');
+  ['Sea Export', 'Sea Import', 'Air Import', 'Warehouse Transfer'].forEach((m) => {
+    const all = Object.keys(L.DC), o = order(all, m), pos = {}; o.forEach((x, i) => { pos[x] = i; });
+    let bad = 0;
+    all.forEach((sl) => { const pre = run('(s,m,k)=>skGetPrerequisites(s,m,k)')(sl, m, new Set(all)) || []; pre.forEach((p0) => { const p = p0 && p0.slug ? p0.slug : p0; if (pos[p] !== undefined && pos[p] > pos[sl]) bad++; }); });
+    t(bad === 0, m + ': in the full document set every prerequisite is offered before the document that needs it');
+  });
+}
+
 console.log(`\n${FAILS ? 'FAILED' : 'ALL GREEN'} — ${CHECKS} checks passed, ${FAILS} failed`);
 process.exit(FAILS ? 1 : 0);

@@ -39,6 +39,9 @@ so keep folder and file names exactly as they are.
   hash can recover the code offline in seconds. Treat it as a classroom gate, never as protection for
   anything confidential. Real protection would need a server-side check.
 
+## v44 note
+TCOS PDF upload backup: see CHANGES_v44.md.
+
 ## supplychain-tcos
 It is the same program as `tcos/` with its own saved progress. The only intended differences are
 three storage keys (`SESSION_KEY`, `STORAGE_PREFIX` in `js/state.js`, `REGISTERED_USERS_KEY` in

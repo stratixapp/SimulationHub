@@ -187,7 +187,7 @@ function openWizard(filing) {
   renderWizard();
 }
 
-/* ---------------- Logistics ⇄ TCOS bridge: pre-fill from a Shipment Lot ----------------
+/* ---------------- Logistics ⇄ ICEGATE bridge: pre-fill from a Shipment Lot ----------------
    Called from app.js's enterApp() bridge handler instead of startFilingFlow()
    when the bridge carries jobData (see DotBridge.startHandoff in
    shared/tcos-bridge.js) — the student already typed this shipment's party/
@@ -196,7 +196,7 @@ function openWizard(filing) {
    invented practice data (which stays intentionally un-auto-filled, see
    the note in startNewFiling above — a different case from this one).
 
-   Best-effort: TCOS's Port/Country/Currency/Incoterm/Unit/Package fields
+   Best-effort: ICEGATE's Port/Country/Currency/Incoterm/Unit/Package fields
    are constrained <select> dropdowns with their OWN vocabulary
    (INDIAN_PORTS/FOREIGN_PORTS use ICD/port codes like "INCOK1 - Cochin Sea
    Port"; COUNTRIES uses full country names) that doesn't line up 1:1 with
@@ -219,8 +219,8 @@ function bridgeMatchOption(value, list) {
 }
 /* Ports: EXACT matching only (v41). The old version matched on any shared 4+-letter word, which silently filed the
    WRONG port on a customs document (Mumbai Port -> Nhava Sheva, Kandla -> Mundra, Mumbai Airport -> a seaport,
-   Bahrain's Khalifa Bin Salman -> UAE's Khalifa Port ...). The Logistics Job and TCOS now share the same Indian port
-   names, and TCOS foreign labels are "<Job port name>, <country>", so a correct match is always exact. When nothing
+   Bahrain's Khalifa Bin Salman -> UAE's Khalifa Port ...). The Logistics Job and ICEGATE now share the same Indian port
+   names, and ICEGATE foreign labels are "<Job port name>, <country>", so a correct match is always exact. When nothing
    matches exactly the field is left blank for the student to pick — never a guess. `countryHint` is optional. */
 function bridgeMatchPort(name, list, countryHint) {
   if (!name) return '';
@@ -239,7 +239,7 @@ function bridgeMatchPort(name, list, countryHint) {
   if (byName.length === 1) return byName[0];
   return '';
 }
-/* Logistics Job vocabulary -> TCOS vocabulary (units are the ICEGATE UQC codes; MT = metric tonnes = MTS, not MTR = metres). */
+/* Logistics Job vocabulary -> ICEGATE vocabulary (units are the ICEGATE UQC codes; MT = metric tonnes = MTS, not MTR = metres). */
 const BRIDGE_UNIT_ALIAS = { PCS: 'PCS', SET: 'SET', KG: 'KGS', KGS: 'KGS', MT: 'MTS', MTS: 'MTS', DZN: 'DOZ', DOZ: 'DOZ', CTN: 'CTN', BOX: 'BOX', LTR: 'LTR', SQM: 'SQM', PAIR: 'PAIR', NOS: 'NOS', MTR: 'MTR' };
 function bridgeMatchUnit(u) {
   const k = String(u || '').trim().toUpperCase();
@@ -262,6 +262,7 @@ function bridgeItemsValue(items) {
 }
 function skTcosPrefillFilingFromJobData(filing, type, jd) {
   if (!jd) return;
+  if (jd.jobId) filing.bridgeJobId = String(jd.jobId);   // v44: which Shipment Lot this filing belongs to (stamped into the PDF so Logistics can accept an upload of it)
   const isExport = type === 'export';
   // Job fields are always labelled Exporter/Seller + Importer/Buyer regardless of
   // direction — for an Export filing the student's own company is the seller side,

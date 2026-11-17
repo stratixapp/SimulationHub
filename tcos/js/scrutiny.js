@@ -1,5 +1,5 @@
 /* ============================================================
-   TCOS — CUSTOMS SCRUTINY (what Customs / the system actually checks)
+   ICEGATE — CUSTOMS SCRUTINY (what Customs / the system actually checks)
    ------------------------------------------------------------
    1. tcosDeepErrors(filing)    hard ICEGATE-style validation (blocks submission) - identity, GSTIN/PAN,
                                 dates, FOB arithmetic, mode vs port, weights ...

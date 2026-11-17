@@ -1,5 +1,5 @@
 /* ============================================================
-   TCOS TRAINING SIMULATOR — EXPORT INCENTIVES & REALISATION
+   ICEGATE TRAINING SIMULATOR — EXPORT INCENTIVES & REALISATION
    Duty Drawback (AIR) · RoDTEP · Advance Authorization/EPCG
    Export Obligation & Redemption · Bank Realisation Certificate (BRC)
    All rates/figures are illustrative training data — always verify

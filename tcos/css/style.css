@@ -25,7 +25,7 @@ textarea:focus-visible, [tabindex]:focus-visible, .demo-row:focus-visible,
   border-radius: 2px;
 }
 
-/* ===== HOME SCREEN — TCOS demo govt-portal-style landing page =====
+/* ===== HOME SCREEN — ICEGATE demo govt-portal-style landing page =====
    All selectors scoped under #home so nothing here can leak into the
    login screen or the app shell (and vice versa). */
 #home{overflow-x:hidden}
@@ -38,7 +38,7 @@ textarea:focus-visible, [tabindex]:focus-visible, .demo-row:focus-visible,
 #home .dot{width:5px;height:5px;border-radius:50%;background:#f7931d}
 #home .brand{height:135px;background:#fff;display:flex;align-items:center;padding:0 30px;gap:30px}
 #home .brandmark{width:70px;height:82px;border:3px solid #173b68;border-radius:10px;display:flex;align-items:center;justify-content:center;color:#173b68;font-size:28px;font-weight:900;position:relative}
-#home .brandmark:after{content:"TCOS";position:absolute;bottom:-13px;background:#fff;padding:0 7px;font-size:11px;letter-spacing:1px}
+#home .brandmark:after{content:"ICEGATE";position:absolute;bottom:-13px;background:#fff;padding:0 7px;font-size:11px;letter-spacing:1px}
 #home .brandtext{line-height:1.1}
 #home .brandtext .hi{font-size:19px;font-weight:700}
 #home .brandtext .en{font-size:28px;font-weight:800;color:#102f53}
@@ -109,7 +109,7 @@ textarea:focus-visible, [tabindex]:focus-visible, .demo-row:focus-visible,
 #home .footer{height:auto;min-height:300px;flex-wrap:wrap;gap:30px}
 #home .brand{height:105px}
 #home .top{font-size:11px;padding:0 10px}}
-/* --- TCOS polished animated maritime scene --- */
+/* --- ICEGATE polished animated maritime scene --- */
 #home .hero{height:390px;background:linear-gradient(180deg,#9dc6e6 0%,#d9eaf5 48%,#a8cadb 100%);perspective:900px}
 #home .sky-glow{position:absolute;inset:0;background:radial-gradient(circle at 73% 28%,rgba(255,236,175,.7),transparent 18%),linear-gradient(180deg,rgba(255,255,255,.14),transparent 55%);z-index:0}
 #home .hero:after{content:"";position:absolute;inset:0;z-index:6;pointer-events:none;background:linear-gradient(90deg,rgba(7,35,63,.20),transparent 35%,transparent 72%,rgba(7,35,63,.12))}
@@ -188,7 +188,7 @@ linear-gradient(180deg,#397fa8,#18567f 72%,#103f62);animation:seabase 9s linear 
 /* ===== LOGIN ===== */
 #login{position:relative;min-height:100vh;background:#cce4f8;overflow:hidden}
 .login-bg{position:absolute;inset:0;background:linear-gradient(135deg,#0f2b4d,#1c4a83 50%,#3a6bb0);opacity:.95}
-.login-bg:after{content:'TCOS';position:absolute;left:8%;top:40%;font-size:64px;font-weight:800;color:rgba(255,255,255,.12);letter-spacing:4px}
+.login-bg:after{content:'ICEGATE';position:absolute;left:8%;top:40%;font-size:64px;font-weight:800;color:rgba(255,255,255,.12);letter-spacing:4px}
 .login-card{position:absolute;right:6.3%;top:100px;width:386px;background:#fff;border-radius:11px;padding:34px 26px 28px;box-shadow:0 5px 22px rgba(0,0,0,.17)}
 .login-card h2{text-align:center;margin:5px 0 23px;font-size:20px}
 .ut{display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:18px}.ut b{margin-right:5px}
@@ -446,7 +446,7 @@ linear-gradient(180deg,#397fa8,#18567f 72%,#103f62);animation:seabase 9s linear 
 /* ============================================================
    CONSIGNIA DESK — Export Documentation Desk
    Original brand identity, fully scoped under .xd-root so it
-   can never leak into (or be affected by) any existing TCOS
+   can never leak into (or be affected by) any existing ICEGATE
    screen. Nothing above this line was touched.
    ============================================================ */
 .xd-root{

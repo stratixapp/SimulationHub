@@ -1,5 +1,5 @@
 /* ============================================================
-   TCOS TRAINING SIMULATOR — STATE / PERSISTENCE LAYER
+   ICEGATE TRAINING SIMULATOR — STATE / PERSISTENCE LAYER
    ============================================================
    Data isolation model (no backend, so this is local-only):
    - SESSION_KEY holds only "who is currently signed in" — tiny,
@@ -140,7 +140,7 @@ function setFilingStatus(filing, newStatus) {
   const allowed = FILING_STATUS_TRANSITIONS[filing.status];
   if (!allowed || !allowed.includes(newStatus)) {
     const msg = `Blocked invalid filing status transition: ${filing.status} -> ${newStatus} (filing ${filing.id})`;
-    console.error('[TCOS state machine]', msg);
+    console.error('[ICEGATE state machine]', msg);
     throw new Error(msg);
   }
   filing.status = newStatus;
@@ -164,7 +164,7 @@ function setBookingStatus(b, newStatus) {
   const allowed = BOOKING_STATUS_TRANSITIONS[b.status];
   if (!allowed || !allowed.includes(newStatus)) {
     const msg = `Blocked invalid booking status transition: ${b.status} -> ${newStatus} (booking ${b.id})`;
-    console.error('[TCOS state machine]', msg);
+    console.error('[ICEGATE state machine]', msg);
     throw new Error(msg);
   }
   b.status = newStatus;

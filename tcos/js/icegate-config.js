@@ -1,4 +1,4 @@
-/* GENERATED from the Logistics Document Simulator Shipping Bill (14 steps) / Bill of Entry (15 steps) configs - the ICEGATE fields TCOS does not already collect in its own core steps.
+/* GENERATED from the Logistics Document Simulator Shipping Bill (14 steps) / Bill of Entry (15 steps) configs - the ICEGATE fields ICEGATE does not already collect in its own core steps.
    Same field names as the Doc-Sim, so filing.icegate feeds the shared print renderers directly. */
 const TCOS_ICEGATE_SPEC = {
  "export": [

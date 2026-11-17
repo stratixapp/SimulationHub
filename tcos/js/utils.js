@@ -1,5 +1,5 @@
 /* ============================================================
-   TCOS TRAINING SIMULATOR — UTILITIES
+   ICEGATE TRAINING SIMULATOR — UTILITIES
    ============================================================ */
 
 function $(sel, root) { return (root || document).querySelector(sel); }
