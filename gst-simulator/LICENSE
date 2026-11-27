@@ -1,0 +1,21 @@
+Copyright (c) 2026 Ananthu Shaji. All Rights Reserved.
+
+This software and its associated content ("GST Simulator") are provided
+for educational and training purposes only.
+
+Permission is granted to view, run, and use this software for personal,
+educational, and non-commercial training purposes. Redistribution,
+modification, sublicensing, or commercial use of this software, in whole
+or in part, requires prior written permission from the copyright holder.
+
+This project is an independent educational tool and is not affiliated
+with, endorsed by, or connected to the Government of India, the Goods
+and Services Tax Network (GSTN), or the official GST Portal in any way.
+No real government, banking, PAN, or Aadhaar service is contacted by
+this software — all workflows are simulated locally.
+
+THIS SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT. IN NO EVENT SHALL
+THE AUTHOR BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY ARISING
+FROM THE USE OF THIS SOFTWARE.

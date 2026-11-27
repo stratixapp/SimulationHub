@@ -1,0 +1,74 @@
+/* ICEGATE-style "Submit & Sign" console for the Shipping Bill.
+   Font: Noto Sans (bundled, OFL). To change the portal typeface, change --icg-font only. */
+@font-face{font-family:"Noto Sans";font-weight:400;font-style:normal;font-display:swap;src:url("../fonts/noto-sans-latin-400-normal.woff2") format("woff2")}
+@font-face{font-family:"Noto Sans";font-weight:600;font-style:normal;font-display:swap;src:url("../fonts/noto-sans-latin-600-normal.woff2") format("woff2")}
+@font-face{font-family:"Noto Sans";font-weight:700;font-style:normal;font-display:swap;src:url("../fonts/noto-sans-latin-700-normal.woff2") format("woff2")}
+
+.icg-overlay{--icg-font:"Noto Sans","Segoe UI",Arial,sans-serif;--icg-blue:#12396b;--icg-blue2:#1d4e8f;--icg-line:#c9d3e0;--icg-bg:#f3f6fa;--icg-red:#b3261e;--icg-green:#1b7a3d;--icg-amber:#8a5a00;
+  position:fixed;inset:0;z-index:9000;background:rgba(10,24,45,.72);display:flex;align-items:center;justify-content:center;padding:14px;font-family:var(--icg-font);color:#1b2433}
+.icg-shell{background:#fff;width:100%;max-width:1060px;max-height:96vh;display:flex;flex-direction:column;border-radius:3px;box-shadow:0 18px 60px rgba(0,0,0,.45);overflow:hidden}
+.icg-flag{height:5px;background:linear-gradient(90deg,#ff9933 0 33.3%,#fff 33.3% 66.6%,#138808 66.6% 100%);border-bottom:1px solid #d9d9d9}
+.icg-head{background:var(--icg-blue);color:#fff;padding:12px 18px;display:flex;align-items:center;justify-content:space-between;gap:14px}
+.icg-head h2{margin:0;font-size:16px;font-weight:700;letter-spacing:.2px}
+.icg-head .sub{font-size:11.5px;opacity:.85;margin-top:2px}
+.icg-head .trn{font-size:11px;background:rgba(255,255,255,.14);padding:4px 9px;border-radius:2px;white-space:nowrap}
+.icg-body{display:flex;min-height:0;flex:1}
+.icg-steps{width:230px;background:var(--icg-bg);border-right:1px solid var(--icg-line);padding:12px 0;overflow:auto;flex-shrink:0}
+.icg-step{display:flex;gap:10px;align-items:flex-start;padding:9px 16px;font-size:12.5px;color:#55627a;border-left:3px solid transparent}
+.icg-step .n{width:22px;height:22px;border-radius:50%;border:1.5px solid #9aa8bd;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;background:#fff}
+.icg-step.active{background:#fff;color:var(--icg-blue);font-weight:700;border-left-color:#e07b00}
+.icg-step.active .n{background:var(--icg-blue);border-color:var(--icg-blue);color:#fff}
+.icg-step.done{color:var(--icg-green)}
+.icg-step.done .n{background:var(--icg-green);border-color:var(--icg-green);color:#fff}
+.icg-main{flex:1;min-width:0;overflow:auto;padding:18px 22px}
+.icg-main h3{margin:0 0 4px;font-size:16px;color:var(--icg-blue)}
+.icg-main .lead{font-size:12.5px;color:#55627a;margin:0 0 14px;line-height:1.55}
+.icg-foot{border-top:1px solid var(--icg-line);background:var(--icg-bg);padding:10px 18px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.icg-btn{font-family:var(--icg-font);font-size:13px;font-weight:600;padding:9px 18px;border-radius:2px;border:1px solid var(--icg-blue);background:var(--icg-blue);color:#fff;cursor:pointer}
+.icg-btn:hover:not(:disabled){background:var(--icg-blue2)}
+.icg-btn:disabled{opacity:.45;cursor:not-allowed}
+.icg-btn.ghost{background:#fff;color:var(--icg-blue)}
+.icg-btn.saffron{background:#e07b00;border-color:#e07b00}
+.icg-err{background:#fdecea;border:1px solid #f1b5af;color:var(--icg-red);padding:9px 12px;font-size:12.5px;margin:10px 0;border-radius:2px;line-height:1.5}
+.icg-ok{background:#e8f5ec;border:1px solid #b5dcc2;color:var(--icg-green);padding:9px 12px;font-size:12.5px;margin:10px 0;border-radius:2px}
+.icg-warn{background:#fff6e0;border:1px solid #ecd391;color:var(--icg-amber);padding:9px 12px;font-size:12.5px;margin:10px 0;border-radius:2px;line-height:1.5}
+.icg-table{width:100%;border-collapse:collapse;font-size:12.5px;margin:6px 0 12px}
+.icg-table th{background:#e8eef6;text-align:left;padding:7px 9px;border:1px solid var(--icg-line);font-weight:700;color:var(--icg-blue)}
+.icg-table td{padding:7px 9px;border:1px solid var(--icg-line);vertical-align:top}
+.icg-table tr.sel td{background:#fff3e0}
+.icg-pass{color:var(--icg-green);font-weight:700}.icg-fail{color:var(--icg-red);font-weight:700}.icg-wait{color:#7a8699}
+.icg-chk-sec{border:1px solid var(--icg-line);margin:0 0 10px;border-radius:2px}
+.icg-chk-sec .t{background:#eef2f8;padding:7px 11px;font-weight:700;font-size:12.5px;color:var(--icg-blue);display:flex;justify-content:space-between;align-items:center;gap:10px}
+.icg-chk-sec .t label{font-weight:600;font-size:12px;color:#1b2433;cursor:pointer;white-space:nowrap}
+.icg-chk-sec .kvs{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:4px 16px;padding:8px 11px;font-size:12px}
+.icg-chk-sec .kvs span{color:#6a778c}.icg-chk-sec .kvs b{font-weight:600;color:#1b2433;word-break:break-word}
+.icg-field{margin:0 0 11px}.icg-field label{display:block;font-size:12px;font-weight:600;margin-bottom:4px}
+.icg-field input,.icg-field select{font-family:var(--icg-font);font-size:13px;padding:8px 10px;border:1px solid #9fb0c6;border-radius:2px;width:100%;max-width:380px;box-sizing:border-box}
+.icg-decl{display:flex;gap:10px;align-items:flex-start;padding:9px 11px;border:1px solid var(--icg-line);margin:0 0 8px;font-size:12.5px;line-height:1.55;border-radius:2px;cursor:pointer}
+.icg-decl input{margin-top:3px}
+.icg-token{border:1px dashed #b78a2a;background:#fffaf0;padding:9px 12px;font-size:12px;color:#6b4e0b;margin:10px 0;border-radius:2px}
+.icg-token code{font-family:ui-monospace,Menlo,monospace;font-size:14px;font-weight:700;letter-spacing:.12em}
+.icg-sms{position:absolute;right:26px;top:84px;width:260px;background:#1f2937;color:#fff;border-radius:12px;padding:10px 12px;font-size:12px;line-height:1.5;box-shadow:0 10px 30px rgba(0,0,0,.4);z-index:3}
+.icg-sms .h{opacity:.65;font-size:10.5px;margin-bottom:3px}
+.icg-prog li{list-style:none;padding:6px 0;border-bottom:1px solid #edf0f5;font-size:12.5px;display:flex;gap:9px}
+.icg-prog{margin:8px 0;padding:0}
+.icg-ack{border:2px solid var(--icg-green);padding:14px 16px;margin-top:10px;background:#f4fbf6}
+@media(max-width:760px){.icg-body{flex-direction:column}.icg-steps{width:auto;display:flex;overflow:auto;border-right:none;border-bottom:1px solid var(--icg-line);padding:6px}.icg-step{padding:6px 10px;white-space:nowrap}.icg-sms{position:static;width:auto;margin:8px 0}}
+#login .igl-back{top:44px}
+@media(max-width:760px){#login .igl-back{top:40px}}
+/* v51: Items step - the Unit dropdown was only ~28px wide so the chosen unit could not be read; the table scrolls sideways instead of clipping */
+.items-table select[data-k="unit"]{min-width:84px}
+.items-table input[data-k="qty"],.items-table input[data-k="packages"]{min-width:70px}
+.items-table input[data-k="grossWeight"],.items-table input[data-k="netWeight"],.items-table input[data-k="unitPrice"]{min-width:96px}
+.items-table input[data-k="description"]{min-width:190px}
+.items-table input[data-k="origin"]{min-width:100px}
+.items-table select[data-k="hsCode"]{min-width:150px}
+
+/* v51: government-style loading overlay */
+#govLoader{position:fixed;inset:0;z-index:2147483000;background:rgba(10,30,70,.58);display:flex;align-items:center;justify-content:center;font-family:Arial,Helvetica,sans-serif}
+#govLoader .gl-card{background:#fff;width:min(430px,92vw);border-radius:4px;box-shadow:0 18px 50px rgba(0,0,0,.45);text-align:center;padding:0 26px 18px;overflow:hidden}
+#govLoader .gl-flag{display:flex;height:6px;margin:0 -26px 20px}#govLoader .gl-flag i{flex:1}#govLoader .gl-flag i:nth-child(1){background:#ff9933}#govLoader .gl-flag i:nth-child(2){background:#fff;border-top:1px solid #e3e6ee;border-bottom:1px solid #e3e6ee}#govLoader .gl-flag i:nth-child(3){background:#138808}
+#govLoader .gl-wheel{width:74px;height:74px;animation:glspin 2.4s linear infinite}@keyframes glspin{to{transform:rotate(360deg)}}
+#govLoader .gl-title{margin-top:12px;font-size:19px;font-weight:700;color:#102f53}#govLoader .gl-sub{margin-top:6px;font-size:13.5px;line-height:1.5;color:#46566b}
+#govLoader .gl-bar{height:5px;background:#e4e9f2;border-radius:3px;margin:16px 4px 0;overflow:hidden}#govLoader .gl-bar b{display:block;height:100%;width:0;background:linear-gradient(90deg,#ff9933,#1a2f8f,#138808);animation:glbar linear forwards}@keyframes glbar{to{width:100%}}
+#govLoader .gl-foot{margin-top:12px;font-size:11px;color:#7a8799;letter-spacing:.3px}

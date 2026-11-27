@@ -1,0 +1,4054 @@
+              INDIA → RUSSIA SEA EXPORT — COMPLETE DOCUMENT DATA, STEP BY STEP (simulator order, Shipping Bill in TCOS)
+  >>> CORRECTED MASTER DATASET (v2) — all 49 documents retained in original order. FICTIONAL EDUCATIONAL TRAINING DATA: parties, licences, banks, LC, vessel,
+  >>> weapons names and approvals are simulated and are NOT real or authorised. Master values: Invoice INR 87500000 CIF (FOB 86925000) | Gross 5820 / Net 5070 kg |
+  >>> CBM 18.69 | VGM 8300 kg (tare 2280 + net 5070 + packaging 950) | Stuffing & LEO 09-11-2026 | ETD 11-11-2026 | ETA 11-12-2026.
+
+  >>> CREATING THE JOB: tick these 49 documents, but UNTICK "Automatically add prerequisite documents" — otherwise the simulator also adds a Certificate of Origin and a Dispatch Note, which are NOT part of this shipment (the Form A and the Lorry Receipt in this file do not depend on them).
+  >>> SHIPPING BILL (Document 35): 21 TCOS wizard steps, and its last step is now the six-gate "Submit & Sign" ICEGATE console — see Part C of Document 35.
+Shipment: Pax Armata Strategic Defense & Logistics Group (Bengaluru) → Castilla Strategic Military Corporation (Moscow). Kamarajar Port, Chennai → Port of Vladivostok. CIF, Letter of Credit at sight. 1 x 20' container, 5 packages, ₹8,75,00,000.
+Rules: every step of every document is listed. "Yes" = tick the box, "No" = leave it unticked. A name, address or other long value is written in full only the first time it appears; when the same value appears again in a later document it is shown as "(same as <document name>)" — the document where it was written in full earlier in this file. The Shipping Bill (TCOS) keeps all values in full because they are typed into TCOS.
+
+=== PERSONS & AUTHORISATIONS — who appears in this file (fictional training personas) ===
+Name | Role / Organisation | Authorisation / what they sign | Written in full in document no. (elsewhere via (same as ...))
+Alexander | Export Manager (Pax Armata) | Authorized signatory / authorized person of the exporter: signs Proforma, Sales Order, Commercial Invoice, Packing List, Form A, LUT, Export Licence declaration, Export Declaration, Bill of Exchange; Shipping Bill authorized person | Docs 1, 2, 7, 15, 19, 20, 23, 35
+Anjana Mohan | Documentation Executive (simulator documentation persona) | Signs ICEGATE registration, Freight Quotation, FCR, Shipping Order, EDI Copy, Freight Invoice, Cargo Manifest, Sea Waybill; Shipping Bill declarant (Customs Broker); booking contact | Docs 3, 21, 22, 24, 35
+Anjali Arora | Salesperson (Pax Armata) | Sales Order salesperson | Docs 2
+Vikram Shetty | Stores Officer (Pax Armata) | Stock confirmation on Sales Order; LUT witness | Docs 2, 15
+Pritham Bansur | Dispatch Manager (Pax Armata) | LUT witness; Export Checklist reviewer; LR status change | Docs 15, 17, 32
+Anandhi Srivasthava IRS | Certifying / checking officer | Certifying Authority officer on Form A; completed the Export Checklist | Docs 7, 17
+Chandana Baby | Bank Manager, Camera International Bank (DCIB) | Authorizes Letter of Credit and Bank Guarantee; eBRC signatory; drawee's authorized signatory on the Bill of Exchange | Docs 12, 13, 14
+Hector Salamanca | Buyer representative / consignee attention / notify party, Castilla Strategic Military Corporation | Named buyer on Proforma; consignee attention (company is the legal consignee); notify party | Docs 1, 5, 10, 20, 43
+Carlos Navarro | Buyer contact person, Castilla Strategic Military Corporation | Buyer contact on Proforma, LC and Shipping Bill | Docs 1, 12, 35
+Francois Di Almeida | Notify-party contact, Castilla Strategic Military Corporation | Notify party contact on B/L and insurance | Docs 10, 20, 43
+Meera Krishnan | Analyst, Thapasya Fundamental Research Institute | Certificate of Analysis analyst | Docs 8
+Sreedhar R | Reviewer, Thapasya Fundamental Research Institute | Certificate of Analysis reviewer | Docs 8
+Sachin Sahadev | Warehouse Supervisor (Pax Armata) | Weight Certificate / VGM signatory; Warehouse Receipt keeper, manager and authorized signatory | Docs 9, 48
+Yaqoob Khan | Inspector, ASG India Pvt Ltd | Pre-shipment Inspection Certificate | Docs 39
+Suresh Patil | Driver, Pax Armata Strategic Transport & Logistics | Trucker on EIR, LR, CFS Gate Pass | Docs 27, 29, 32
+Ramesh Iyer | CFS Operations Manager | Issues CFS Gate Pass; receives cargo (LR delivery) | Docs 29, 32
+Anitha Ramaswamy | Stuffing / Port Supervisor, Kamarajar Port CFS | CLP, Seal Report, Container Packing Certificate, EIR and Dock Receipt signatory | Docs 25, 28, 43
+Ruksana Muhammed | Gate Officer (Customs) | Customs Gate Pass | Docs 36
+Shanmugavel SathyaNaryanan | Preventive Officer, Customs (INENR1) | ARE-1 and Transshipment Permit certification | Docs 34, 46
+Venkatesh Subramani | Marine Surveyor, Chennai Marine Surveyors & Adjusters | Surveyor named on the Mate Receipt | Docs 40
+Rakesh Yadav | Tally Clerk | Mate Receipt pre-loading tally | Docs 40
+Rajesh Kumar | Loading Supervisor | Mate Receipt loading | Docs 40
+R K Shanmugam | Chief Officer (vessel) | Mate Receipt issuing officer | Docs 40
+Capt. Dimitri Volkov | Master of the vessel | Mate Receipt countersignature | Docs 40
+Faisal Rahman | Compliance Officer | Warehouse Receipt compliance decision | Docs 48
+Rahul Nair | Receiving Supervisor | Warehouse Receipt | Docs 48
+Suresh Kumar | Security Officer | Warehouse Receipt | Docs 48
+Ananthu R Krishnan | Dock Supervisor | Warehouse Receipt | Docs 48
+Mohan Das | Forklift Operator | Warehouse Receipt put-away | Docs 48
+Note: signatory fields that say '(same as Sales Order)' = Alexander; '(same as ICEGATE Forms (Registration))' = Anjana Mohan.
+
+
+=== CREATE JOB — job-level values (for reference; each document below still shows the full value where it first uses it) ===
+Exporter / Seller Name: Pax Armata Strategic Defense & Logistics Group
+Exporter Address: 14 Meridian Industrial Park, Peenya Industrial Area, Bengaluru, Karnataka – 560058, India
+Exporter GSTIN: 29AALCP6785Q1ZJ
+Exporter IEC: AALCP6785Q
+Exporter Phone: +91 9867465726
+Exporter Email: exports@paxarmata.in
+Exporter Bank: Camera International Bank (DCIB)
+Importer / Buyer Name: Castilla Strategic Military Corporation
+Importer Address: Building 4, Office 712, 12 Lewinski Prospekt, Gagarinsky District, Moscow, 119071, Russian Federation
+Importer Phone: +7 495 674 93 90
+Importer Email: procurement@csmc-castilla.com
+Purchase Order No.: PO-2026-88213
+Commercial Invoice No.: INV-2026-867486
+Incoterm: CIF
+Currency: INR
+Payment Terms: Letter of Credit
+LC Number: LC-2026-009847
+LC Issuing (Applicant) Bank: Camera International Bank (DCIB)
+LC Advising / Beneficiary Bank: Meridian International Bank of India (MIBI)
+Advising Bank SWIFT: MIBIINBBXXX
+Port of Loading: Ennore Port (Kamarajar), Tamil Nadu
+Port of Discharge: Port of Vladivostok (RUVVO)
+Terminal: Kamarajar Port Limited (KPL) Container Terminal
+Carrier: CMA CGM
+Vessel: CMA CGM Antoine de Saint Exupéry
+Voyage No.: V923S
+Booking No.: BKG2026778812
+Bill of Lading No.: CMDU2601789567
+Container No.: EGHU7283610
+Seal No.: SI877656458
+Vehicle No.: KA01AB4827
+Shipping Bill No.: (generated by TCOS when you submit — TRN-SB-2026-xxxxxx; use YOUR number)
+HS Code (first item): 88062900
+No. of Packages: 5
+Gross Weight (KG): 5820
+Shipment Mode: Sea Export | Origin: India | Destination Country: Russia | ETD: 11-11-2026
+Consignee: Castilla Strategic Military Corporation (attn: Hector Salamanca) | Buyer Contact Person: Carlos Navarro | Notify Party: Hector Salamanca (contact Francois Di Almeida), Building 4, Office 712, 12 Lewinski Prospekt, Gagarinsky District, Moscow, 119071, Russian Federation
+Items:
+  HS Code | Description | Qty | Unit | Unit Price | Gross Wt (KG) | Net Wt (KG) | Packaging
+  88062900 | TAPAS BH-201 – Advanced long-endurance surveillance drone | 1 | SET | 10000000 | 1000 | 850 | Crates
+  93069000 | BrahMos – Long Range Advanced Supersonic cruise missile system | 1 | SET | 50000000 | 3000 | 2700 | Crates
+  85261000 | Akash Air Defence Radar – Advanced Air-surveillance radar system | 1 | SET | 7500000 | 850 | 700 | Crates
+  88062400 | Drishti-10 Starliner – Indian variant of the Elbit Hermes 900 MALE UAV | 1 | SET | 10000000 | 120 | 100 | Protective Case
+  93019000 | DURGA-2 – Advanced high-power laser directed-energy weapon | 1 | SET | 10000000 | 850 | 720 | Heavy-Duty Industrial Crates
+
+Documents in this file (in order):
+1. Proforma Invoice
+2. Sales Order
+3. ICEGATE Forms (Registration)
+4. Registration-cum-Membership Certificate (RCMC)
+5. Commercial Invoice
+6. Packing List
+7. GSP Certificate of Origin (Form A)
+8. Certificate of Analysis
+9. Weight Certificate
+10. Insurance Certificate
+11. Marine Insurance Policy
+12. Letter of Credit
+13. Bill of Exchange
+14. Bank Guarantee
+15. Letter of Undertaking (LUT)
+16. Export License
+17. Export Checklist
+18. Export Declaration
+19. Ocean Freight Quotation
+20. Shipping Instructions
+21. Forwarder's Cargo Receipt (FCR)
+22. Booking Confirmation
+23. VGM Certificate
+24. Shipping Order
+25. Container Load Plan (CLP)
+26. Container Packing Certificate
+27. Equipment Interchange Receipt (EIR)
+28. Seal Report
+29. CFS Gate Pass
+30. Delivery Challan
+31. E-Way Bill
+32. Lorry Receipt
+33. Dock Receipt
+34. ARE-1
+35. Shipping Bill (done in TCOS)
+36. Customs Gate Pass
+37. EDI Copy
+38. Export General Manifest (EGM)
+39. Inspection Certificate
+40. Mate Receipt
+41. Master Bill of Lading (MBL)
+42. House Bill of Lading (HBL)
+43. Bill of Lading
+44. Freight Invoice (Sea)
+45. Sea Waybill
+46. Transshipment Permit
+47. Cargo Manifest
+48. Warehouse Receipt
+49. Bank Realization Certificate (eBRC)
+
+
+==============================================================================================================
+DOCUMENT 1 of 49 — Proforma Invoice
+==============================================================================================================
+
+Step 1 — Company & Document Information
+Exporter Company Name: Pax Armata Strategic Defense & Logistics Group
+Exporter Address: 14 Meridian Industrial Park, Peenya Industrial Area, Bengaluru, Karnataka – 560058, India
+GSTIN / Tax ID: 29AALCP6785Q1ZJ
+IEC Number (India): AALCP6785Q
+Company Logo (File Reference): Pax Armata logo (company letterhead)
+Contact Person: Alexander
+Email ID: exports@paxarmata.in
+Phone Number: +91 9867465726
+Proforma Invoice Number: PI-2026-001204
+Issue Date: 05-09-2026
+
+Step 2 — Buyer Information
+Buyer Name: Hector Salamanca
+Buyer Company: Castilla Strategic Military Corporation
+Buyer Address: Building 4, Office 712, 12 Lewinski Prospekt, Gagarinsky District, Moscow, 119071, Russian Federation
+Country: Russia
+Postal Code: 119071
+Buyer Contact Person: Carlos Navarro
+Email: procurement@csmc-castilla.com
+Phone: +7 495 674 93 90
+Buyer Tax Number: INN7714561234
+Import License Number (if applicable): Not applicable — export shipment
+
+Step 3 — Shipment Information
+Country of Origin: India
+Country of Destination: Russia
+Port of Loading (POL): Ennore Port (Kamarajar), Tamil Nadu
+Port of Discharge (POD): Port of Vladivostok (RUVVO)
+Final Destination: Wagner Strategic Logistics Complex
+Mode of Transport: Sea
+Estimated Shipping Date: 11-11-2026
+Estimated Arrival Date: 11-12-2026
+Freight Type: Prepaid
+Partial Shipment Allowed: No
+
+Step 4 — Product Details
+Goods Quoted:
+  Item No. | Product Description | Product Code / SKU | HS Code | Quantity | Unit | Unit Price | Currency | Discount | Line Total | Country of Manufacture | Brand / Model No.
+  1 | TAPAS BH-201 – Advanced long-endurance surveillance drone | TAP-BH201-001 | 88062900 | 1 | SET | 10000000 | INR | 0 | 10000000 | India | TAPAS BH-201
+  2 | BrahMos – Long Range Advanced Supersonic cruise missile system | BRM-LRS-HPW-002 | 93069000 | 1 | SET | 50000000 | INR | 0 | 50000000 | India | BrahMos
+  3 | Akash Air Defence Radar – Advanced Air-surveillance radar system | AKS-RDR-HPW-003 | 85261000 | 1 | SET | 7500000 | INR | 0 | 7500000 | India | Akash-NG
+  4 | Drishti-10 Starliner – Indian variant of the Elbit Hermes 900 MALE UAV | DRS-10S-HPW-004 | 88062400 | 1 | SET | 10000000 | INR | 0 | 10000000 | India | Drishti-10
+  5 | DURGA-2 – Advanced high-power laser directed-energy weapon | DRG-D2-HPW-005 | 93019000 | 1 | SET | 10000000 | INR | 0 | 10000000 | India | DURGA-2
+
+Step 5 — Packaging Information
+Number of Packages: 5
+Package Type: Crate
+Gross Weight (kg): 5820
+Net Weight (kg): 5070
+Volume (CBM): 18.69
+Dimensions (L x W x H): Largest package 5.20 m × 1.40 m × 1.20 m; all package dimensions per Packing List Step 5
+Packing Method: Crated
+Shipping Marks: HEAVY & CONTROLLED EQUIPMENT — SPECIAL HANDLING REQUIRED — SECURE CARGO — PROTECTED EXPORT PACKAGING — HANDLE ONLY BY AUTHORIZED LOGISTICS PERSONNEL — KEEP DRY — THIS SIDE UP — DO NOT DROP OR STACK
+Container Requirement: 20' Dry
+Dangerous Goods Declaration Required: No
+
+Step 6 — Pricing & Charges
+Freight Charges: 450000
+Insurance Charges: 125000
+Packing Charges: 85000
+Documentation Charges: 25000
+Other Charges: 50000
+Overall Discount: 0
+Tax (if applicable): 0
+Currency (for Totals): INR
+
+Step 7 — Trade Terms
+Incoterms: CIF
+Delivery Terms: CIF Vladivostok Russia — Port of Discharge (freight ₹4,50,000 and insurance ₹1,25,000 are included in the CIF price; total CIF ₹8,75,00,000)
+Payment Terms: Letter of Credit (LC) at Sight
+Validity Period (Days): 30
+Advance Payment (%): 0
+Bank Charges: Applicable to Buyer
+Letter of Credit Required: Yes
+Insurance Responsibility: Seller
+
+Step 8 — Banking Details
+Beneficiary Name: Pax Armata Strategic Defense & Logistics Group
+Bank Name: Camera International Bank
+Branch: Bengaluru International Trade Finance Branch
+Account Number: 78965896894590
+SWIFT Code: CMRBINBB654
+IFSC Code: CMRB0000654
+IBAN (if required): (leave blank — not applicable for India)
+Bank Address: International Trade Finance Centre, 24 Richmond Road, Bengaluru, Karnataka 560025, India
+Correspondent Bank: Emirates Meridian Commercial Bank, Dubai
+Payment Instructions: Payment under Irrevocable Letter of Credit — At Sight. Payment subject to document verification, regulatory compliance, and applicable banking procedures. LC proceeds are advised/negotiated through Meridian International Bank of India (SWIFT MIBIINBBXXX, A/c 001245678903) and realised into the exporter's AD-bank account above.
+
+Step 9 — Compliance & Declaration
+Export Compliance Confirmed — Goods Not Subject to Export Restriction: No
+Import Compliance Confirmed — Meets Destination Country Requirements: Yes
+Sanction Compliance Confirmed — Buyer Cleared Against Restricted Party Lists: Yes
+Product Certification: Export Licence EL/2026/004521 (SCOMET) — fictional training reference
+Origin Declaration: Goods originate from their respective countries of manufacture and are declared accordingly.
+Inspection Requirement: Pre-Shipment Inspection Required
+Signature — Signatory Name: Alexander
+Company Seal Affixed: Yes
+Authorized Signatory Name (Print): Same Name
+Place: Bengaluru, Karnataka, India
+Date: 05-09-2026
+I certify that the information provided above is true and correct to the best of my knowledge.: Yes
+
+Step 10 — Document Linking
+Commercial Invoice: Yes
+Shipping Bill: Yes
+Bill of Lading: Yes
+Packing List: Yes
+Certificate of Origin: Yes
+Insurance Certificate: Yes
+Inspection Certificate: Yes
+Fumigation Certificate: No
+Export Declaration: Yes
+Letter of Credit: Yes
+Delivery Order: Yes
+Customs Declaration: Yes
+
+Step 11 — Review Document
+(no entry — review / generate step)
+
+Step 12 — Completion
+(no entry — review / generate step)
+
+
+==============================================================================================================
+DOCUMENT 2 of 49 — Sales Order
+==============================================================================================================
+
+Step 1 — Customer Selection & Order Initiation
+Customer ID: CUST-009731
+Customer Name: (same as Proforma Invoice)
+Customer Type: New Customer
+Customer Account Status Verified — Active, Not Blocked: Yes
+Billing Address: (same as Proforma Invoice)
+Shipping Address: Castilla Strategic Military Corporation, Building 4, Office 712, 12 Lewinski Prospekt, Gagarinsky District, Moscow, 119071, Russian Federation
+Selling Company / Sales Organization: (same as Proforma Invoice)
+Sales Office: Karnataka
+Salesperson: Anjali Arora
+
+Step 2 — Order Header Information
+Order Date: 10-09-2026
+Customer PO Number: PO-2026-88213
+Customer PO Date: 10-09-2026
+Order Type: Standard Order
+Currency: (same as Proforma Invoice)
+Price List: Government Contract Price List
+Sales Channel: Direct Sales
+Reference Document (Quotation / Enquiry No.): PI-2026-001204
+
+Step 3 — Product Line Items
+Line Items:
+  Product Code | Description | UOM | Quantity | Unit Price | Warehouse | Delivery Plant | Batch / Serial No. (if applicable) | Amount
+  TAP-BH201-001 | TAPAS BH-201 – Advanced long-endurance surveillance drone | SET | 1 | 10000000 | Pax Armata Warehouse — Bengaluru | Plant 1100 — Bengaluru | BATCH-2026-100 | 10000000
+  BRM-LRS-HPW-002 | BrahMos – Long Range Advanced Supersonic cruise missile system | SET | 1 | 50000000 | Pax Armata Warehouse — Bengaluru | Plant 1100 — Bengaluru | BATCH-2026-100 | 50000000
+  AKS-RDR-HPW-003 | Akash Air Defence Radar – Advanced Air-surveillance radar system | SET | 1 | 7500000 | Pax Armata Warehouse — Bengaluru | Plant 1100 — Bengaluru | BATCH-2026-100 | 7500000
+  DRS-10S-HPW-004 | Drishti-10 Starliner – Indian variant of the Elbit Hermes 900 MALE UAV | SET | 1 | 10000000 | Pax Armata Warehouse — Bengaluru | Plant 1100 — Bengaluru | BATCH-2026-100 | 10000000
+  DRG-D2-HPW-005 | DURGA-2 – Advanced high-power laser directed-energy weapon | SET | 1 | 10000000 | Pax Armata Warehouse — Bengaluru | Plant 1100 — Bengaluru | BATCH-2026-100 | 10000000
+
+Step 4 — Pricing & Tax Calculation
+Customer Discount (%): 0
+Promotional Discount (%): 0
+Item-Level Discount (Flat Amount): 0
+Freight Charges: (same as Proforma Invoice)
+Packing Charges: (same as Proforma Invoice)
+Insurance Charges: (same as Proforma Invoice)
+GST / VAT Rate (%): 0
+
+Step 5 — Inventory & Availability Check
+Stock Availability Status: In Stock
+Available Quantity: 5
+Reserved Quantity: 5
+Inventory Reservation Placed Against This Order: Yes
+Stock Confirmed By: Vikram Shetty
+Stock Confirmation Date: 10-09-2026
+
+Step 6 — Delivery & Shipping Details
+Delivery Method: CIF
+Warehouse Dispatch Point: Pax Armata Warehouse, Peenya Industrial Area, Bengaluru (dispatch) → Kamarajar Port Limited, Ennore, about 18 to 24 kilometers north of Chennai Port, Tamil Nadu, India (port of loading)
+Transport Mode: Sea
+Carrier: CMA CGM
+Delivery Priority: Standard
+Customer's Requested Delivery Date: 11-11-2026
+Seller's Confirmed Delivery Date: 11-11-2026
+Shipping Instructions: Handle as controlled cargo; comply with all applicable export, import, customs, licensing, documentation, and carrier requirements. Delivery subject to regulatory clearance.
+
+Step 7 — Payment & Credit Management
+Payment Terms: Letter of Credit (LC) at Sight
+Payment Method: Letter of Credit
+Customer Credit Limit: 100000000
+Existing Outstanding Balance: 0
+Advance Payment Required Before Dispatch: No
+Payment Due Date: 20-01-2027
+Credit Approval Required (Order Exceeds Standard Terms): Yes
+Finance Remarks: Controlled cargo under Export Licence EL/2026/004521. Handle with care and keep dry.
+
+Step 8 — Order Review & Approval
+Customer Details Reviewed: Yes
+Product List, Pricing & Tax Reviewed: Yes
+Shipping & Payment Terms Reviewed: Yes
+Mandatory Fields Validated: Yes
+Manager Approval Required: Yes
+Order Locked: Yes
+Final Approval Status: Approved
+
+Step 9 — Sales Order Confirmation
+Sales Order PDF Generated: Yes
+Order Confirmation Sent to Customer: Yes
+Confirmation Emailed to Customer: Yes
+SMS / Notification Sent: Yes
+Printed Copy Issued: Yes
+Confirmation Date: 10-09-2026
+Confirmation Time: 10:00
+Order Status: Confirmed
+
+Step 10 — Order Fulfillment & Integration
+Delivery Order Created: Yes
+Inventory Reserved (Final): Yes
+Picking List Generated: Yes
+Packing List Generated: Yes
+Dispatch Request Raised: Yes
+Invoice Generated: Yes
+Invoice Number: INV-2026-867486
+Payment Status: Fully Received
+ERP Ledger Updated: Yes
+Sales Order Closed: Yes
+Audit Log Reference: AUD-2026-004521
+
+Step 11 — Declaration & Signature
+Signatory Name: Alexander
+Designation: Export Manager
+Place: Bengaluru
+Date: 10-09-2026
+I certify that the information provided above is true and correct to the best of my knowledge.: Yes
+
+Step 12 — Review Document
+(no entry — review / generate step)
+
+Step 13 — Completion
+(no entry — review / generate step)
+
+
+==============================================================================================================
+DOCUMENT 3 of 49 — ICEGATE Forms (Registration)
+==============================================================================================================
+
+Step 1 — Registration Reference
+Registration Reference Number: ICEGATE/REG/2026/004521
+Application Date: 08-07-2026
+Registration Type: Importer/Exporter
+
+Step 2 — Applicant Details
+Applicant Name: (same as Proforma Invoice)
+PAN: AALCP6785Q
+IEC Number: (same as Proforma Invoice)
+
+Step 3 — AD Code Registration
+AD Code (Authorized Dealer Code): 0304022
+Bank Name: Camera International Bank (DCIB)
+Branch Address: Bengaluru International Trade Finance Branch, International Trade Finance Centre, 24 Richmond Road, Bengaluru, Karnataka 560025, India
+
+Step 4 — Digital Signature & Access Details
+Digital Signature Certificate (DSC) Serial No.: DSC-04521-2026
+DSC Class: Class 3
+ICEGATE User ID: SUNRISE_CHA_CHN01
+
+Step 5 — Declaration & Signature
+I certify the particulars above are true and correctly stated, and I am authorized to register on behalf of the applicant.: Yes
+Signatory Name: Anjana Mohan
+Designation: Authorized Signatory
+
+Step 6 — Review Document
+(no entry — review / generate step)
+
+Step 7 — Completion
+(no entry — review / generate step)
+
+
+==============================================================================================================
+DOCUMENT 4 of 49 — Registration-cum-Membership Certificate (RCMC)
+==============================================================================================================
+
+Step 1 — RCMC Reference & Registering Authority
+RCMC Number: EEPC/RCMC/SR/2026-27/03417
+Date of Issue: 18-05-2026
+Registering Authority: EEPC India — Engineering Export Promotion Council
+Registering Authority's Address: Vanijya Bhawan, 1/1 Wood Street, Kolkata – 700016, West Bengal, India
+
+Step 2 — Exporter Details
+Importer Exporter Code (IEC): AALCP6785Q
+Exporter Name: (same as Proforma Invoice)
+Registered Office Address: (same as Proforma Invoice)
+Exporter Category: Merchant Exporter
+PAN: AALCP6785Q
+
+Step 3 — Membership & Product Classification
+Membership Category: Ordinary Member
+Product Group (as per Appendix 2T): Engineering goods — aerospace, surveillance, radar and defence-related equipment (ITC-HS Chapters 85, 88, 93)
+Main Line of Business: Export of controlled defence, aerospace and security equipment under Export Licence, with logistics and warehousing services.
+Star Export House Status (if applicable): None
+
+Step 4 — Validity Period
+Valid From: 18-05-2026
+Valid Upto: 31-03-2031
+
+Step 5 — Review Document
+(no entry — review / generate step)
+
+Step 6 — Completion
+(no entry — review / generate step)
+
+
+==============================================================================================================
+DOCUMENT 5 of 49 — Commercial Invoice
+==============================================================================================================
+
+Step 1 — Invoice Reference
+Commercial Invoice Number: INV-2026-867486
+Invoice Date: 28-10-2026
+Purchase Order Number: PO-2026-88213
+Sales Order Number (Optional): SO-2026-004521
+
+Step 2 — Exporter / Seller
+Company Name: (same as Proforma Invoice)
+Address: (same as Proforma Invoice)
+City: Bengaluru
+State: Karnataka
+Country: India
+Postal Code: 560058
+Contact Person: (same as Proforma Invoice)
+Phone: +91 9867465726
+Email: exports@paxarmata.in
+Website: www.paxarmata.in
+GST Number: 29AALCP6785Q1ZJ
+IEC Number (India): (same as Proforma Invoice)
+PAN Number: AALCP6785Q
+
+Step 3 — Importer / Buyer
+Company: (same as Proforma Invoice)
+Address: (same as Proforma Invoice)
+Country: (same as Proforma Invoice)
+Contact Person: (same as Proforma Invoice)
+Phone: (same as Proforma Invoice)
+Email: (same as Proforma Invoice)
+Importer Tax ID / VAT / EORI (if applicable): INN7714561234 (Russian Federation)
+
+Step 4 — Shipment Parties
+Notify Party — Name: Hector Salamanca
+Notify Party — Address: (same as Proforma Invoice)
+Freight Forwarder: Coastal Freight Forwarders Pvt. Ltd.
+Bill of Lading Number / Air Waybill Number: CMDU2601789567
+Carrier Name: CMA CGM
+
+Step 5 — Transport & Routing
+Mode of Transport: (same as Proforma Invoice)
+Vessel / Flight Number: CMA CGM Antoine de Saint Exupéry
+Port of Loading (POL): (same as Proforma Invoice)
+Port of Discharge (POD): (same as Proforma Invoice)
+Country of Export: India
+Country of Import: Russia
+Country of Origin: (same as Proforma Invoice)
+
+Step 6 — Trade Terms
+Incoterms®: (same as Proforma Invoice)
+Payment Terms: LC
+Currency: (same as Proforma Invoice)
+
+Step 7 — Product / Cargo Line Items
+Line Items:
+  Item No. | Product Description | HS / HSN Code | Country of Manufacture | Qty | UOM | Unit Price | Line Total | Gross Wt (KG) | Net Wt (KG) | Volume (CBM)
+  1 | TAPAS BH-201 – Advanced long-endurance surveillance drone | 88062900 | India | 1 | SET | 10000000 | 10000000 | 1000 | 850 | 4.32
+  2 | BrahMos – Long Range Advanced Supersonic cruise missile system | 93069000 | India | 1 | SET | 50000000 | 50000000 | 3000 | 2700 | 8.74
+  3 | Akash Air Defence Radar – Advanced Air-surveillance radar system | 85261000 | India | 1 | SET | 7500000 | 7500000 | 850 | 700 | 3.30
+  4 | Drishti-10 Starliner – Indian variant of the Elbit Hermes 900 MALE UAV | 88062400 | India | 1 | SET | 10000000 | 10000000 | 120 | 100 | 0.22
+  5 | DURGA-2 – Advanced high-power laser directed-energy weapon | 93019000 | India | 1 | SET | 10000000 | 10000000 | 850 | 720 | 2.11
+
+Step 8 — Charges & Valuation
+Freight Charges: (same as Proforma Invoice)
+Insurance Charges: (same as Proforma Invoice)
+Other Charges — Packing: 85000
+Other Charges — Handling: 20000
+Other Charges — Documentation: 25000
+Other Charges — Export Fees: 30000
+Tax Type (if applicable): None
+Total Invoice Value in Words: Rupees Eight Crore Seventy-Five Lakh Only (CIF INR 87500000; freight 450000 and insurance 125000 included; FOB INR 86925000)
+
+Step 9 — ERP Cross-References
+Customer Code: CUST-CSMC-001
+Supplier Code: SUP-PAXA-001
+Contract Number: CRM/2026/4567
+Insurance Policy Number: POL-2026-778812
+Export License Number: EL/2026/004521
+Certificate of Origin Number: GCOO-2026-004521
+Packing List Number: PL-2026-004521
+Shipping Bill Number: (the TRN-SB-2026-xxxxxx number TCOS generated for YOUR Shipping Bill)
+Customs Broker Details: Sunrise Clearing & Forwarding Agency Chennai — CHA License No. CHA456
+Bank Details — Beneficiary Name: (same as Proforma Invoice)
+Bank Details — SWIFT / IFSC: MIBIINBBXXX / MIBI0000123
+Bank Details — Account No. / IBAN: 001245678903
+Exchange Rate to INR: 1
+Discount %: 0
+Batch / Lot Number: PA-LOT-2026-12
+Serial Number: 0004521
+Container Number: EGHU7283610
+Seal Number: SI877656458
+
+Step 10 — Declaration & Signature
+Reason for Export: Sale
+Signatory Name: (same as Sales Order)
+Designation: (same as Sales Order)
+Company Seal Affixed: Yes
+Digital Signature Applied: Yes
+Place: (same as Proforma Invoice)
+Date: 28-10-2026
+Remarks / Additional Instructions: (same as Sales Order)
+I certify that the information provided above is true and correct to the best of my knowledge.: Yes
+
+Step 11 — Review Document
+(no entry — review / generate step)
+
+Step 12 — Completion
+(no entry — review / generate step)
+
+
+==============================================================================================================
+DOCUMENT 6 of 49 — Packing List
+==============================================================================================================
+
+Step 1 — Reference Numbers
+Packing List Number: (same as Commercial Invoice)
+Packing List Date: 28-10-2026
+Commercial Invoice Number: (same as Commercial Invoice)
+Purchase Order (PO) Number: (same as Commercial Invoice)
+Letter of Credit Number (if applicable): LC-2026-009847
+
+Step 2 — Parties
+Exporter / Shipper Name: (same as Proforma Invoice)
+Exporter / Shipper Address: (same as Proforma Invoice)
+Consignee (Buyer) Name: (same as Proforma Invoice)
+Consignee (Buyer) Address: (same as Proforma Invoice)
+Notify Party Name: (same as Commercial Invoice)
+Notify Party Address: (same as Commercial Invoice)
+
+Step 3 — Origin, Destination & Transport
+Country of Origin: (same as Proforma Invoice)
+Country of Final Destination: Russia
+Mode of Transport: (same as Proforma Invoice)
+Vessel Name / Flight Number: (same as Commercial Invoice)
+Voyage Number: V923S
+Port of Loading (POL): (same as Proforma Invoice)
+Port of Discharge (POD): (same as Proforma Invoice)
+Final Delivery Place: Wagner Strategic Logistics Complex, Russia
+
+Step 4 — Cargo Summary
+Cargo Details:
+  Shipping Marks & Numbers | No. of Packages | Package Type | Item Description | HS Code (optional) | Quantity | Unit | Net Wt (KG) | Gross Wt (KG)
+  PA-CTG / KPL / 001240 | 1 | Crates | TAPAS BH-201 – Advanced long-endurance surveillance drone | 88062900 | 1 | SET | 850 | 1000
+  PA-CTG / KPL / 001240 | 1 | Crates | BrahMos – Long Range Advanced Supersonic cruise missile system | 93069000 | 1 | SET | 2700 | 3000
+  PA-CTG / KPL / 001240 | 1 | Crates | Akash Air Defence Radar – Advanced Air-surveillance radar system | 85261000 | 1 | SET | 700 | 850
+  PA-CTG / KPL / 001240 | 1 | Protective Case | Drishti-10 Starliner – Indian variant of the Elbit Hermes 900 MALE UAV | 88062400 | 1 | SET | 100 | 120
+  PA-CTG / KPL / 001240 | 1 | Heavy-Duty Industrial Crates | DURGA-2 – Advanced high-power laser directed-energy weapon | 93019000 | 1 | SET | 720 | 850
+Total Number of Packages (all cargo): 5
+Total Net Weight (KG): 5070
+Total Gross Weight (KG): 5820
+Dimensions (L × W × H): (same as Proforma Invoice)
+Total Volume (CBM): 18.69
+
+Step 5 — Package-Wise Details
+Package-Wise Breakdown:
+  Package No. | Description | Qty | Net Wt (KG) | Gross Wt (KG) | Dimensions | Marks
+  PKG 1 of 5 | TAPAS BH-201 – Advanced long-endurance surveillance drone | 1 | 850 | 1000 | 240 x 180 x 100 cm | PA-CTG / KPL / 001240
+  PKG 2 of 5 | BrahMos – Long Range Advanced Supersonic cruise missile system | 1 | 2700 | 3000 | 520 x 140 x 120 cm | PA-CTG / KPL / 001240
+  PKG 3 of 5 | Akash Air Defence Radar – Advanced Air-surveillance radar system | 1 | 700 | 850 | 200 x 150 x 110 cm | PA-CTG / KPL / 001240
+  PKG 4 of 5 | Drishti-10 Starliner – Indian variant of the Elbit Hermes 900 MALE UAV | 1 | 100 | 120 | 90 x 60 x 40 cm | PA-CTG / KPL / 001240
+  PKG 5 of 5 | DURGA-2 – Advanced high-power laser directed-energy weapon | 1 | 720 | 850 | 180 x 130 x 90 cm | PA-CTG / KPL / 001240
+Remarks / Special Handling Instructions: Controlled cargo under Export Licence EL/2026/004521 — all particulars as per Commercial Invoice INV-2026-867486 and Letter of Credit LC-2026-009847.
+
+Step 6 — Authorized Signature & Company Seal
+Signatory Name: (same as Sales Order)
+Designation: (same as Sales Order)
+Company Seal Affixed: Yes
+Digital Signature Applied: Yes
+Place: (same as Proforma Invoice)
+Date: (same as Commercial Invoice)
+I certify that the packages and their contents are correctly and completely described above.: Yes
+
+Step 7 — Review Document
+(no entry — review / generate step)
+
+Step 8 — Completion
+(no entry — review / generate step)
+
+
+==============================================================================================================
+DOCUMENT 7 of 49 — GSP Certificate of Origin (Form A)
+==============================================================================================================
+
+Step 1 — Certificate Reference
+Certificate Number: GCOO-2026-004521
+Date of Issue: 29-10-2026
+Issuing Authority: Federation of Indian Export Organisations (FIEO)
+
+Step 2 — Exporter Details (Box 1)
+Exporter Name: (same as Registration-cum-Membership Certificate (RCMC))
+Exporter Address: (same as Proforma Invoice)
+
+Step 3 — Consignee Details (Box 2)
+Consignee Name: (same as Packing List)
+Consignee Address: (same as Packing List)
+Country of Destination (GSP Scheme): (same as Proforma Invoice)
+
+Step 4 — Transport Details (Box 3)
+Vessel / Flight Name: (same as Commercial Invoice)
+Port of Loading: (same as Proforma Invoice)
+Port of Discharge: (same as Proforma Invoice)
+B/L or Airway Bill Number: CMDU2601789567
+
+Step 5 — Goods Details (Boxes 5-9)
+Goods Details:
+  Marks & Numbers | Description of Goods | HS Code | Origin Criterion | Gross Weight (KG)
+  PA-CTG / KPL / 001240 | TAPAS BH-201 – Advanced long-endurance surveillance drone | 88062900 | P | 1000
+  PA-CTG / KPL / 001240 | BrahMos – Long Range Advanced Supersonic cruise missile system | 93069000 | P | 3000
+  PA-CTG / KPL / 001240 | Akash Air Defence Radar – Advanced Air-surveillance radar system | 85261000 | P | 850
+  PA-CTG / KPL / 001240 | Drishti-10 Starliner – Indian variant of the Elbit Hermes 900 MALE UAV | 88062400 | P | 120
+  PA-CTG / KPL / 001240 | DURGA-2 – Advanced high-power laser directed-energy weapon | 93019000 | P | 850
+
+Step 6 — Invoice Reference (Box 10)
+Invoice Number: (same as Sales Order)
+Invoice Date: 28-10-2026
+
+Step 7 — Exporter Declaration & Certifying Authority Signature (Boxes 11-12)
+Exporter's Signatory Name: Alexander
+Certifying Authority Officer Name: Anandhi Srivasthava IRS
+Place of Certification: (same as Proforma Invoice)
+
+Step 8 — Review Document
+(no entry — review / generate step)
+
+Step 9 — Completion
+(no entry — review / generate step)
+
+
+==============================================================================================================
+DOCUMENT 8 of 49 — Certificate of Analysis
+==============================================================================================================
+
+Step 1 — Product & Sample Identification
+Product Name: Controlled Defence & Security Equipment — 5 packages (TAPAS BH-201, BrahMos, Akash Air Defence Radar, Drishti-10 Starliner, DURGA-2)
+Product Code / ID: PC-BP-0A-0B-1C-1D
+Batch / Lot Number: (same as Commercial Invoice)
+Sample Number: SMP-2026-000451
+Manufacturing / Harvest Date: 01-08-2026
+Expiry / Retest Date: 26-12-2026
+Quantity / Pack Size: 5 packages (1 set each)
+Manufacturer Name: (same as Proforma Invoice)
+Manufacturer Address: (same as Proforma Invoice)
+Customer Name: (same as Sales Order)
+
+Step 2 — Laboratory Information
+Laboratory Name: Thapasya Fundamental Research Institute
+Laboratory Address: Peenya Industrial Area, Bengaluru, Karnataka – 560058, India 
+Laboratory Accreditation: NABL accredited (ISO/IEC 17025:2017) — Cert. No. TC-5421
+COA / Report Number: COA-2026-004521
+Date Sample Received: 27-10-2026
+Date of Analysis: 27-10-2026
+Date of Report Issue: 27-10-2026
+
+Step 3 — Test Parameters — Specification & Results
+Test Parameters:
+  Parameter | Specification | Reference Standard | Test Method | Instrument Used | Unit | Test Result | Status (Pass/Fail) | Observation
+  Dimensional Inspection | As per approved drawing | SIM-STD-001 | Visual & dimensional inspection | Calibrated measuring equipment | mm | Conforms | Pass | Within tolerance
+  Packaging Integrity | No visible damage | SIM-PKG-001 | Visual inspection | Visual inspection kit | — | Conforms | Pass | Crates intact
+  Identification Marking | As per approved packing list | SIM-ID-001 | Marking verification | Document / visual check | — | Conforms | Pass | Marks legible
+
+Step 4 — Sampling & Test Conditions
+Sampling Method: Representative Grab Sample
+Sampling Date: 27-10-2026
+Sample Size: 5 units (100%)
+Test Condition (if applicable): (same as Packing List)
+
+Step 5 — Summary of Findings
+Purity Result: Not applicable — equipment
+Identity Confirmation: Confirmed — Matches Reference Standard
+Physical Characteristics: Assembled equipment sets crated for export; no visible damage.
+Chemical Characteristics: Not applicable — non-chemical equipment.
+Microbiological / Contaminant Testing: Not Applicable
+
+Step 6 — Compliance Evaluation
+Deviations Identified: None identified
+Out-of-Specification (OOS) Review: No — All Results Within Specification
+Final Conclusion: Batch Complies with Specification — Released
+Remarks: (same as Sales Order)
+
+Step 7 — Review & Approval
+Analyst Name: Meera Krishnan
+Analyst Signature (type full name to sign): Meera Krishnan
+Reviewer Name: Sreedhar R
+Reviewer Signature (type full name to sign): Sreedhar R
+QA/QC Approval: Approved
+Approval Date: 27-10-2026
+Official Company Seal Applied (if required): Yes
+
+Step 8 — Document Control & Traceability
+Revision Number: REV-1
+Page Numbering: Page 1 of 2
+Distribution List: Export Manager; Documentation Executive; Dispatch Manager; Accounts Department
+QR Code / Verification Code (optional): QR-COA-2026-004521
+Record Retention Reference: RET-2026-004521
+Digital Signature Applied (if electronic): Yes
+Digital Signature ID: DSC-2026-004521
+Document Status: Original
+
+Step 9 — Review Document
+(no entry — review / generate step)
+
+Step 10 — Completion
+(no entry — review / generate step)
+
+
+==============================================================================================================
+DOCUMENT 9 of 49 — Weight Certificate
+==============================================================================================================
+
+Step 1 — Certificate Details
+Certificate No.: WC-2026-005271
+Issue Date: 09-11-2026
+VGM Method: Method 2 — Calculated (Sum of Component Weights)
+
+Step 2 — Shipper / Declarant Details
+Shipper Name: (same as Proforma Invoice)
+Shipper Address: (same as Proforma Invoice)
+
+Step 3 — Consignment Reference
+Container No.: EGHU7283610
+Seal No.: SI877656458
+Booking / B/L No.: BKG2026778812
+Vessel / Voyage: CMA CGM Antoine de Saint Exupéry / V923S
+
+Step 4 — Weighing Facility Details
+Weighbridge / Facility Name: Pax Armata Warehouse Weighbridge – Bengaluru
+Equipment Calibration Certificate No.: CAL-2026-00871
+Last Calibration Date: 15-06-2026
+
+Step 5 — Weight Details
+Container Tare Weight (kg): 2280
+Cargo Net Weight (kg): 5070
+Packaging / Dunnage Weight (kg): 950
+
+Step 6 — Declared vs. Verified Comparison
+Originally Declared Weight (kg): 8300
+Carrier Tolerance Threshold (%): 2
+
+Step 7 — SOLAS Compliance Declaration
+VGM Submission Cut-Off (Date & Time): 09-11-2026 06:00 PM
+
+Step 8 — Special Notes
+Special Notes: Packed cargo weighed package-by-package at the Pax Armata warehouse weighbridge on 30-10-2026 before dispatch (net 5,070 kg + crates/cases 750 kg = 5,820 kg gross). Dunnage 200 kg and container tare 2,280 kg added at CFS stuffing on 09-11-2026. Calculated VGM: 2,280 (tare) + 5,070 (net cargo) + 950 (packaging 750 + dunnage 200) = 8,300 kg, equal to the declared VGM (no variance).
+
+Step 9 — Declaration & Signature
+Signatory Name: Sachin Sahadev
+Designation: Warehouse Supervisor
+Place: (same as Proforma Invoice)
+Date: 09-11-2026
+I certify that the information provided above is true and correct to the best of my knowledge.: Yes
+
+Step 10 — Review Document
+(no entry — review / generate step)
+
+Step 11 — Completion
+(no entry — review / generate step)
+
+
+==============================================================================================================
+DOCUMENT 10 of 49 — Insurance Certificate
+==============================================================================================================
+
+Step 1 — Certificate & Policy Reference
+Certificate Number: IC-2026-0002
+Certificate Type: Certificate of Insurance (under Open Cover)
+Policy Number: POL-2026-778812
+Master Policy Number: MOP-2024-001123
+Insurance Company: ICICI Lombard General Insurance Company Limited
+Branch Office: Mumbai Marine Cargo Branch
+Broker / Agent: Meridian Insurance Brokers Pvt. Ltd.
+Certificate Issue Date: 28-10-2026
+Effective Date: 30-10-2026
+Expiry Date: 09-02-2027
+
+Step 2 — Insured & Beneficiary
+Insured Party Name: (same as Proforma Invoice)
+Insured Address: 14 Meridian Industrial Park, Peenya Industrial Area, Bengaluru, Karnataka – 560058, India [Instructor note: replaces the auto-filled buyer address — the insured is the exporter]
+Beneficiary Name: (same as Proforma Invoice)
+Beneficiary Address: (same as Proforma Invoice)
+Applicant Details: Same as Insured
+
+Step 3 — Trade Parties
+Exporter Details: Pax Armata Strategic Defense & Logistics Group, 14 Meridian Industrial Park, Peenya Industrial Area, Bengaluru, Karnataka – 560058, India (GSTIN 29AALCP6785Q1ZJ, IEC AALCP6785Q)
+Importer Details: (same as Sales Order)
+Consignee Details: Castilla Strategic Military Corporation (attn: Hector Salamanca), Building 4, Office 712, 12 Lewinski Prospekt, Gagarinsky District, Moscow, 119071, Russian Federation
+Notify Party: Hector Salamanca (contact: Francois Di Almeida), Building 4, Office 712, 12 Lewinski Prospekt, Gagarinsky District, Moscow, 119071, Russian Federation
+
+Step 4 — Commercial Reference
+Commercial Invoice Number: (same as Commercial Invoice)
+Invoice Date: (same as Commercial Invoice)
+Purchase Order / LC Number: LC-2026-009847
+
+Step 5 — Cargo Details
+Cargo Description: Controlled Defence & Security Equipment (5 packages, Export Licence EL/2026/004521): TAPAS BH-201, BrahMos, Akash Air Defence Radar, Drishti-10 Starliner and DURGA-2
+HS Code: 88062900
+Number of Packages: 5
+Gross Weight (KG): (same as Proforma Invoice)
+Net Weight (KG): 5070
+Packaging Type: Crates
+Cargo Value: 87500000
+Currency: (same as Proforma Invoice)
+
+Step 6 — Coverage Details
+Sum Insured: 96250000
+Coverage Type: ICC (A) — All Risks
+Deductible / Excess: 5000
+
+Step 7 — Transport Details
+Mode of Transport: (same as Proforma Invoice)
+Vessel / Flight / Vehicle Details: (same as Commercial Invoice)
+Voyage / Trip Number: V923S
+Container Number: (same as Commercial Invoice)
+Seal Number: (same as Commercial Invoice)
+Port of Loading: (same as Proforma Invoice)
+Port of Discharge: (same as Proforma Invoice)
+Place of Receipt: Pax Armata Warehouse, Peenya Industrial Area, Bengaluru, Karnataka
+Final Destination: (same as Packing List)
+
+Step 8 — Coverage Period & Route
+Coverage Period: Warehouse to Warehouse — from 30-10-2026 (departure from Pax Armata Warehouse, Bengaluru) until arrival at the final destination in Russia, or 60 days after discharge at Vladivostok, whichever is earlier
+Transit Route: Bengaluru → Kamarajar Port (Ennore), Chennai (road) → Port Klang, Malaysia (transshipment) → Port of Vladivostok (sea) → Wagner Strategic Logistics Complex (road)
+
+Step 9 — Clauses, Exclusions & Claims
+Special Clauses / Endorsements: Institute War Clauses (Cargo) and Institute Strikes Clauses (Cargo) attached. Sum insured is 110% of the CIF invoice value as required by LC-2026-009847. Claims payable at Chennai, Tamil Nadu, India. Controlled cargo — cover is subject to the Export Licence conditions and applicable sanctions and compliance law.
+Exclusions: Wilful misconduct, inherent vice, ordinary leakage or loss in weight, insufficiency of packing, delay, insolvency of the carrier, and nuclear risks, as per ICC (A) exclusions.
+Claim Contact Details: Claims Department, Pax Armata Strategic Defense & Logistics Group — claims@paxarmata.in, +91 9867465726
+Emergency Contact: 24-Hour Emergency Line: +91 98200 99887
+
+Step 10 — Supporting Documents & Approval
+Commercial Invoice: Yes
+Packing List: Yes
+Bill of Lading / Airway Bill: Yes
+Survey Report (if applicable): No
+Digital Signature Applied: Yes
+Company Seal Affixed: Yes
+Approval Status: Approved
+Reviewer Comments: Cover bound under open policy MOP-2024-001123. ICC (A) with War and Strikes clauses. Sum insured at 110% of cargo value as required by the Letter of Credit.
+
+Step 11 — Generate & Download Certificate
+I validate that all information entered above is accurate and complete.: Yes
+Generate & Download Certificate: Yes
+
+Step 12 — Review Document
+(no entry — review / generate step)
+
+Step 13 — Completion
+(no entry — review / generate step)
+
+
+==============================================================================================================
+DOCUMENT 11 of 49 — Marine Insurance Policy
+==============================================================================================================
+
+Step 1 — Policy Reference & Insurer
+Policy Number: (same as Insurance Certificate)
+Date of Issue: 28-10-2026
+Insurer Name: (same as Insurance Certificate)
+Insurer's Address: ICICI Lombard House, 414, Veer Savarkar Marg, Near Siddhivinayak Temple, Prabhadevi, Mumbai – 400025, Maharashtra, India
+
+Step 2 — Insured & Voyage Details
+Name of Insured: (same as Proforma Invoice)
+Insured's Address: (same as Proforma Invoice)
+Voyage From: Bengaluru, Karnataka, India (Pax Armata Warehouse)
+Voyage To: Wagner Strategic Logistics Complex, Russia (via Kamarajar Port, Port Klang and Port of Vladivostok)
+Vessel / Conveyance Name: CMA CGM Antoine de Saint Exupéry (Voyage V923S)
+
+Step 3 — Subject Matter Insured
+Description of Goods Insured: (same as Insurance Certificate)
+Invoice Value: 87500000
+Sum Insured (typically Invoice Value + 10%): (same as Insurance Certificate)
+Currency: (same as Proforma Invoice)
+
+Step 4 — Institute Cargo Clause & Coverage
+Institute Cargo Clause: Institute Cargo Clauses (A) — All Risks
+Institute War Clauses (Cargo) Attached: Yes
+Institute Strikes Clauses (Cargo) Attached: Yes
+Deductible / Excess (per claim): (same as Insurance Certificate)
+
+Step 5 — Premium Calculation
+Premium Rate (% of Sum Insured): 0.1299
+
+Step 6 — Claims Procedure & Survey Agent
+Claims Payable At: Chennai, Tamil Nadu, India
+Survey Agent / Claims Settling Agent: South India Marine Survey & Claims Services
+
+Step 7 — Review Document
+(no entry — review / generate step)
+
+Step 8 — Completion
+(no entry — review / generate step)
+
+
+==============================================================================================================
+DOCUMENT 12 of 49 — Letter of Credit
+==============================================================================================================
+
+Step 1 — Applicant (Importer) Details
+Applicant Name: (same as Proforma Invoice)
+Company Name: (same as Proforma Invoice)
+Address: (same as Commercial Invoice)
+IEC (if applicable): (leave blank — foreign buyer)
+GSTIN: (leave blank — foreign buyer)
+PAN: (leave blank — foreign buyer)
+Contact Person: Carlos Navarro
+Phone Number: +7 495 674 93 90
+Email: (same as Proforma Invoice)
+Bank Account Number: 68790598680836
+Applicant Bank (Issuing Bank): Camera International Bank (DCIB)
+SWIFT / BIC Code: CMRBINBB654
+
+Step 2 — Beneficiary (Exporter) Details
+Beneficiary Name: (same as Proforma Invoice)
+Company Name: (same as Commercial Invoice)
+Address: (same as Commercial Invoice)
+Country: (same as Commercial Invoice)
+Contact Person: (same as Proforma Invoice)
+Email: (same as Commercial Invoice)
+Phone: (same as Commercial Invoice)
+Beneficiary Bank: Meridian International Bank of India (MIBI)
+Bank Address: 12 Connaught Place, New Delhi, Delhi 110001, India
+SWIFT / BIC Code: MIBIINBBXXX
+Account Number: 001245678903
+IBAN (where applicable): (leave blank — not applicable for India)
+
+Step 3 — LC Information
+LC Number: LC-2026-009847
+LC Type: Irrevocable
+Date of Issue: 25-10-2026
+Date of Expiry: 22-01-2027
+Place of Expiry: Chennai, India
+Applicable Rules: UCP 600
+Currency: (same as Proforma Invoice)
+LC Amount: 87500000
+Amount Tolerance (+/-): 10%
+Confirmation Required: No
+
+Step 4 — Shipment Details
+Incoterms: (same as Proforma Invoice)
+Port of Loading: (same as Proforma Invoice)
+Port of Discharge: (same as Proforma Invoice)
+Final Destination: (same as Insurance Certificate)
+Latest Shipment Date: 05-01-2027
+Partial Shipment Allowed: Not Allowed
+Transshipment Allowed: Allowed
+Mode of Transport: (same as Proforma Invoice)
+Vessel / Flight (if known): (same as Weight Certificate)
+
+Step 5 — Goods Details
+Goods Covered by this Credit:
+  HS Code | Product Description | Qty | Unit | Unit Price | Total Value | Gross Wt (KG) | Net Wt (KG) | Packaging Type | Marks & Numbers | Country of Origin
+  88062900 | TAPAS BH-201 – Advanced long-endurance surveillance drone | 1 | SET | 10000000 | 10000000 | 1000 | 850 | Crates | PA-CTG / KPL / 001240 | India
+  93069000 | BrahMos – Long Range Advanced Supersonic cruise missile system | 1 | SET | 50000000 | 50000000 | 3000 | 2700 | Crates | PA-CTG / KPL / 001240 | India
+  85261000 | Akash Air Defence Radar – Advanced Air-surveillance radar system | 1 | SET | 7500000 | 7500000 | 850 | 700 | Crates | PA-CTG / KPL / 001240 | India
+  88062400 | Drishti-10 Starliner – Indian variant of the Elbit Hermes 900 MALE UAV | 1 | SET | 10000000 | 10000000 | 120 | 100 | Protective Case | PA-CTG / KPL / 001240 | India
+  93019000 | DURGA-2 – Advanced high-power laser directed-energy weapon | 1 | SET | 10000000 | 10000000 | 850 | 720 | Heavy-Duty Industrial Crates | PA-CTG / KPL / 001240 | India
+
+Step 6 — Documents Required
+Commercial Invoice: Yes
+Packing List: Yes
+Bill of Lading / Air Waybill: Yes
+Certificate of Origin: Yes
+Insurance Certificate: Yes
+Inspection Certificate: Yes
+Fumigation Certificate: No
+Phytosanitary Certificate: No
+Weight Certificate: Yes
+Any Special Certificates: Copy of Export Licence No. EL/2026/004521; Certificate of Analysis; Weight Certificate / VGM; End-use documentation as required under the Export Licence.
+
+Step 7 — Payment Terms
+Payment Type: Sight
+Drafts Required: Yes
+Negotiating Bank: Meridian International Bank of India (MIBI), New Delhi International Trade Finance Branch
+Reimbursing Bank: (same as Proforma Invoice)
+Availability: By Negotiation
+Acceptance Instructions: Not applicable — credit is available at sight (drafts drawn on the issuing bank).
+
+Step 8 — Charges & Fees
+Opening Charges: 87500
+Amendment Charges: 5000
+Advising Charges: 12500
+Confirmation Charges: 0
+Reimbursement Charges: 7500
+SWIFT Charges: 2500
+Who Pays Charges: Applicant
+
+Step 9 — Additional Conditions
+Special Instructions: All documents must be in English and quote LC No. LC-2026-009847 and Contract No. CRM/2026/4567. Shipment of 5 packages in one 20' container by CMA CGM Antoine de Saint Exupéry V923S, Kamarajar Port to Vladivostok. Freight prepaid.
+Additional Conditions: Goods must be of Indian origin. Bill of Lading to be marked Freight Prepaid and Clean on Board. Copy of Export Licence EL/2026/004521 must accompany the documents.
+Required Presentation Period: 21 days after the date of shipment, but within the validity of the credit
+Insurance Coverage %: 110
+Latest Presentation Date: 20-01-2027
+Compliance Requirements: Payment is subject to document verification, regulatory compliance and all applicable licensing, export-control and sanctions screening by the issuing and advising banks.
+
+Step 10 — Review & Issue
+I validate that all information entered above is accurate and complete.: Yes
+Digital Approval by Issuing Bank Officer: Yes
+Bank Authorization — Officer Name: Chandana Baby
+Bank Authorization — Designation: Bank Manager, Camera International Bank (DCIB)
+Generate SWIFT MT700: Yes
+Issue Letter of Credit: Yes
+Send to Advising Bank: Yes
+
+Step 11 — Review Document
+(no entry — review / generate step)
+
+Step 12 — Completion
+(no entry — review / generate step)
+
+
+==============================================================================================================
+DOCUMENT 13 of 49 — Bill of Exchange
+==============================================================================================================
+
+Step 1 — Bill Details & Drafting
+Bill Reference Number: BE/2026/0147
+Date of Issue: 14-11-2026
+Place of Issue: (same as Proforma Invoice)
+Tenor: At Sight
+
+Step 2 — Drawer (Exporter) Details
+Drawer — Company Name: (same as Proforma Invoice)
+Drawer — Address: (same as Proforma Invoice)
+Drawer — Contact (Phone or Email): exports@paxarmata.in
+
+Step 3 — Drawee (Buyer) Details
+Drawee Name: Camera International Bank (DCIB)
+Drawee Address: Camera International Bank (DCIB), International Trade Finance Centre, 24 Richmond Road, Bengaluru, Karnataka 560025
+Drawee Country: India
+
+Step 4 — Payee Details & Amount
+Payee Name: (same as Proforma Invoice)
+Payable To: To the Order of the Payee
+Amount (Figures): 87500000
+Currency: (same as Proforma Invoice)
+Commercial Invoice No.: INV-2026-867486
+Letter of Credit No. (if any): LC-2026-009847
+
+Step 5 — Drawer Signature & Company Seal — Issue the Bill
+Signatory Name: (same as Sales Order)
+Designation: Export Manager
+Place: (same as Proforma Invoice)
+Date: 14-11-2026
+Company Seal Applied: Yes
+I certify that the information provided above is true and correct to the best of my knowledge.: Yes
+
+Step 6 — Acceptance by Drawee
+Bill Received by Drawee: Yes
+Drawee has verified the bill's particulars against the underlying invoice / contract: Yes
+Acceptance Status: Accepted
+Acceptance Date: 17-11-2026
+Drawee's Authorized Signatory: Chandana Baby
+
+Step 7 — Endorsement (Optional)
+Is this bill being endorsed to a new holder?: No — Not Endorsed
+
+Step 8 — Negotiation / Transfer
+(no entry — review / generate step)
+
+Step 9 — Presentation for Acceptance (Usance Bills)
+(no entry — review / generate step)
+
+Step 10 — Presentation for Payment
+Bill Presented to Drawee on Due Date: Yes
+
+Step 11 — Settlement / Dishonour
+Settlement Outcome: Paid — Bill Honoured
+
+Step 12 — Protest & Notice
+(no entry — review / generate step)
+
+Step 13 — Final Closure
+Transaction Closed: Yes
+Accounting Records Updated: Yes
+All Bill Documents Filed: Yes
+Audit Record Reference: AUD-2026-004521
+
+Step 14 — Review Document
+(no entry — review / generate step)
+
+Step 15 — Completion
+(no entry — review / generate step)
+
+
+==============================================================================================================
+DOCUMENT 14 of 49 — Bank Guarantee
+==============================================================================================================
+
+Step 1 — Guarantee Reference & Issuing Bank
+Bank Guarantee Number: BG-2026-000728
+Guarantee Issue Date: 15-09-2026
+Guarantee Type: Financial
+Issuing Bank Name: (same as ICEGATE Forms (Registration))
+Issuing Bank Branch: (same as Proforma Invoice)
+Bank Branch Address: International Trade Finance Centre, 24 Richmond Road, Bengaluru, Karnataka 560025
+Bank SWIFT Code: CMRBINBB654
+Bank IFSC Code (India): CMRB0000654
+Bank Contact Details: Camera International Bank (DCIB), Bengaluru — +91 80 4123 4567
+
+Step 2 — Applicant & Beneficiary
+Applicant Name: (same as Letter of Credit)
+Applicant Address: (same as Proforma Invoice)
+Applicant GST/PAN/Registration Number: INN7714561234
+Beneficiary Name: (same as Proforma Invoice)
+Beneficiary Address: (same as Proforma Invoice)
+Beneficiary Registration Number: 29AALCP6785Q1ZJ
+
+Step 3 — Contract Reference & Purpose
+Reference Contract Number: CRM/2026/4567
+Contract Date: 15-09-2026
+Purchase Order Number: (same as Commercial Invoice)
+Tender Number (if applicable): Not applicable — direct contract
+Purpose of Bank Guarantee: To secure the buyer's payment obligations under Contract CRM/2026/4567.
+
+Step 4 — Amount & Currency
+Currency: (same as Proforma Invoice)
+Guarantee Amount: 87500000
+Amount in Words: INR Rupees Eight Crore Seventy-Five Lakh Only
+
+Step 5 — Validity & Claim Terms
+Effective Date: 15-09-2026
+Expiry Date: 14-02-2027
+Claim Expiry Date: 14-03-2027
+Type of Claim: On Demand
+Documents Required for Claim: Written demand with the beneficiary's signed statement of default, copy of the commercial invoice and bill of lading.
+Payment Terms: LC
+
+Step 6 — Legal Framework
+Applicable ICC Rule: URDG 758
+Governing Law: Laws of India
+Jurisdiction / Court: Courts at Bengaluru, Karnataka
+Special Conditions: Guarantee is subject to URDG 758 and payable on first written demand.
+Amendment Clause: Any amendment requires the written consent of the guarantor, the applicant and the beneficiary.
+Cancellation / Termination Clause: Guarantee stands cancelled on expiry or on return of the original to the guarantor.
+
+Step 7 — Signature & Issue
+Authorized Bank Officer Name: Chandana Baby
+Authorized Signature & Bank Seal Affixed: Yes
+Place of Issue: (same as Bill of Exchange)
+Remarks / Additional Instructions: (same as Commercial Invoice)
+
+Step 8 — Extended Bank Details
+Counter Guarantee Number: CG-2026-000728
+Advising Bank Name: (same as Letter of Credit)
+Advising Bank SWIFT Code: MIBIINBBXXX
+Beneficiary Bank Name: (same as Letter of Credit)
+Beneficiary Bank Account Number: 001245678903
+Margin Percentage: 10
+Security / Collateral Details: Cash margin of 10% held as a fixed deposit with the guarantor bank.
+Guarantee Status: Active
+Certify and Generate Verification Reference: Yes
+
+Step 9 — Review Document
+(no entry — review / generate step)
+
+Step 10 — Completion
+(no entry — review / generate step)
+
+
+==============================================================================================================
+DOCUMENT 15 of 49 — Letter of Undertaking (LUT)
+==============================================================================================================
+
+Step 1 — LUT Reference & Applicant Details
+LUT Reference Number (internal): LUT-2026-000451
+Date of Filing: 01-04-2026
+GSTIN: 29AALCP6785Q1ZJ
+Legal Name of Registered Person: (same as Proforma Invoice)
+Trade Name (if different): Pax Armata
+Registered Address: (same as Proforma Invoice)
+
+Step 2 — Financial Year & Export Category
+Financial Year: 2026-27
+Category of Zero-Rated Supply: Export of Goods
+This is a Renewal of a Previous LUT: No
+
+Step 3 — Type of Document Furnished
+Document Type Furnished: Letter of Undertaking
+Not Prosecuted for Tax Evasion of ₹2.5 Crore or More (eligibility for LUT): Yes
+
+Step 4 — Self-Declaration (Rule 96A Undertaking)
+Complete the export of goods/services within 3 months from the date of the export invoice (or such further period as the Commissioner may allow): Yes
+Abide by the provisions of the GST Act and the rules made thereunder in respect of the export: Yes
+Pay IGST along with interest @18% per annum (Section 50) within 15 days, if the export does not take place within the specified timeline: Yes
+
+Step 5 — Witness Details
+Witnesses:
+  Name | Address | Occupation
+  Vikram Shetty | Pax Armata Warehouse, Peenya Industrial Area, Bengaluru, Karnataka – 560058 | Stores Officer
+  Pritham Bansur | Pax Armata Warehouse, Peenya Industrial Area, Bengaluru, Karnataka – 560058 | Dispatch Manager
+
+Step 6 — Authorized Signatory & Filing
+Place of Filing: Bengaluru, Karnataka
+Name of Authorized Signatory: Alexander
+Designation: (same as Sales Order)
+Signatory PAN: BQRPA4827K
+Authentication Method: Digital Signature Certificate (DSC)
+
+Step 7 — Review Document
+(no entry — review / generate step)
+
+Step 8 — Completion
+(no entry — review / generate step)
+
+
+==============================================================================================================
+DOCUMENT 16 of 49 — Export License
+==============================================================================================================
+
+Step 1 — License Reference
+Export License Number: (same as Commercial Invoice)
+Date of Issue: 03-09-2026
+Valid Until: 19-01-2027
+Issuing Authority: Department of Defence Production (DDP), Ministry of Defence — SCOMET Category 6 (Munitions List), under DGFT SCOMET policy (fictional training licence, not a real authorisation)
+
+Step 2 — Exporter Details
+Exporter Name: (same as Registration-cum-Membership Certificate (RCMC))
+Exporter IEC: AALCP6785Q
+Exporter Address: (same as Proforma Invoice)
+
+Step 3 — Restricted Goods & Category
+Restriction Category: SCOMET (Dual-Use / Strategic)
+ITC (HS) Code: (same as Insurance Certificate)
+Description of Goods: (same as Certificate of Analysis)
+Quantity Authorized: 5
+Value Authorized (CIF/FOB): ₹8,75,00,000 (CIF)
+Currency: (same as Proforma Invoice)
+
+Step 4 — Destination & End-Use
+Consignee Name: (same as Packing List)
+Country of Final Destination: (same as Packing List)
+End-Use Declaration: Military end use by the consignee per fictional End-User Certificate EUC-2026-004521; no re-export without prior written approval
+
+Step 5 — Declaration & Signature
+I certify the above information is accurate and this license is valid for the shipment being filed.: Yes
+Signatory Name: (same as Sales Order)
+Designation: Export Manager
+Date: 03-09-2026
+
+Step 6 — Review Document
+(no entry — review / generate step)
+
+Step 7 — Completion
+(no entry — review / generate step)
+
+
+==============================================================================================================
+DOCUMENT 17 of 49 — Export Checklist
+==============================================================================================================
+
+Step 1 — Shipment Reference
+Checklist Reference Number: EC-2026-004521
+Internal Job / File Reference: JOB-2026-001123
+Exporter Name: (same as Registration-cum-Membership Certificate (RCMC))
+Mode of Transport: (same as Proforma Invoice)
+Intended Shipping Bill Type: Free Shipping Bill
+
+Step 2 — Document Checklist
+Commercial Invoice: Yes
+Export Packing List: Yes
+Certificate of Origin (if buyer requires it): Yes
+Insurance Certificate (if CIF/CIP terms): Yes
+Export License / Export Permit (if goods are restricted/regulated): Yes
+Exporter's IEC Copy: Yes
+Exporter's GSTIN Registration Copy: Yes
+AD Code Registration (Port-Specific): Yes
+Letter of Undertaking (LUT) on File for This Financial Year: Yes
+Booking Confirmation / Space Allocation: Yes
+Technical Write-Up / Catalogue (for machinery, chemicals): Yes
+
+Step 3 — Compliance Checks
+HS Code Classification Verified: Yes
+Duty Drawback / RoDTEP Scheme Claimed: No
+PGA / SCOMET Clearance Required (Wildlife / Antiquities / Narcotics / Dual-Use): Yes
+DGFT ITC-HS Restriction Status Checked (Free / Restricted / Prohibited): Yes
+Buyer Country's FTA Eligibility Checked (for Buyer's Own Duty Benefit): Yes
+
+Step 4 — Pre-Filing Sign-Off
+Open Items / Pending Before Filing: None — all documents verified
+Ready for Filing: Yes
+Checklist Completed By: Anandhi Srivasthava IRS
+Reviewed By: Pritham Bansur
+Date: 05-11-2026
+
+Step 5 — Review Document
+(no entry — review / generate step)
+
+Step 6 — Completion
+(no entry — review / generate step)
+
+
+==============================================================================================================
+DOCUMENT 18 of 49 — Export Declaration
+==============================================================================================================
+
+Step 1 — Exporter Preparation
+Import Export Code (IEC): AALCP6785Q
+GSTIN: (same as Letter of Undertaking (LUT))
+PAN: (same as Registration-cum-Membership Certificate (RCMC))
+Authorized Dealer (AD) Bank: Camera International Bank (DCIB), Bengaluru
+AD Bank Account No.: 78965896894590
+AD Code (Registered with Customs): (same as ICEGATE Forms (Registration))
+Digital Signature Certificate (DSC) Obtained: Yes
+DSC Valid Until: 31-12-2027
+ICEGATE User ID: SUNRISE_CHA_CHN01
+Registered on ICEGATE / Customs Portal: Yes
+HS Code (Classified): (same as Insurance Certificate)
+Export Restrictions / Licensing Requirements Verified: Yes
+Export Scheme: None
+Buyer Purchase Order / Contract Reference: PO-2026-88213
+
+Step 2 — Commercial Document Preparation
+Commercial Invoice No.: (same as Bill of Exchange)
+Packing List No.: PL-2026-004521
+Export Declaration Details Generated: Yes
+Certificate of Origin Required: Yes
+Certificate of Origin No.: GCOO-2026-004521
+Insurance Certificate Required: Yes
+Insurance Certificate No.: IC-2026-0002
+Inspection / Quality Certificate Required: Yes
+Inspection Certificate No.: PSI-2026-004521
+Cargo is Dangerous Goods: No
+Transport Instructions Prepared: Yes
+Document Consistency Verified Across All of the Above: Yes
+
+Step 3 — Customs Declaration Filing
+Shipping Bill Type: Free Shipping Bill
+Exporter Details Entered: Yes
+Consignee Name: (same as Packing List)
+Consignee Address: (same as Packing List)
+Commodity Information: (same as Certificate of Analysis)
+Quantity Declared: 5 packages (5 sets)
+FOB Value Declared: 86925000
+Supporting Documents Uploaded: Yes
+Submitted Electronically to Customs: Yes
+
+Step 4 — Customs Processing & Risk Assessment
+Declaration Received by Customs: Yes
+System Validation Passed: Yes
+Risk Management System (RMS) Assessment: Facilitation — No Examination Required
+Document Scrutiny Completed: Yes
+Customs Query Generated: Yes
+Query Details: Customs asked for the SCOMET Export Licence number and the end-use certificate for the declared defence-equipment lines (HS 93069000 / 88062900).
+Exporter's Reply to Query: Export Licence EL/2026/004521 and the end-use certificate are attached; the declaration is unchanged.
+Customs Approval Granted: Yes
+
+Step 5 — Cargo Examination & Clearance
+Cargo Arrival Location: Port
+Cargo Registration No.: CRN/2026/006842
+Seal Verified: Yes
+Quantity Verified: Yes
+Description Verified: Yes
+Compliance Verified: Yes
+Let Export Order (LEO) Granted: Yes
+
+Step 6 — Shipment & Departure
+Cargo Loaded onto Vessel / Aircraft: Yes
+Vessel / Flight Name: (same as GSP Certificate of Origin (Form A))
+Bill of Lading / Air Waybill Issued: Yes
+B/L or AWB No.: CMDU2601789567
+Export General Manifest (EGM) Filed: Yes
+Customs Confirms Departure: Yes
+Actual Departure Date: 11-11-2026
+Shipment Exits Customs Territory: Yes
+Export Officially Completed: Yes
+
+Step 7 — Financial & Regulatory Compliance
+Shipping Documents Submitted to Bank: Yes
+Export Payment Received: Yes
+Payment Received Date: 22-11-2026
+Payment Amount Received: 87500000
+AD Bank Reports Realization: Yes
+Foreign Exchange (FEMA) Compliance Confirmed: Yes
+Tax / GST Reconciliation Completed: Yes
+Export Records Maintained: Yes
+
+Step 8 — Post-Export Compliance
+Export Documents Archived: Yes
+Customs Audit Readiness Confirmed: Yes
+Customs Notice Received: Yes
+Response to Customs Notice: Clarification submitted; Export Licence EL/2026/004521 and the end-use certificate were provided and the notice was closed.
+Declaration Amendment Required: No
+Shipping and Banking Records Reconciled: Yes
+Export Transaction Closed: Yes
+
+Step 9 — Declaration & Signature
+Exporter Name: (same as Registration-cum-Membership Certificate (RCMC))
+Signatory Name: (same as Sales Order)
+Designation: (same as Export License)
+Place: (same as Marine Insurance Policy)
+Date: 07-11-2026
+I certify that the information provided above is true and correct to the best of my knowledge.: Yes
+
+Step 10 — Review Document
+(no entry — review / generate step)
+
+Step 11 — Completion
+(no entry — review / generate step)
+
+
+==============================================================================================================
+DOCUMENT 19 of 49 — Ocean Freight Quotation
+==============================================================================================================
+
+Step 1 — Quotation Reference
+Quotation Number: CMA-QT-2026-004472
+Quotation Date: 02-10-2026
+Valid Until: 01-11-2026
+Issued By (Carrier / Forwarder): CMA CGM Agencies (India) Pvt. Ltd. — Chennai Sales Desk
+
+Step 2 — Requested By
+Customer Name: (same as Proforma Invoice)
+Customer Contact Person: Alexander
+
+Step 3 — Route & Cargo Details
+Port of Loading: (same as Proforma Invoice)
+Port of Discharge: (same as Proforma Invoice)
+Container Size / Type: 20GP
+Commodity: Controlled Defence & Security Equipment — 5 packages (crates / protective case), 1 x 20' GP, FCL
+Cargo Readiness Date: 30-10-2026
+
+Step 4 — Rate Break-Up
+Rate Break-Up:
+  Charge Head | Basis | Amount
+  Ocean Freight — Kamarajar Port to Vladivostok | 1 x 20' GP (via Port Klang) | 310000
+  Bunker Adjustment Factor (BAF) | 1 x 20' GP | 55000
+  Currency Adjustment Factor (CAF) | Lump sum | 50000
+  Special Cargo Handling Surcharge | Lump sum | 20000
+  Documentation / B/L Fee | Per B/L | 10000
+  Container Seal Fee | Lump sum | 5000
+Currency: (same as Proforma Invoice)
+
+Step 5 — Terms & Validity
+Estimated Transit Time (Days): 30
+Free Detention (Days): 7
+Free Demurrage (Days): 7
+Remarks: FAK rate for sailing 11-11-2026 on CMA CGM Antoine de Saint Exupéry V923S, with transshipment at Port Klang. Controlled cargo — subject to carrier acceptance, all applicable export licences and regulatory clearances. Excludes origin THC, wharfage and customs charges.
+
+Step 6 — Declaration & Signature
+Signatory Name: (same as ICEGATE Forms (Registration))
+Designation: Documentation Executive
+
+Step 7 — Review Document
+(no entry — review / generate step)
+
+Step 8 — Completion
+(no entry — review / generate step)
+
+
+==============================================================================================================
+DOCUMENT 20 of 49 — Shipping Instructions
+==============================================================================================================
+
+Step 1 — Instruction Details
+Shipping Instruction Ref. No.: SI-2026-005190
+Date: 01-11-2026
+Forwarder / Carrier Booking Ref.: BKG2026778812
+
+Step 2 — Shipper Details
+Shipper Name: (same as Weight Certificate)
+Shipper Address: (same as Weight Certificate)
+Shipper Contact Person / Phone or Email: Alexander,+91 9867465726
+
+Step 3 — Consignee & Notify Party
+Consignee (exact legal name): (same as Proforma Invoice)
+Consignee Address: (same as Packing List)
+Notify Party: (same as Insurance Certificate)
+
+Step 4 — Booking & Routing Reference
+Vessel Name: (same as Commercial Invoice)
+Voyage No.: V923S
+Port of Loading: (same as Proforma Invoice)
+Port of Discharge: (same as Proforma Invoice)
+Place of Delivery (if beyond port): (same as Packing List)
+
+Step 5 — Cargo Details
+Shipping Marks & Numbers: PA-CTG / KPL / 001240
+Commodity: Controlled defence and security equipment
+HS Code: (same as Insurance Certificate)
+No. of Packages: 5
+Package Type: Crates
+Gross Weight (kg): (same as Proforma Invoice)
+Container Size / Type Requested: 20' Dry (General Purpose)
+No. of Containers Requested: 1
+Stuffing Location: CFS Stuffing (LCL)
+
+Step 6 — Documentation Instructions
+Bill of Lading Type Requested: Original (Negotiable)
+No. of Original B/Ls Required: 3
+Freight Term: Freight Prepaid
+Incoterm: CIF
+
+Step 7 — Special Handling Instructions
+Hazardous / IMDG Cargo: No
+Temperature Controlled: No
+Fragile — Handle With Care: Yes
+Stackable: No
+Additional Instructions: Keep dry. Controlled cargo — handle by authorised personnel only.
+
+Step 8 — Send Documents To
+Send Draft B/L for Approval Before Issue: Yes
+Draft Approval Email Address: exports@paxarmata.in
+Courier Address for Original Documents: (same as Proforma Invoice)
+
+Step 9 — Declaration & Authorization
+Signatory Name: (same as Sales Order)
+Designation: (same as Sales Order)
+Place: (same as Proforma Invoice)
+Date: (same as Shipping Instructions)
+I certify that the information provided above is true and correct to the best of my knowledge.: Yes
+
+Step 10 — Review Document
+(no entry — review / generate step)
+
+Step 11 — Completion
+(no entry — review / generate step)
+
+
+==============================================================================================================
+DOCUMENT 21 of 49 — Forwarder's Cargo Receipt (FCR)
+==============================================================================================================
+
+Step 1 — FCR Reference & Issuing Forwarder
+FCR Number: FCR-2026-004521
+Date of Issue: 30-10-2026
+Issuing Freight Forwarder: (same as Commercial Invoice)
+Forwarder's Address: Coastal Freight Forwarders Pvt. Ltd., Shipping House, Anna Salai, Chennai – 600002, Tamil Nadu, India
+FIATA Membership Number: FIATA-IN-2026-0412
+
+Step 2 — Consignor & Consignee
+Consignor Name & Address: (same as Proforma Invoice)
+Consignee Name & Address: (same as Proforma Invoice)
+
+Step 3 — Receipt Condition & Instructions
+Place of Receipt: (same as Insurance Certificate)
+Date of Receipt: 30-10-2026
+Condition of Goods on Receipt: Apparent Good Order and Condition
+Forwarding Instruction: Forward to Named Consignee
+Consignor's Instructions Are Irrevocable Unless the Original FCR Is Surrendered: Yes
+
+Step 4 — Cargo Details
+Description of Goods: (same as Export License)
+Marks & Numbers: PA-CTG / KPL / 001240
+Number of Packages: 5
+Gross Weight (kg): 5820
+Measurement (CBM): 18.69
+
+Step 5 — Intended Transport
+Intended Mode of Onward Transport: Sea
+Intended Carrier (if known): CMA CGM
+Intended Port/Place of Loading (if known): (same as Proforma Invoice)
+
+Step 6 — Authorized Signatory
+Authorized Signatory (for the Forwarder): Anjana Mohan
+
+Step 7 — Review Document
+(no entry — review / generate step)
+
+Step 8 — Completion
+(no entry — review / generate step)
+
+
+==============================================================================================================
+DOCUMENT 22 of 49 — Booking Confirmation
+==============================================================================================================
+
+Step 1 — Booking Request & Space Verification
+Booking Request Date: 28-10-2026
+Requested By: Shipper Direct
+Requested Sailing Window: 11-11-2026 to 18-11-2026
+Service Contract / Rate Reference: SC-CMA-2026-0187
+Space Availability Checked: Yes
+Equipment Type Requested: (same as Shipping Instructions)
+Special Cargo Flagged at Request Stage: Yes
+Special Cargo Type: Out of Gauge / Oversized
+Carrier's Internal Booking Reference: BKG2026778812
+
+Step 2 — Vessel & Voyage Nomination
+Booking No.: BKG2026778812
+Booking Confirmation Date: 28-10-2026
+Carrier / Airline Name: CMA CGM
+Service Type: FCL — Full Container Load
+Vessel Name / Flight No.: (same as Commercial Invoice)
+Voyage Number: (same as Packing List)
+Service / String Name: India–Russia Far East Express (IRX)
+Port / Airport of Loading: (same as Proforma Invoice)
+Port / Airport of Discharge: Port of Vladivostok (RUVVO)
+Routing Includes Transhipment: Yes
+Transhipment Port: Port Klang, Malaysia
+
+Step 3 — Container & Equipment Allocation
+Destination Country (Routing): Russia
+Equipment Type (Allocated): (same as Shipping Instructions)
+Number of Units: 1
+Container Release Order Issued: Yes
+Empty Container Pickup Depot / Yard: Kamarajar Port CFS Empty Yard, Chennai
+Empty Container Pickup Cutoff: 09-11-2026
+Container Tare Weight (kg): (same as Weight Certificate)
+Maximum Payload (kg): 28200
+
+Step 4 — Parties & Cargo Summary
+Shipper Name: (same as Weight Certificate)
+Shipper Address: (same as Weight Certificate)
+Consignee Name: (same as Packing List)
+Consignee Address: (same as Packing List)
+Notify Party: (same as Shipping Instructions)
+Booked Through a Freight Forwarder: Yes
+Forwarder Name: Coastal Freight Forwarders Pvt. Ltd.
+Forwarder's Own Reference No.: FCR-2026-004521
+Commodity Description: (same as Certificate of Analysis)
+Estimated Weight (kg): 5820
+Estimated Volume (CBM): 18.69
+
+Step 5 — Critical Cutoff Timeline
+Shipping Instructions (SI) Cutoff: 09-11-2026
+VGM Cutoff: 09-11-2026
+Gate-In / Cargo Acceptance Cutoff: 09-11-2026
+Customs Pre-Arrival Filing Required: Yes
+Filing Type: Other National Requirement
+Customs Pre-Arrival Filing Cutoff: 07-11-2026
+Estimated Time of Departure (ETD): 11-11-2026
+Estimated Time of Arrival (ETA): 11-12-2026
+
+Step 6 — Freight, Payment & Booking Validity
+Freight Term: (same as Shipping Instructions)
+Incoterm: (same as Shipping Instructions)
+Rate Agreed: 450000
+Currency: (same as Proforma Invoice)
+Booking Valid Until: 27-12-2026
+Space Guarantee Status: Guaranteed — Non-Rollable
+No-Show Fee Applicable: Yes
+Demurrage & Detention Free Time: 7 days combined
+Cancellation Policy: Free cancellation up to 72 hours before cut-off; thereafter charges apply as per carrier terms.
+
+Step 7 — Special Cargo & Compliance Requirements
+Reefer / Temperature Controlled: No
+Hazardous / Dangerous Goods: No
+Out of Gauge / Oversized: No
+Additional Handling Requirements: (same as Shipping Instructions)
+
+Step 8 — Amendment History & Finalization
+Amendment Made to Original Booking: No
+All Cutoffs Communicated to Shipper / Forwarder: Yes
+Shipping Instructions Submission Status: Not Yet Submitted
+Booking Contact Name: Anjana Mohan
+Contact Email: exports@paxarmata.in
+Contact Phone: +91 9867465726
+Booking Finalized — Handed Over to Documentation Team: Yes
+
+Step 9 — Declaration & Confirmation
+Signatory Name: (same as ICEGATE Forms (Registration))
+Designation: (same as Ocean Freight Quotation)
+Place: (same as Export Declaration)
+Date: (same as Commercial Invoice)
+I certify that the information provided above is true and correct to the best of my knowledge.: Yes
+
+Step 10 — Review Document
+(no entry — review / generate step)
+
+Step 11 — Completion
+(no entry — review / generate step)
+
+
+==============================================================================================================
+DOCUMENT 23 of 49 — VGM Certificate
+==============================================================================================================
+
+Step 1 — Shipment & Container Reference
+VGM Reference Number: VGM/CHN/2026/00451
+Bill of Lading / Booking Number: BKG2026778812
+Container Number: (same as Commercial Invoice)
+Container Size / Type: (same as Ocean Freight Quotation)
+
+Step 2 — Shipper Details
+Shipper Name: (same as Weight Certificate)
+Shipper IEC Number: AALCP6785Q
+Authorized Person Name: Alexander
+Designation: (same as Sales Order)
+
+Step 3 — Weighing Method
+Weighing Method: (same as Weight Certificate)
+Weighbridge Registration Number: KA/LM/WB/2019/03871
+Weighing Slip Number: WS-BLR-2026-005271
+
+Step 4 — Weight Details
+Container Tare Weight (KG): (same as Weight Certificate)
+Cargo + Packing Weight (KG): 6020
+Unit: KG
+Date of Weighing: 30-10-2026
+
+Step 5 — Declaration & Signature
+I certify the Verified Gross Mass declared above is accurate.: Yes
+Place: (same as Proforma Invoice)
+Date: (same as Weight Certificate)
+
+Step 6 — Review Document
+(no entry — review / generate step)
+
+Step 7 — Completion
+(no entry — review / generate step)
+
+
+==============================================================================================================
+DOCUMENT 24 of 49 — Shipping Order
+==============================================================================================================
+
+Step 1 — Shipping Order Reference
+Shipping Order Number: SO-CHN-2026-004481
+Date of Issue: 07-11-2026
+Carrier Name: (same as Commercial Invoice)
+Agent Name: Kamarajar Port Shipping & Marine Services Pvt. Ltd.
+Booking Reference Number: BKG2026778812
+
+Step 2 — Vessel & Voyage
+Vessel Name: (same as Shipping Instructions)
+Voyage Number: (same as Packing List)
+Port of Loading: (same as Proforma Invoice)
+Port of Discharge: (same as Proforma Invoice)
+
+Step 3 — Shipper & Consignee Summary
+Shipper Name: (same as Weight Certificate)
+Consignee Name: (same as Packing List)
+
+Step 4 — Cargo / Container to Be Loaded
+Cargo / Container Details:
+  Container Number | Size/Type | No. of Packages | Gross Weight (KG)
+  EGHU7283610 | 20GP | 5 | 5820
+
+Step 5 — Terminal Instructions
+Berth Number: Berth No. 7
+Cargo Cut-Off Date: 09-11-2026
+Cargo Cut-Off Time: 18:00
+Special Handling Instructions: Controlled cargo — handle only by authorised personnel. Check lashing and dunnage before loading; stow under deck; keep dry; this side up; do not drop or stack.
+
+Step 6 — Authorization & Signature
+Authorized By: Anjana Mohan
+Designation: (same as Ocean Freight Quotation)
+
+Step 7 — Review Document
+(no entry — review / generate step)
+
+Step 8 — Completion
+(no entry — review / generate step)
+
+
+==============================================================================================================
+DOCUMENT 25 of 49 — Container Load Plan (CLP)
+==============================================================================================================
+
+Step 1 — CLP Reference & Container Details
+CLP Number: CLP-2026-004521
+Date: 09-11-2026
+Container Number: (same as Commercial Invoice)
+Container Company: Evergreen Marine Corp.
+Container Size / Type: (same as Ocean Freight Quotation)
+Seal Number: (same as Commercial Invoice)
+CFS / ICD Name: Kamarajar Port CFS — Chennai
+Additional Containers (if this plan covers more than one):
+  Container No. (ISO 6346) | Container Company | Size / Type | Seal No.
+  EGHU7283610 | Evergreen Marine Corp. | 20GP | SI877656458
+
+Step 2 — Shipper / Exporter Details
+Shipper Name: (same as Weight Certificate)
+Shipping Bill Number (if available): (leave blank — the Shipping Bill is filed later, in Document 35)
+
+Step 3 — Stuffing Details
+Stuffing Location: Kamarajar Port CFS — Chennai
+Stuffing Date: 09-11-2026
+Stuffing Supervisor Name: Anitha Ramaswamy
+
+Step 4 — Cargo Load Plan
+Cargo Load Sequence:
+  Load Sequence No. | Container No. (optional) | Marks & Numbers | No. of Packages | Description of Goods | Gross Weight (KG)
+  1 | EGHU7283610 | PA-CTG / KPL / 001240 | 1 | TAPAS BH-201 – Advanced long-endurance surveillance drone | 1000
+  2 | EGHU7283610 | PA-CTG / KPL / 001240 | 1 | BrahMos – Long Range Advanced Supersonic cruise missile system | 3000
+  3 | EGHU7283610 | PA-CTG / KPL / 001240 | 1 | Akash Air Defence Radar – Advanced Air-surveillance radar system | 850
+  4 | EGHU7283610 | PA-CTG / KPL / 001240 | 1 | Drishti-10 Starliner – Indian variant of the Elbit Hermes 900 MALE UAV | 120
+  5 | EGHU7283610 | PA-CTG / KPL / 001240 | 1 | DURGA-2 – Advanced high-power laser directed-energy weapon | 850
+
+Step 5 — Container Utilization
+Container Maximum Payload (KG) — per container: 28200
+
+Step 6 — Declaration & Signature
+I certify this Container Load Plan accurately reflects what was physically stuffed into the container.: Yes
+Signatory Name: Anitha Ramaswamy
+Designation: Port Supervisor
+
+Step 7 — Review Document
+(no entry — review / generate step)
+
+Step 8 — Completion
+(no entry — review / generate step)
+
+
+==============================================================================================================
+DOCUMENT 26 of 49 — Container Packing Certificate
+==============================================================================================================
+
+Step 1 — Pre-Packing Planning
+Shipping Instructions Received: Yes
+Commercial Invoice Verified: Yes
+Packing List Verified: Yes
+Booking / Container Allocation Confirmed: Yes
+Cargo Classification: General Cargo
+Packing Plan Prepared: Yes
+Packing Supervisor Assigned: (same as Container Load Plan (CLP))
+Equipment Arranged: Forklift 5 MT, lashing straps, timber dunnage
+
+Step 2 — Container Inspection — Identity & Structure
+Container No.: (same as Weight Certificate)
+Container Type and Size: (same as Shipping Instructions)
+CSC Safety Approval Plate Checked: Yes
+Floor Inspected: Yes
+Roof Inspected: Yes
+Side Walls Inspected: Yes
+Doors Inspected: Yes
+Door Locking Mechanism Checked: Yes
+
+Step 3 — Container Inspection — Condition & Findings
+No Holes or Cracks Found: Yes
+No Water Leakage Found: Yes
+Container Confirmed Clean: Yes
+Container Confirmed Dry: Yes
+Previous Labels Removed: Yes
+No Odor Contamination Found: Yes
+Inspection Findings Recorded: Container sound, wind- and water-tight; CSC plate valid; floor and walls clean and dry.
+
+Step 4 — Cargo Packing — Loading & Weight
+Cargo Brought to Loading Area: Yes
+Package Markings Verified: Yes
+Package Count Verified: 5
+Package Condition Checked: Yes
+Heavy Cargo Loaded First: Yes
+Weight Distribution Maintained: Yes
+
+Step 5 — Cargo Packing — Securing & Segregation
+Cargo Secured Using Lashing: Yes
+Dunnage Used Where Required: Yes
+Cargo Movement Prevented: Yes
+Fragile Cargo Protected: Yes
+Empty Spaces Filled: Yes
+Final Cargo Arrangement Confirmed: Yes
+
+Step 6 — Container Securing & Sealing
+Final Cargo Stability Check: Yes
+Container Doors Closed: Yes
+Customs Seal No.: (same as Commercial Invoice)
+Shipping Line Seal No. (if required): (same as Commercial Invoice)
+Seal Numbers Recorded in Documentation: Yes
+Sealed Container Photographed: Yes
+Container Gross Weight (kg): 8300
+VGM (Verified Gross Mass) Declared (kg): 8300
+VGM Compliance Confirmed (Within Permissible Variance): Yes
+Loading Completion Date: 09-11-2026
+Loading Completion Time: 13:30
+
+Step 7 — Certificate Preparation
+Exporter Name: (same as Registration-cum-Membership Certificate (RCMC))
+Exporter Address: (same as Proforma Invoice)
+Consignee Name: (same as Packing List)
+Consignee Address: (same as Packing List)
+Shipment Reference: CPC-2026-004521
+Vessel Name: (same as Shipping Instructions)
+Voyage No.: (same as Shipping Instructions)
+Port of Loading: (same as Proforma Invoice)
+Port of Discharge: (same as Proforma Invoice)
+Cargo Description: (same as Certificate of Analysis)
+Package Quantity: 5
+Compliance with Packing Standards Declared (CTU Code): Yes
+Supporting Documents Attached: Yes
+Supporting Documents List: Commercial Invoice, Packing List, VGM Certificate, Container Inspection Report
+
+Step 8 — Verification & Authorization
+Cross-Checked with Packing List: Yes
+Container Inspection Report Verified: Yes
+Seal Details Verified: Yes
+Cargo Details Verified: Yes
+Supervisor Name: (same as Container Load Plan (CLP))
+Supervisor Review Completed: Yes
+Packer Company Name: (same as Proforma Invoice)
+Signed By (Authorized Packer): (same as Container Load Plan (CLP))
+Company Stamp Affixed: Yes
+Issue Date: 09-11-2026
+
+Step 9 — Distribution & Record Keeping
+Submitted to Exporter: Yes
+Submitted to Freight Forwarder: Yes
+Submitted to Shipping Line (if required): Yes
+Submitted to Customs (where applicable): Yes
+Uploaded to Documentation System: Yes
+Original Copy Archived: Yes
+Digital Copy Stored: Yes
+Records Maintained for Audit: Yes
+Documentation Process Closed: Yes
+Closure Date: 09-11-2026
+Place: (same as Export Declaration)
+Date: (same as Container Load Plan (CLP))
+I certify that the information provided above is true and correct to the best of my knowledge.: Yes
+
+Step 10 — Review Document
+(no entry — review / generate step)
+
+Step 11 — Completion
+(no entry — review / generate step)
+
+
+==============================================================================================================
+DOCUMENT 27 of 49 — Equipment Interchange Receipt (EIR)
+==============================================================================================================
+
+Step 1 — EIR Reference & Interchange Type
+EIR Number: EIR-2026-004481
+Date: (same as Container Load Plan (CLP))
+Interchange Type: Gate-In (Trucker to Terminal)
+Terminal / Depot Name: Kamarajar Port Limited (KPL) Container Terminal
+
+Step 2 — Container & Vessel Details
+Container Number: (same as Commercial Invoice)
+Container Size / Type: (same as Ocean Freight Quotation)
+Vessel Name: (same as Shipping Instructions)
+Voyage Number: (same as Packing List)
+Seal Number: (same as Commercial Invoice)
+
+Step 3 — Condition Inspection
+Load Status: Full (Laden)
+General Condition Remarks: Container received in apparent good order. No dents, holes or rust. Doors and locking bars functional, floor sound, CSC plate valid. Carrier seal SI877656458 intact and recorded; exporter security seals SEAL-EX-392817 and PASL-SEC-482917 intact. Gate-in Ref. GTI-2026-004481.
+Damage was noted during this inspection: No
+
+Step 4 — Parties
+Trucker / Haulier Name: Pax Armata Strategic Transport & Logistics
+Vehicle Number: KA01AB4827
+Terminal Representative Name: (same as Container Load Plan (CLP))
+
+Step 5 — Declaration & Signature
+Trucker's Signatory Name: Suresh Patil
+Terminal's Signatory Name: (same as Container Load Plan (CLP))
+
+Step 6 — Review Document
+(no entry — review / generate step)
+
+Step 7 — Completion
+(no entry — review / generate step)
+
+
+==============================================================================================================
+DOCUMENT 28 of 49 — Seal Report
+==============================================================================================================
+
+Step 1 — Seal Report Reference
+Seal Report Number: SR-2026-004521
+Date: (same as Container Load Plan (CLP))
+Shipping Bill Number: (same as Commercial Invoice)
+Container Number: (same as Commercial Invoice)
+
+Step 2 — Exporter / CHA Details
+Exporter Name: (same as Registration-cum-Membership Certificate (RCMC))
+Self-Sealing Permission Reference: SSP-2026-001127
+CHA Name (if involved): Sunrise Clearing & Forwarding Agency Chennai
+
+Step 3 — Seal Details
+Seal Details:
+  Seal Number | Seal Type | Position | Verified By
+  SI877656458 | High-Security Bolt Seal | Right door | Anitha Ramaswamy
+
+Step 4 — Self-Sealing Declaration
+I certify that the container was stuffed and sealed under proper supervision, and that the seal number recorded above matches the seal physically affixed.: Yes
+
+Step 5 — Declaration & Signature
+Signatory Name: Anitha Ramaswamy
+Designation: (same as Container Load Plan (CLP))
+Date: (same as Container Load Plan (CLP))
+
+Step 6 — Review Document
+(no entry — review / generate step)
+
+Step 7 — Completion
+(no entry — review / generate step)
+
+
+==============================================================================================================
+DOCUMENT 29 of 49 — CFS Gate Pass
+==============================================================================================================
+
+Step 1 — Gate Pass Reference & CFS Details
+Gate Pass Number: CFS-GP-2026-004521
+Date of Issue: 09-11-2026
+Container Freight Station (CFS) Name: (same as Container Load Plan (CLP))
+CFS Location: Kamarajar Port, Chennai, Tamil Nadu, India
+CFS Custodian's Customs Bond License No.: CFS/BOND/CHN/2026/00451
+
+Step 2 — Consignment Reference
+Bill of Entry Number: N/A — export consignment (see Shipping Bill)
+Bill of Entry Date: (leave blank — export consignment)
+Out of Charge Date: (leave blank — export consignment)
+Import General Manifest (IGM) Number: N/A — export consignment (training placeholder IGM/2026/CHN/008742)
+Shipping Bill Number: (same as Commercial Invoice)
+Shipping Bill Date: 07-11-2026
+
+Step 3 — Importer / Exporter, CHA & Transporter
+Importer Name & Address: N/A — export consignment (foreign consignee: Castilla Strategic Military Corporation, Building 4, Office 712, 12 Lewinski Prospekt, Gagarinsky District, Moscow, 119071, Russian Federation)
+Exporter / Shipper Name & Address: (same as Proforma Invoice)
+Customs House Agent (CHA): (same as Seal Report)
+Transporter Name: (same as Equipment Interchange Receipt (EIR))
+Vehicle Registration Number: (same as Equipment Interchange Receipt (EIR))
+Driver's Name & License No.: Suresh Patil — License No. KA0120260067859
+
+Step 4 — Container / Cargo Details
+Container / Cargo Details:
+  Container Number | Seal Number | No. of Packages | Gross Weight (kg)
+  EGHU7283610 | SI877656458 | 5 | 5820
+
+Step 5 — Charges Cleared
+Ground Rent & Storage Charges Due: 0
+All CFS Charges (Handling, Storage, Ground Rent) Have Been Cleared: Yes
+
+Step 6 — CFS Authorization
+Issuing CFS Official: Ramesh Iyer, CFS Operations Manager
+Gate Pass Valid Until: 10-11-2026
+
+Step 7 — Review Document
+(no entry — review / generate step)
+
+Step 8 — Completion
+(no entry — review / generate step)
+
+
+==============================================================================================================
+DOCUMENT 30 of 49 — Delivery Challan
+==============================================================================================================
+
+Step 1 — Challan Reference
+Delivery Challan Number: DC-2026-004521
+Challan Date: 30-10-2026
+Challan Type: Sale
+
+Step 2 — Consignor Details
+Consignor Name: (same as Proforma Invoice)
+Consignor Address: (same as Proforma Invoice)
+Consignor GSTIN: (same as Proforma Invoice)
+
+Step 3 — Consignee Details
+Consignee Name: (same as Packing List)
+Consignee Address: (same as Packing List)
+Consignee GSTIN: (leave blank — foreign consignee)
+
+Step 4 — Item Details
+Item Details:
+  HSN Code | Description of Goods | Quantity | Unit | Declared Value (for GST purposes)
+  88062900 | TAPAS BH-201 – Advanced long-endurance surveillance drone | 1 | SET | 10000000
+  93069000 | BrahMos – Long Range Advanced Supersonic cruise missile system | 1 | SET | 50000000
+  85261000 | Akash Air Defence Radar – Advanced Air-surveillance radar system | 1 | SET | 7500000
+  88062400 | Drishti-10 Starliner – Indian variant of the Elbit Hermes 900 MALE UAV | 1 | SET | 10000000
+  93019000 | DURGA-2 – Advanced high-power laser directed-energy weapon | 1 | SET | 10000000
+
+Step 5 — Transport Details
+Vehicle Number: (same as Equipment Interchange Receipt (EIR))
+Transporter Name: (same as Equipment Interchange Receipt (EIR))
+E-Way Bill Number (if applicable): 371298450126
+
+Step 6 — Declaration & Signature
+I certify the particulars above are true and correctly stated.: Yes
+Signatory Name: (same as Sales Order)
+Designation: Dispatch Manager
+
+Step 7 — Review Document
+(no entry — review / generate step)
+
+Step 8 — Completion
+(no entry — review / generate step)
+
+
+==============================================================================================================
+DOCUMENT 31 of 49 — E-Way Bill
+==============================================================================================================
+
+Step 1 — Transaction Type & Document
+Transaction Type: Outward
+Sub Type: Export
+Document Type: Tax Invoice
+Document Number: INV-2026-867486
+Document Date: 28-10-2026
+
+Step 2 — Supplier (From) Details
+Supplier GSTIN: (same as Proforma Invoice)
+Supplier Name: (same as Proforma Invoice)
+Supplier Address: (same as Proforma Invoice)
+Supplier Place: (same as Commercial Invoice)
+Supplier PIN Code: 560058
+
+Step 3 — Recipient (To) Details
+Recipient GSTIN: URP
+Recipient Name: (same as Proforma Invoice)
+Recipient Address: (same as Proforma Invoice)
+Recipient Place: Chennai
+Recipient PIN Code: 600120
+
+Step 4 — Item, HSN & Tax Details
+Item Details:
+  Product Name | Description | HSN/SAC Code | Qty | Unit | Taxable Value | CGST | SGST | IGST | Cess | Line Total
+  TAPAS BH-201 | TAPAS BH-201 – Advanced long-endurance surveillance drone | 88062900 | 1 | SET | 10000000 | 0 | 0 | 0 |  | 10000000
+  BrahMos | BrahMos – Long Range Advanced Supersonic cruise missile system | 93069000 | 1 | SET | 50000000 | 0 | 0 | 0 |  | 50000000
+  Akash Air Defence Radar | Akash Air Defence Radar – Advanced Air-surveillance radar system | 85261000 | 1 | SET | 7500000 | 0 | 0 | 0 |  | 7500000
+  Drishti-10 Starliner | Drishti-10 Starliner – Indian variant of the Elbit Hermes 900 MALE UAV | 88062400 | 1 | SET | 10000000 | 0 | 0 | 0 |  | 10000000
+  DURGA-2 | DURGA-2 – Advanced high-power laser directed-energy weapon | 93019000 | 1 | SET | 10000000 | 0 | 0 | 0 |  | 10000000
+
+Step 5 — Mode of Transport & Distance
+Mode of Transport: Road
+Approximate Distance (KM): 350
+
+Step 6 — Transporter & Vehicle Details
+Transporter ID / GSTIN: (same as Proforma Invoice)
+Vehicle Number: (same as Equipment Interchange Receipt (EIR))
+
+Step 7 — Submit & Generate EBN
+I validate that all information entered above is accurate and complete.: Yes
+Submit and Generate E-Way Bill Number (EBN): Yes
+
+Step 8 — Review Document
+(no entry — review / generate step)
+
+Step 9 — Completion
+(no entry — review / generate step)
+
+
+==============================================================================================================
+DOCUMENT 32 of 49 — Lorry Receipt
+==============================================================================================================
+
+Step 1 — LR Header
+LR Number: LR-2026-004521
+LR Date: 30-10-2026
+Booking Date & Time: 2026-10-28 03:02
+Transport Company: (same as Equipment Interchange Receipt (EIR))
+Booking Branch: (same as Commercial Invoice)
+Origin Location: (same as Commercial Invoice)
+Destination Location: Kamarajar Port CFS, Chennai, Tamil Nadu, India (road leg; onward ocean carriage to Vladivostok)
+Booking Type: Godown to Godown
+Freight Type: Full Truck Load (FTL)
+Payment Status: To Be Billed
+Declared Value: 87500000
+Insurance Required: Yes
+Expected Delivery Date: 01-11-2026
+Remarks: Controlled cargo — transport only by authorized carrier and personnel, subject to all applicable permits, security procedures, and regulatory requirements.
+Status: Delivered
+
+Step 2 — Consignor (Sender)
+Company Name: (same as Commercial Invoice)
+Contact Person: (same as Proforma Invoice)
+GSTIN: (same as Letter of Undertaking (LUT))
+Address Line 1: (same as Proforma Invoice)
+Address Line 2: Peenya Industrial Area
+City: (same as Commercial Invoice)
+State: (same as Commercial Invoice)
+Country: (same as Commercial Invoice)
+Postal Code: (same as Commercial Invoice)
+Phone: (same as Commercial Invoice)
+Email: (same as Commercial Invoice)
+
+Step 3 — Consignee (Receiver)
+Company Name: (same as Letter of Credit)
+Contact Person: (same as Proforma Invoice)
+GSTIN: (leave blank — foreign consignee)
+Address Line 1: (same as Proforma Invoice)
+Address Line 2: Gagarinsky District
+City: Moscow
+State: Moscow
+Country: (same as Proforma Invoice)
+Postal Code: (same as Proforma Invoice)
+Phone: (same as Proforma Invoice)
+Email: (same as Proforma Invoice)
+
+Step 4 — Vehicle Information
+Vehicle Number: (same as Equipment Interchange Receipt (EIR))
+Vehicle Type: Open Truck
+Trailer Number: KA01TR2310
+Container Number: (leave blank — loose packages; container stuffed at CFS on 09-11-2026)
+Driver Name: (same as Equipment Interchange Receipt (EIR))
+Driver Phone: +91 98450 12345
+Driving License Number: KA0120260067859
+Transporter Code: TRN-PAX-0041
+
+Step 5 — Goods / Cargo Details
+Cargo Line Items:
+  Item Code | Description | HSN Code | Qty | Unit | Package Type | Package Count | Gross Wt (KG) | Net Wt (KG) | Chargeable Wt (KG) | Length (cm) | Width (cm) | Height (cm) | Volume (CBM) | Marks & Numbers | Batch No. | Serial No. | Remarks
+  TAP-BH201-001 | TAPAS BH-201 – Advanced long-endurance surveillance drone | 88062900 | 1 | SET | Crates | 1 | 1000 | 850 | 1000 | 240 | 180 | 100 | 4.32 | PA-CTG / KPL / 001240 | BATCH-2026-100 | SN-2026001 | PA-CTG / KPL / 001240
+  BRM-LRS-HPW-002 | BrahMos – Long Range Advanced Supersonic cruise missile system | 93069000 | 1 | SET | Crates | 1 | 3000 | 2700 | 3000 | 520 | 140 | 120 | 8.74 | PA-CTG / KPL / 001240 | BATCH-2026-100 | SN-2026002 | PA-CTG / KPL / 001240
+  AKS-RDR-HPW-003 | Akash Air Defence Radar – Advanced Air-surveillance radar system | 85261000 | 1 | SET | Crates | 1 | 850 | 700 | 850 | 200 | 150 | 110 | 3.30 | PA-CTG / KPL / 001240 | BATCH-2026-100 | SN-2026003 | PA-CTG / KPL / 001240
+  DRS-10S-HPW-004 | Drishti-10 Starliner – Indian variant of the Elbit Hermes 900 MALE UAV | 88062400 | 1 | SET | Protective Case | 1 | 120 | 100 | 120 | 90 | 60 | 40 | 0.22 | PA-CTG / KPL / 001240 | BATCH-2026-100 | SN-2026004 | PA-CTG / KPL / 001240
+  DRG-D2-HPW-005 | DURGA-2 – Advanced high-power laser directed-energy weapon | 93019000 | 1 | SET | Heavy-Duty Industrial Crates | 1 | 850 | 720 | 850 | 180 | 130 | 90 | 2.11 | PA-CTG / KPL / 001240 | BATCH-2026-100 | SN-2026005 | PA-CTG / KPL / 001240
+
+Step 6 — Freight Charges
+Freight Amount: 45000
+Loading Charge: 8000
+Unloading Charge: 8000
+Labour Charge: 6000
+Fuel Surcharge: 4500
+Toll Charge: 2800
+Detention Charge: 0
+Insurance Charge: 0
+GST Amount: 0
+Discount: 0
+
+Step 7 — Route Information
+Origin: (same as Proforma Invoice)
+Destination: Chennai (Kamarajar Port CFS), Tamil Nadu, India
+Via Location: Krishnagiri, Tamil Nadu
+Distance (KM): 350
+Transit Days: 2
+
+Step 8 — Delivery Information
+Delivery Date: 01-11-2026
+Delivery Time: 16:30
+Receiver Name: Ramesh Iyer
+Receiver Mobile: +91 98410 22145
+Receiver Designation: CFS Operations Manager
+Delivery Status: Delivered
+POD Received: Yes
+
+Step 9 — Document Attachments
+Attached Documents:
+  Document Type | Reference / File Name | Uploaded By | Uploaded At
+  Commercial Invoice | INV-2026-867486.pdf | Alexander | 30-10-2026 09:00
+  Packing List | PL-2026-004521.pdf | Alexander | 30-10-2026 09:05
+
+Step 10 — Tracking History
+Tracking Events:
+  Event Time | Location | Status | Coordinates (Lat, Long) | Remarks | Updated By
+  30-10-2026 10:30 | Peenya, Bengaluru, Karnataka | In Transit | 13.0285, 77.5197 | Departed Pax Armata Warehouse | Suresh Patil
+  31-10-2026 14:15 | Krishnagiri, Tamil Nadu | In Transit | 12.5266, 78.2140 | En route to Chennai | Suresh Patil
+  01-11-2026 16:30 | Kamarajar Port CFS, Chennai, Tamil Nadu | Delivered | 13.2540, 80.3210 | Delivered to CFS; POD received (coordinates approximate) | Ramesh Iyer
+
+Step 11 — Status History
+Status Transitions:
+  Old Status | New Status | Changed By | Changed At | Remarks
+  Booked | In Transit | Pritham Bansur | 30-10-2026 10:30
+  In Transit | Delivered | Ramesh Iyer | 01-11-2026 16:30
+
+Step 12 — Declaration & Submission
+Signatory Name: (same as ICEGATE Forms (Registration))
+Signatory Designation: (same as Ocean Freight Quotation)
+I validate that all information entered above is accurate and complete.: Yes
+Submit and Generate LR Audit Record: Yes
+
+Step 13 — Review Document
+(no entry — review / generate step)
+
+Step 14 — Completion
+(no entry — review / generate step)
+
+
+==============================================================================================================
+DOCUMENT 33 of 49 — Dock Receipt
+==============================================================================================================
+
+Step 1 — Pre-Arrival Notification & Booking Confirmation
+Booking Confirmation Reference: BKC-2026-000512
+Booking Verified Against Shipping Instructions: Yes
+VGM Submission Cut-Off (Date & Time): 09-11-2026, 18:00 IST
+Documentation Cut-Off (Date & Time): 09-11-2026, 12:00 IST
+Gate Cut-Off (Date & Time): 09-11-2026, 18:00 IST
+Shipper Notified of Cut-Off Schedule: Yes
+Booking Logged in Terminal System: Yes
+
+Step 2 — Shipper Details
+Shipper Name: (same as Weight Certificate)
+Shipper Address: (same as Weight Certificate)
+
+Step 3 — Carrier & Booking Reference
+Carrier Name: (same as Commercial Invoice)
+Booking No.: (same as Booking Confirmation)
+Vessel / Voyage (if known): (same as Commercial Invoice)
+Port of Loading: (same as Proforma Invoice)
+
+Step 4 — Gate Appointment & Scheduling
+Appointment Requested Date: 09-11-2026
+Allocated Appointment Slot: 09-11-2026, 14:00–16:00
+Appointment Confirmed by Terminal: Yes
+Gate Pass Reference No.: GP-2026-120512
+Terminal Appointment System Updated: Yes
+
+Step 5 — Gate-In & Security Check
+Gate-In Date: 09-11-2026
+Gate-In Time: 14:30
+Driver Name: (same as Equipment Interchange Receipt (EIR))
+Driver ID Verified: Yes
+Truck / Vehicle No.: (same as Equipment Interchange Receipt (EIR))
+Security Screening Required: Yes — Random Selection
+Security Screening Result: Cleared — No Issue
+Weighbridge Check-In Completed: Yes
+
+Step 6 — Document Verification at Gate
+Booking Reference Verified: Yes
+Shipping Instructions Match Confirmed: Yes
+VGM Declaration Present: Yes
+Declared VGM (kg): 8300
+Hazardous Cargo Declaration Required: No
+Cleared for Yard Entry: Yes
+
+Step 7 — Container & Cargo Details
+Containers:
+  Container No. (ISO 6346) | Container Company | Seal No. | Size / Type | Packages | Gross Weight (kg)
+  EGHU7283610 | Evergreen Marine Corp. | SI877656458 | 20GP | 5 | 5820
+Reefer (Temperature-Controlled) Cargo: No
+
+Step 8 — Physical Inspection
+Exterior Container Inspection Completed (structural, seal integrity): Yes
+Seal Integrity Checked Against Documentation: Yes
+CSC Plate Status: Valid
+Photographs of Container Condition Taken: Yes
+Inspection Findings: (same as Container Packing Certificate)
+
+Step 9 — Weighment & VGM Verification
+Terminal-Verified Weight (kg): 8300
+Variance Within Terminal Tolerance (typically ±5%): Yes
+VGM Record Updated With Terminal-Verified Weight: Yes
+
+Step 10 — Condition on Receipt & Exception Handling
+Condition on Receipt: Good Order and Condition
+
+Step 11 — Terminal Yard Placement
+Yard Location (Block / Row / Tier): Block C / Row 14 / Tier 1
+Move to Assigned Yard Location Completed: Yes
+Yard Management System Updated: Yes
+Placement Confirmed: Yes
+Handling Equipment Used: Reach Stacker
+
+Step 12 — Documentation Attached & Charges Assessment
+Commercial Invoice: Yes
+Packing List: Yes
+Shipping Instructions: Yes
+VGM Certificate: Yes
+Wharfage Charges: 18000
+Terminal Handling Charges: 32000
+Currency: (same as Proforma Invoice)
+
+Step 13 — Dock Receipt Issuance & Signature
+Dock Receipt No.: DR-2026-004521
+Issue Date: (same as Container Packing Certificate)
+Terminal / Facility Name: (same as Equipment Interchange Receipt (EIR))
+Terminal Operator: Kamarajar Port Limited (KPL)
+Receiving Clerk Review Completed: Yes
+Receiving Clerk Name: (same as Container Load Plan (CLP))
+Designation: (same as Container Load Plan (CLP))
+Place: (same as Export Declaration)
+Date: (same as Container Load Plan (CLP))
+I certify that the information provided above is true and correct to the best of my knowledge.: Yes
+
+Step 14 — Distribution & Handover to Carrier
+Copy Sent to Shipper: Yes
+Copy Sent to Carrier / Shipping Line: Yes
+Sent to Freight Forwarder: (same as Commercial Invoice)
+Filed With Terminal Records: Yes
+Carrier's Booking System Updated With Dock Receipt Reference: Yes
+Receipt Acknowledged by Carrier: Yes
+
+Step 15 — Pre-Loading Readiness Confirmation
+Customs Clearance Status: Cleared
+All Cut-Offs Met (VGM, Documentation, Gate): Yes
+Container Staged for Loading: Yes
+Marked Ready for Vessel Loading: Yes
+
+Step 16 — Review Document
+(no entry — review / generate step)
+
+Step 17 — Completion
+(no entry — review / generate step)
+
+
+==============================================================================================================
+DOCUMENT 34 of 49 — ARE-1
+==============================================================================================================
+
+Step 1 — ARE-1 Reference
+ARE-1 Number: ARE1/SIM/2026/000127
+Date of Removal: 30-10-2026
+Commercial Invoice Number: (same as Commercial Invoice)
+
+Step 2 — Exporter / Manufacturer Details
+Manufacturer / Exporter Name: (same as Proforma Invoice)
+Factory Address: (same as Proforma Invoice)
+GSTIN: (same as Letter of Undertaking (LUT))
+
+Step 3 — Goods Description
+Goods Being Removed:
+  Description of Goods | HS Code | Quantity | Unit Price | Assessable Value | Duty Leviable (if paid)
+  TAPAS BH-201 – Advanced long-endurance surveillance drone | 88062900 | 1 | 10000000 | 10000000 | 
+  BrahMos – Long Range Advanced Supersonic cruise missile system | 93069000 | 1 | 50000000 | 50000000 | 
+  Akash Air Defence Radar – Advanced Air-surveillance radar system | 85261000 | 1 | 7500000 | 7500000 | 
+  Drishti-10 Starliner – Indian variant of the Elbit Hermes 900 MALE UAV | 88062400 | 1 | 10000000 | 10000000 | 
+  DURGA-2 – Advanced high-power laser directed-energy weapon | 93019000 | 1 | 10000000 | 10000000 | 
+Exported under Letter of Undertaking (LUT) — no upfront duty payment: Yes
+
+Step 4 — Examination at Factory
+Examining Officer Name (or Self-Sealing Authorized Signatory): (same as Proforma Invoice)
+Date of Examination: 30-10-2026
+Seal Number Affixed: N/A at factory removal — loose crates; container seal SI877656458 applied at CFS stuffing on 09-11-2026
+
+Step 5 — Export Certification at Port
+Port of Export: (same as Proforma Invoice)
+Shipping Bill Number: (same as Commercial Invoice)
+Certifying Customs Officer at Port: Shanmugavel SathyaNaryanan
+Date Certified: 12-11-2026
+I certify that the goods described above have been duly exported and this ARE-1 can be closed against the corresponding Shipping Bill.: Yes
+
+Step 6 — Review Document
+(no entry — review / generate step)
+
+Step 7 — Completion
+(no entry — review / generate step)
+
+
+==============================================================================================================
+DOCUMENT 35 of 49 — Shipping Bill (TCOS)
+==============================================================================================================
+Note: This Shipping Bill is filed in the TCOS customs simulator, not in the logistics simulator.
+
+How to do this Shipping Bill in TCOS (customs simulator) — from login to final finish
+
+PART A — Open TCOS and create the Export Job
+1. In the Documentation Simulator click "Shipping Bill". You get two options: "Do it in Logistics Simulator" and "Do it in TCOS". Click "Do it in TCOS".
+2. TCOS login: type your Login and Password, then the Access Code (ask your instructor for the code). You land in the TCOS customs portal.
+3. Open "Create Export Job" (Export Job Master). Fill the Export Brief:
+   Buyer / Consignee Name: Castilla Strategic Military Corporation
+   Commodity Category: Machinery
+   Currency: INR
+   Incoterm: CIF
+   Payment Method: Letter of Credit
+   Mode of Transport: Sea
+   Country of Destination: Russia
+   Packaging Material: Mixed
+   Brief / Notes: Export of 5 packages of controlled defence & security equipment under Export Licence EL/2026/004521. LC-2026-009847 at sight, CIF Vladivostok, sailing 11-11-2026.
+   Buyer/contract claims preferential tariff treatment (FTA): No (leave unticked)
+   Dangerous goods: No (leave unticked)
+   Item is SCOMET / export-controlled: Yes (tick it — TCOS also ticks it automatically for these HS codes, which adds the Export Licence to the Document Plan)
+   Products table (one row per item):
+  Product / Description | HSN Code | Qty | Unit | Unit Price | Origin | Pkgs | Gross Wt (KG) | Net Wt (KG)
+  TAPAS BH-201 – Advanced long-endurance surveillance drone | 88062900 | 1 | SET | 10000000 | India | 1 | 1000 | 850
+  BrahMos – Long Range Advanced Supersonic cruise missile system | 93069000 | 1 | SET | 50000000 | India | 1 | 3000 | 2700
+  Akash Air Defence Radar – Advanced Air-surveillance radar system | 85261000 | 1 | SET | 7500000 | India | 1 | 850 | 700
+  Drishti-10 Starliner – Indian variant of the Elbit Hermes 900 MALE UAV | 88062400 | 1 | SET | 10000000 | India | 1 | 120 | 100
+  DURGA-2 – Advanced high-power laser directed-energy weapon | 93019000 | 1 | SET | 10000000 | India | 1 | 850 | 720
+   Containers table:
+  Container No. | Type | Seal No. | Gross Wt (KG)
+  EGHU7283610 | 20' Standard (Dry) | SI877656458 | 5820
+   Consignment details:
+   Consignee Address: Building 4, Office 712, 12 Lewinski Prospekt, Gagarinsky District, Moscow, 119071, Russian Federation
+   Port of Loading: Ennore Port (Kamarajar), Tamil Nadu
+   Port of Discharge: Port of Vladivostok (RUVVO), Russia
+   Vessel / Flight Name: CMA CGM Antoine de Saint Exupéry
+   Voyage / Flight No.: V923S
+   Package Type: Wooden Crate
+   Total Number of Packages: 5
+   Total Gross Weight (KG): 5820
+   Total Net Weight (KG): 5070
+   Marks & Numbers: PA-CTG / KPL / 001240
+   Shipping Instructions / Special Handling: Controlled cargo — handle only by authorised personnel; keep dry; this side up; do not drop or stack.
+   Link to Existing Filing / Booking (optional): select the Pax Armata booking BKG2026778812 if it is listed; otherwise leave it blank.
+4. Click "Create Export Job & View Document Plan". You go to the Export Documentation Desk (job number EXJ-2026-xxxxxx).
+5. In the Document Plan click "Shipping Bill (ICEGATE e-filing)" to open the 21-step filing wizard below.
+
+PART B — The 21 steps of the Shipping Bill filing wizard (type every value as shown)
+
+Step 1 — Exporter Details
+Exporter Name: Pax Armata Strategic Defense & Logistics Group
+IEC: AALCP6785Q
+GSTIN: 29AALCP6785Q1ZJ
+PAN: AALCP6785Q
+Address: 14 Meridian Industrial Park, Peenya Industrial Area, Bengaluru, Karnataka – 560058, India
+Contact Number: +91 9867465726
+Authorized Person: Alexander
+
+Step 2 — Customs & Exporter Reference
+Customs House Code: INENR1
+Job Number: JOB-2026-001123
+Job Date: 07-11-2026
+CHA License Number: CHA456
+Branch Serial Number: 247
+Exporter Type: Merchant Exporter
+Exporter Class: Not Applicable
+
+Step 3 — Consignee Details
+Consignee / Buyer Name: Castilla Strategic Military Corporation
+Address: Building 4, Office 712, 12 Lewinski Prospekt, Gagarinsky District, Moscow, 119071, Russian Federation
+Country: Russia
+Port of Destination: Port of Vladivostok (RUVVO), Russia
+Contact: Carlos Navarro, +7 495 674 93 90
+
+Step 4 — Declarant, Consignee & Bank Details
+GSTIN Type: GSN
+Customs Broker (CB) Name: Sunrise Clearing & Forwarding Agency Chennai
+AD Code: 0304022
+RBI Waiver No. & Date: (leave blank)
+Exporter AEO Status: No
+Consignee Country Code: RU
+Forex Bank A/c No.: 78965896894590
+Drawback (DBK) Bank A/c No.: 78965896894590
+IFSC Code: CMRB0000654
+
+Step 5 — Shipment Details
+Port of Loading: Ennore Port (Kamarajar), Tamil Nadu
+Port of Discharge: Port of Vladivostok (RUVVO), Russia
+Country of Destination: Russia
+Mode of Transport: Sea
+Vessel / Flight Name: CMA CGM Antoine de Saint Exupéry
+Voyage / Flight Number: V923S
+Shipment Reference: PAXA-EXP-2026-00451
+
+Step 6 — Cargo & Shipment Particulars
+Nature of Cargo: Containerized Cargo
+Unit of Measurement: NOS
+MAWB Number (Air): (leave blank — sea shipment)
+HAWB Number (Air): (leave blank — sea shipment)
+Seal Type: One-Time Lock (OTL)
+State of Origin: Karnataka
+Port of Final Destination: Vladivostok, Russia
+Country of Discharge: Russia
+MAWB / MBL Date: 11-11-2026
+HAWB / HBL Date: 11-11-2026
+CIN No.: (leave blank)
+CIN Date: (leave blank)
+CIN Site ID: (leave blank)
+Loose Packets: 0
+
+Step 7 — Invoice Details
+Invoice Number: INV-2026-867486
+Invoice Date: 28-10-2026
+Currency: INR
+Invoice Value: 87500000
+FOB Value: 86925000
+Freight: 450000
+Insurance: 125000
+Incoterm: CIF
+Payment Terms: Letter of Credit LC-2026-009847 at sight
+
+Step 8 — Invoice Details (ICEGATE)
+Buyer Name: Castilla Strategic Military Corporation
+Buyer Address: Building 4, Office 712, 12 Lewinski Prospekt, Gagarinsky District, Moscow, 119071, Russian Federation
+Nature of Contract: Sale
+Freight Currency: INR
+Purchase Order No.: PO-2026-88213
+Purchase Order Date: 10-09-2026
+Letter of Credit (LoC) No.: LC-2026-009847
+LoC Date: 25-10-2026
+Contract No.: CRM/2026/4567
+Contract Date: 15-09-2026
+Third Party Name: (leave blank — not a third-party export)
+Third Party Address: (leave blank)
+Buyer AEO Status: No
+Discount (invoice currency): 0
+Commission (invoice currency): 0
+Deductions (invoice currency): 0
+Packing Charges P/C (invoice currency): 85000
+
+Step 9 — Item Details
+  Description | HS Code | Qty | Unit | Unit Price | Origin | Pkgs | G.Wt | N.Wt
+  TAPAS BH-201 – Advanced long-endurance surveillance drone | 88062900 | 1 | SET | 10000000 | India | 1 | 1000 | 850
+  BrahMos – Long Range Advanced Supersonic cruise missile system | 93069000 | 1 | SET | 50000000 | India | 1 | 3000 | 2700
+  Akash Air Defence Radar – Advanced Air-surveillance radar system | 85261000 | 1 | SET | 7500000 | India | 1 | 850 | 700
+  Drishti-10 Starliner – Indian variant of the Elbit Hermes 900 MALE UAV | 88062400 | 1 | SET | 10000000 | India | 1 | 120 | 100
+  DURGA-2 – Advanced high-power laser directed-energy weapon | 93019000 | 1 | SET | 10000000 | India | 1 | 850 | 720
+  Sum of item totals must equal the invoice value 87500000.
+
+Step 10 — Item Particulars (Brand / End Use / Origin)
+  Present Market Value | State of Origin of Item | End Use
+  10000000 | Karnataka | Aerial surveillance and reconnaissance
+  50000000 | Karnataka | Defence end use as authorised by the Export Licence
+  7500000 | Karnataka | Air surveillance and air-defence detection
+  10000000 | Karnataka | Maritime and land surveillance
+  10000000 | Karnataka | Defence end use as authorised by the Export Licence
+
+Step 11 — Item-Wise Scheme & Tax Particulars
+  Item No. | Drawback Claimed (Y/N) | Drawback Sr.No. | DBK Rate (%) | RoDTEP Claimed (Y/N) | RoDTEP Rate (%) | IGST Status (P = paid) | IGST Rate (%) | Scheme Code | Scheme Description | SQC Measure | SQC UQC | District of Origin | PT Abroad | Comp. Cess (INR) | FTA Benefit Availed (Y/N) | Reward Benefit (Yes/No) | Third Party Item (Y/N)
+  1 | N | — | 0 | N | 0 | LUT | 18 | 00 | None – Free Shipping Bill (no scheme claimed) | 1 | SET | Bengaluru Urban | NA | 0 | N | No | N
+  2 | N | — | 0 | N | 0 | LUT | 18 | 00 | None – Free Shipping Bill (no scheme claimed) | 1 | SET | Bengaluru Urban | NA | 0 | N | No | N
+  3 | N | — | 0 | N | 0 | LUT | 18 | 00 | None – Free Shipping Bill (no scheme claimed) | 1 | SET | Bengaluru Urban | NA | 0 | N | No | N
+  4 | N | — | 0 | N | 0 | LUT | 18 | 00 | None – Free Shipping Bill (no scheme claimed) | 1 | SET | Bengaluru Urban | NA | 0 | N | No | N
+  5 | N | — | 0 | N | 0 | LUT | 18 | 00 | None – Free Shipping Bill (no scheme claimed) | 1 | SET | Bengaluru Urban | NA | 0 | N | No | N
+
+Step 12 — Exchange Rate Details
+  Nothing to enter. This step applies only when the invoice currency is not INR. This invoice is in INR, so the step opens with a "Nothing to enter on this step" notice — just click Next.
+
+Step 13 — Shipping Bill Status Flags
+2. ASSESS - assessed by Customs: Y
+3. EXMN - physically examined: N
+4. JOBBING - job work export: N
+5. MEIS - Merchandise Exports from India Scheme claimed: N
+6. DBK - drawback claimed: N
+7. RODTP - RoDTEP claimed: N
+8. DEEC / DFIA - advance authorisation / duty free import: N
+9. DFRC - Duty Free Replenishment Certificate: N
+10. RE-EXP - re-export: N
+11. LUT - exported under Letter of Undertaking (no IGST paid): Y
+
+Step 14 — Licence / DFIA / Job Work Details
+Exporting Under a Scheme?: None
+Advance Authorization Number: (leave blank)
+DFIA Number: (leave blank)
+SION Number: (leave blank)
+  (every other field and table of this step stays hidden while the scheme is None — nothing else to type. The Export Licence EL/2026/004521 is the SCOMET authorisation referred to when the PGA clearances are requested; it is not typed here.)
+Quantity Used: (leave blank)
+Job Work Details: (leave blank)
+Bill of Entry Number: (leave blank)
+Port Code: (leave blank)
+AA / DFIA Licence Details (Part IV - B): (leave empty)
+Jobbing Details (Part IV - C): (leave empty)
+
+Step 15 — Package Details
+Package Type: Wooden Crate
+Number of Packages: 5
+Gross Weight (KG): 5820
+Net Weight (KG): 5070
+Marks and Numbers: PA-CTG / KPL / 001240
+
+Step 16 — Container Details
+  Container No. | Type | Seal No. | Gross Wt (KG)
+  EGHU7283610 | 20' Standard (Dry) | SI877656458 | 5820
+
+Step 17 — Packaging / Rotation / Container Details
+Rotation Number: ROT/2026/71245
+Rotation Date: 11-11-2026
+Packaging Number: PKG-2026-1143
+Movement Document Number: MDN/2026/99887
+Excise Seal Number: ESN-788956
+
+Step 18 — Supporting Documents
+  Upload each file, wait for "VALIDATED", then click Attach (status must become "ATTACHED TO FILING"). Required documents are marked *.
+  Document Type | File | Reference No.
+  Commercial Invoice * | INV-2026-867486.pdf | INV-2026-867486
+  Packing List * | PL-2026-004521.pdf | PL-2026-004521
+  Certificate of Origin | GCOO-2026-004521.pdf | GCOO-2026-004521
+  Insurance Certificate | IC-2026-0002.pdf | IC-2026-0002
+
+Step 19 — Supporting Documents & Annexures
+Challan Details (Part I - H): (leave empty — no duty / fee challan for a LUT export)
+AR4 Details (Part IV - J): (leave empty — legacy excise document, not applicable)
+Third Party Details (Part IV - K): (leave empty — not a third-party export)
+  Inv S.No. | Item S.No. | Type | Manufacturer Code | Source State | Trans CY | Address
+  1 | 1 | Manufacturer | MFR-PAX-001 | Karnataka | 2026 | Peenya Industrial Area, Bengaluru, Karnataka – 560058, India
+  1 | 2 | Manufacturer | MFR-PAX-002 | Karnataka | 2026 | Peenya Industrial Area, Bengaluru, Karnataka – 560058, India
+  1 | 3 | Manufacturer | MFR-PAX-003 | Karnataka | 2026 | Peenya Industrial Area, Bengaluru, Karnataka – 560058, India
+  1 | 4 | Manufacturer | MFR-PAX-004 | Karnataka | 2026 | Peenya Industrial Area, Bengaluru, Karnataka – 560058, India
+  1 | 5 | Manufacturer | MFR-PAX-005 | Karnataka | 2026 | Peenya Industrial Area, Bengaluru, Karnataka – 560058, India
+
+Step 20 — Digital Signature & Submission
+Signatory Name: Anjana Mohan
+Signatory Designation: Documentation Executive (Customs Broker)
+Place of Declaration: Chennai
+Date of Declaration: 07-11-2026
+
+Step 21 — Validation & Review
+  Click "Validate" (optional) and fix any red error, then click "Submit & Sign". The ICEGATE signing console opens — complete all six gates in Part C below.
+
+PART C — Submit & Sign, then finish the filing
+The Shipping Bill wizard has 21 steps (Step 12 only shows "Nothing to enter" because the invoice is in INR).
+
+A. SUBMIT & SIGN — six gates, in this order (Cancel at any gate returns you to Step 21 with your form untouched)
+   GATE 1 — Pre-submission validation: wait while the checks run; every line must show ✓ Passed, then click Continue. (If a check fails, Cancel, correct the form, and click Submit & Sign again.)
+   GATE 2 — Draft checklist: read the 9 sections and tick "I have verified this section" on EVERY one. Then re-type three values from the checklist:
+        IEC of the exporter: AALCP6785Q
+        Total invoice value (number only): 87500000
+        Number of packages: 5
+      Click "Verify & continue". (If a value is wrong, the console tells you which one — read the checklist and type it again.)
+   GATE 3 — Declarations: tick ALL 5 declaration boxes one by one, then type the signatory exactly as in Step 20:
+        Name of declarant: Anjana Mohan
+        Designation: Documentation Executive (Customs Broker)
+      (capital letters and extra spaces do not matter). Click "Sign declaration".
+   GATE 4 — Digital signature (DSC): click "Detect token". Four certificates are listed — choose the one that is valid for this filing:
+        • holder Anjana Mohan, Class 3, valid till a FUTURE date   ← the correct one
+        • same holder, but already EXPIRED   ← rejected
+        • same holder, but Class 2   ← rejected (ICEGATE needs Class 3)
+        • a different holder (Mahesh Kumar Nair)   ← rejected
+      Click "Use selected certificate". Type the token PIN shown in the yellow TRAINING NOTE box and click "Sign". Three wrong PINs lock the token for 30 seconds. Click Continue.
+   GATE 5 — OTP: click "Send OTP". The 6-digit OTP appears in the dark "TRAINING SMS INBOX" box at the top right of the window. Type it within 3 minutes (3 tries; if it expires or you fail 3 times, wait a few seconds and click Resend OTP), click "Verify OTP", then Continue.
+   GATE 6 — Submit to ICES: click "Submit to ICES". The stages run one by one. Sometimes ICEGATE answers "HTTP 503 — Service temporarily unavailable": nothing is lost — click Retry (it can happen at most twice in a row).
+   When the green box "Shipping Bill accepted by ICES" appears, note the Shipping Bill number (TRN-SB-2026-xxxxxx) and the acknowledgement (TRN-ACK-xxxxxx), then click "View Shipping Bill status". TCOS generates these numbers itself — yours will differ from any example in this file; wherever a later document asks for the Shipping Bill number, use YOUR number (it is also carried to the Logistics simulator automatically).
+
+B. Customs processing
+   1. Click "Proceed with Customs Processing" (status: Under Customs Process). TCOS checks your declaration against the Commercial Invoice and Packing List — every value above must match them, otherwise a Query is raised.
+   2. One of three things happens:
+        a) No query and no examination: status becomes Cleared — go to C.
+        b) Query Raised: read the officer query, type a reply of at least 15 characters (example: "Documents verified; goods are as declared in the invoice and packing list."), click Submit Reply, and wait for "Query Resolved".
+        c) Examination: click "Conduct Examination (Simulate)". If it shows a discrepancy, write a corrective action (at least 10 characters) and click Submit Corrective Action.
+
+C. Government Agency (PGA / NOC) clearances — this shipment needs BOTH
+   3. Click "Apply for Aircraft / RPAS Import-Export Clearance" (DGCA — the drones).
+   4. Click "Apply for Defence Stores Export / Import NOC" (Ministry of Defence – Dept. of Defence Production).
+   5. If an agency raises a query, type a remark of at least 10 characters (example: "Goods are as per the Export Licence EL/2026/004521; end-use statement attached.") and submit. Both must show CLEARED.
+
+D. Let Export Order and the PDF
+   6. When the status is CLEARED, click "Issue Let Export Order (LEO)". A LEO number (LEO-xxxxxx) is issued and the status becomes LEO / COMPLETED.
+   7. Open View Documents; find the row "Shipping Bill" and click "Download PDF" (also available: Acknowledgement and Let Export Order). A popup "Shipping Bill filed – PDF downloaded" opens — click "Return to Document Simulator"; the Shipping Bill now shows "Completed in TCOS". If you download the PDF BEFORE the LEO is issued you stay in TCOS — issue the LEO first, then download again. The Export General Manifest (EGM) button appears after LEO. Open "View Training Assessment" to see your score.
+
+
+
+DOCUMENT 36 of 49 — Customs Gate Pass
+==============================================================================================================
+
+Step 1 — Gate Pass Reference
+Gate Pass Number: GP-2026-120512
+Date of Issue: (same as CFS Gate Pass)
+Related Clearance Document: Let Export Order
+Related Document Number: LEO issued in TCOS (LEO-xxxxxx, 09-11-2026) against your Shipping Bill (TRN-SB-2026-xxxxxx)
+
+Step 2 — Vehicle & Container Details
+Vehicle Number: (same as Equipment Interchange Receipt (EIR))
+Container Number (if applicable): (same as Commercial Invoice)
+
+Step 3 — Cargo Details
+No. of Packages: 5
+Gross Weight (KG): (same as Proforma Invoice)
+
+Step 4 — Gate Verification
+Gate Officer Name: Ruksana Muhammed
+Exit Date: 09-11-2026
+Exit Time: 14:30
+
+Step 5 — Declaration & Signature
+I certify the vehicle/container has been verified and is authorized to exit.: Yes
+
+Step 6 — Review Document
+(no entry — review / generate step)
+
+Step 7 — Completion
+(no entry — review / generate step)
+
+
+==============================================================================================================
+DOCUMENT 37 of 49 — EDI Copy
+==============================================================================================================
+
+Step 1 — Filing Reference
+EDI Copy Number: EDI/2026/004521
+Filing Date: 07-11-2026
+Original Document Type: Shipping Bill
+Original Document Number: INENR1/SB/2026/000247 [Instructor note: replaces the auto-filled Bill of Entry no.]
+
+Step 2 — Filer Details
+Filer Name (CHA / Self): (same as Seal Report)
+ICEGATE User ID: (same as ICEGATE Forms (Registration))
+
+Step 3 — EDI Submission Details
+Job Number: (same as Export Checklist)
+Checksum / Hash: 7F3A9C2D8B41E6A7C5D09F2B3A8E1C64
+Submission Timestamp: 07-11-2026 11:42:18 IST
+
+Step 4 — Acknowledgment Status
+Acknowledgment Status: Accepted
+
+Step 5 — Declaration
+I certify this EDI Copy accurately reflects the system acknowledgment received from ICEGATE.: Yes
+Signatory Name: (same as ICEGATE Forms (Registration))
+
+Step 6 — Review Document
+(no entry — review / generate step)
+
+Step 7 — Completion
+(no entry — review / generate step)
+
+
+==============================================================================================================
+DOCUMENT 38 of 49 — Export General Manifest (EGM)
+==============================================================================================================
+
+Step 1 — EGM Reference & Vessel Details
+EGM Number: EGM/INENR1/2026/004217
+Date of Filing: 12-11-2026
+Vessel / Aircraft Name: (same as Commercial Invoice)
+Voyage / Flight Number: V923S
+Person-in-Charge / Carrier's Agent: Kamarajar Port Shipping & Marine Services Pvt. Ltd. (same as Shipping Order)
+
+Step 2 — Port, Route & Departure
+Port of Loading (ICEGATE Port Code): (same as Proforma Invoice)
+Port of Destination: (same as Proforma Invoice)
+Date of Departure: 11-11-2026
+Filing Mode: Electronic — ICEGATE EDI
+
+Step 3 — Shipping Bill-wise Cargo Listing
+Cargo Listing (Shipping Bill-wise):
+  Shipping Bill No. / IEC No. | SB Date | Exporter | Consignee | Packages & Description | Gross Weight (kg)
+  INENR1/SB/2026/000247 / AALCP6785Q | 07-11-2026 | Pax Armata Strategic Defense & Logistics Group | Castilla Strategic Military Corporation | 1 package — TAPAS BH-201 – Advanced long-endurance surveillance drone | 1000
+  INENR1/SB/2026/000247 / AALCP6785Q | 07-11-2026 | Pax Armata Strategic Defense & Logistics Group | Castilla Strategic Military Corporation | 1 package — BrahMos – Long Range Advanced Supersonic cruise missile system | 3000
+  INENR1/SB/2026/000247 / AALCP6785Q | 07-11-2026 | Pax Armata Strategic Defense & Logistics Group | Castilla Strategic Military Corporation | 1 package — Akash Air Defence Radar – Advanced Air-surveillance radar system | 850
+  INENR1/SB/2026/000247 / AALCP6785Q | 07-11-2026 | Pax Armata Strategic Defense & Logistics Group | Castilla Strategic Military Corporation | 1 package — Drishti-10 Starliner – Indian variant of the Elbit Hermes 900 MALE UAV | 120
+  INENR1/SB/2026/000247 / AALCP6785Q | 07-11-2026 | Pax Armata Strategic Defense & Logistics Group | Castilla Strategic Military Corporation | 1 package — DURGA-2 – Advanced high-power laser directed-energy weapon | 850
+
+Step 4 — Cargo Summary
+Total Containers: 1
+Total Packages: 5
+Total Gross Weight (kg): (same as Packing List)
+
+Step 5 — Short-Shipment Declaration (Section 156(f))
+This EGM Includes Short-Shipped or Re-Landed Goods: No
+
+Step 6 — Review Document
+(no entry — review / generate step)
+
+Step 7 — Completion
+(no entry — review / generate step)
+
+
+==============================================================================================================
+DOCUMENT 39 of 49 — Inspection Certificate
+==============================================================================================================
+
+Step 1 — Inspection Request & Assignment
+Inspection Requested By: Buyer
+Request Date: 29-10-2026
+Inspection Agency: ASG India PVT Ltd
+Inspector Name: Yaqoob Khan
+Inspector Accreditation No.: SIM-IIMS-4521
+Inspector Confirmed Independent of Exporter / Manufacturer: Yes
+Scope of Inspection Agreed With Requesting Party: Yes
+
+Step 2 — Pre-Inspection Document Review
+Commercial Invoice Reviewed: Yes
+Packing List Reviewed: Yes
+PO / Contract Reviewed: Yes
+Product Specification Reviewed: Yes
+Previous Inspection History Checked: Yes
+PO / Contract No.: (same as Sales Order)
+Commercial Invoice No.: (same as Bill of Exchange)
+Product Specification Reference: Manufacturer Product Specification / Technical Datasheet
+
+Step 3 — Inspection Scope, Standard & Sampling Plan
+Inspection Type: Pre-Shipment Inspection (PSI)
+Sampling Standard: AQL 2.5 (ISO 2859-1)
+Inspection Level: Special Level S-2
+Lot Size (Total Units): 5 units
+Sample Size Actually Inspected: 5 units
+Critical Defects — Accept Number: 0
+Major Defects — Accept Number: 1
+Minor Defects — Accept Number: 2
+
+Step 4 — Inspection Date & Location
+Inspection Date: 29-10-2026
+Inspection Location: Pax Armata Warehouse, Peenya Industrial Area, Bengaluru
+Factory Visit Conducted: Yes
+Production Status at Time of Inspection: 100% Complete
+
+Step 5 — Quantity Verification
+Declared Quantity (kg): 5820
+Verified Quantity (kg): 5820
+Agreed Tolerance (%): 2
+Total Packages Physically Counted: 5
+Carton / Package Condition Checked: Yes
+
+Step 6 — Quality Inspection & Defect Classification
+Critical Defects Found: 0
+Major Defects Found: 0
+Minor Defects Found: 0
+Workmanship Standard Met: Yes
+Color / Shade Matched to Approved Sample: Yes
+Dimensional Check Passed: Yes
+
+Step 7 — Packing, Marking & Labelling Check
+Packing Condition: Satisfactory
+Packing Material Appropriate for Product and Transit Mode: Yes
+Shipping Marks Correct: Yes
+Labelling Compliant With Buyer / Regulatory Requirements: Yes
+Barcode Verified (if applicable): Yes
+
+Step 8 — Testing & Additional Checks
+Laboratory Testing Required: Yes
+Test Parameters: Functional performance test, dimensional check and packing-integrity inspection
+Test Result: Pass
+Photographs Taken: Yes
+Number of Photographs: 6
+
+Step 9 — Declaration & Signature
+Issue Date: 29-10-2026
+Corrective Action Required: No
+Place: (same as Proforma Invoice)
+Date: 29-10-2026
+I certify that the information provided above is true and correct to the best of my knowledge.: Yes
+
+Step 10 — Review Document
+(no entry — review / generate step)
+
+Step 11 — Completion
+(no entry — review / generate step)
+
+
+==============================================================================================================
+DOCUMENT 40 of 49 — Mate Receipt
+==============================================================================================================
+
+Step 1 — Shipping Request & Booking Reference
+Booking Reference / Shipping Order No.: BKG-2026778812
+Shipping Bill No.: TRN-SB-2026-914852
+(use YOUR Shipping Bill number from TCOS Document 35 — the TRN-SB-2026-xxxxxx shown on its acknowledgement; it is also filled in automatically when the lot was created for TCOS)
+Shipping Bill Date: 07-11-2026
+Freight Booking Note No.: (same as Weight Certificate)
+Request Date: 11-11-2026
+Requested By (Shipper's Forwarding Agent): (same as Commercial Invoice)
+CHA Name (Customs House Agent): (same as Seal Report)
+CHA License No.: CHA456
+
+Step 2 — Shipper, Consignee & Notify Party
+Shipper Name: (same as Weight Certificate)
+Shipper Address: (same as Weight Certificate)
+Shipper IEC: (same as Proforma Invoice)
+Shipper GSTIN: (same as Proforma Invoice)
+Consignee Name: (same as Packing List)
+Consignee Address: (same as Packing List)
+Notify Party Name: (same as Commercial Invoice)
+Notify Party Address: (same as Commercial Invoice)
+
+Step 3 — Vessel & Voyage Details
+Vessel Name: (same as Shipping Instructions)
+Vessel IMO Number: IMO9321483
+Voyage Number: (same as Packing List)
+Flag / Nationality of Vessel: Denmark
+Master's Name (Captain): Capt. Dimitri Volkov
+Shipping Line / Carrier: (same as Booking Confirmation)
+Ship's Agent Name: Kamarajar Port Shipping & Marine Services Pvt. Ltd
+Call Sign: FNMA
+Vessel Arrival Date at Port: 10-11-2026
+
+Step 4 — Port & Berth Information
+Port of Loading: (same as Proforma Invoice)
+Berth / Jetty No.: (same as Shipping Order)
+Terminal Name: (same as Equipment Interchange Receipt (EIR))
+Port of Discharge: (same as Proforma Invoice)
+Place of Delivery: (same as Shipping Instructions)
+Country of Final Destination: (same as Packing List)
+Anchorage Date: 11-11-2026
+Berthing Date: 11-11-2026
+Berthing Time: 08:00
+
+Step 5 — Cargo Description & Marks
+Cargo Description: (same as Certificate of Analysis)
+HS Code: (same as Insurance Certificate)
+Marks & Numbers: PA-CTG / KPL / 001240 — CONTROLLED CARGO / KEEP DRY / THIS SIDE UP / DO NOT DROP OR STACK
+Number of Packages: 5
+Package Type: (same as Proforma Invoice)
+Gross Weight (kg): (same as Proforma Invoice)
+Net Weight (kg): (same as Proforma Invoice)
+Measurement (CBM): (same as Forwarder's Cargo Receipt (FCR))
+Commodity Class: (same as Container Packing Certificate)
+
+Step 6 — Packing & Container Details
+Cargo Load Type: FCL — Full Container Load
+Containers:
+  Container No. | Seal No. | Size / Type | Tare Weight (kg) | Cargo Weight (kg) | VGM (kg) | Stuffing Location | CFS / ICD Reference
+  EGHU7283610 | SI877656458 | 20GP | 2280 | 6020 | 8300 | Kamarajar Port CFS — Chennai | CLP-2026-004521
+
+Step 7 — Pre-Loading Tally & Inspection
+Tally Clerk Name: Rakesh Yadav
+Tally Date: 11-11-2026
+Tally Time: 09:45
+Packages Physically Tallied: 5
+Tallied Count Matches Declared Packages: Yes
+Physical Condition on Receipt: (same as Dock Receipt)
+Surveyor Inspection Required: Yes
+Surveyor Name: Venkatesh Subramani, Chennai Marine Surveyors & Adjusters
+Discrepancy Noted at Tally: No
+
+Step 8 — Loading Operations & Stowage
+Loading Commenced — Date: 11-11-2026
+Loading Commenced — Time: 10:00
+Loading Completed — Date: 11-11-2026
+Loading Completed — Time: 13:30
+Stevedore Company Name: Kamarajar Port Stevedoring Services Pvt. Ltd.
+Stowage Position (Hold / Bay / Tier / Row): Hold 02 / Bay 18 / Tier 04 / Row 06
+Crane / Equipment Used: STS Container Crane – QC-04
+Loading Supervisor Name: Rajesh Kumar
+Dunnage / Lashing Applied: Yes
+Weather Condition During Loading: Clear
+Loading Remarks: (same as Sales Order)
+
+Step 9 — Cargo Condition, Clausing & Indemnity
+Receipt Condition: Clean Receipt — Good Order and Condition
+
+Step 10 — Charges & Payment
+Port & Documentation Charges:
+  Charge Code | Description | Currency | Amount | Tax | Payment Status
+  WHF | Wharfage Charges | INR | 18000 | 0 | Paid
+  THC | Terminal Handling Charges | INR | 32000 | 0 | Paid
+Payment Confirmed: Yes
+
+Step 11 — Mate's Signature & Issuance
+Issue Date: 11-11-2026
+Issue Time: 15:00
+Place of Issue: (same as Marine Insurance Policy)
+Mate / Officer Name: R K Shanmugam
+Rank: Chief Officer
+Master's Countersignature Obtained: Yes
+Issued To (Shipper's Representative): (same as Commercial Invoice)
+Number of Original Copies Issued: 3
+
+Step 12 — Document Linking & Closure
+Mate Receipt Surrendered for Bill of Lading: Yes
+B/L Number Issued Against This Receipt: (same as Commercial Invoice)
+Non-Negotiable Copy Retained by Agent: Yes
+Original Mate Receipt Returned to Shipping Line: Yes
+Record Closed: Yes
+Closure Date: 11-11-2026
+Audit / Archive Reference: MR-2026-004521
+I certify that the information provided above is true and correct to the best of my knowledge.: Yes
+
+Step 13 — Review Document
+(no entry — review / generate step)
+
+Step 14 — Completion
+(no entry — review / generate step)
+
+
+==============================================================================================================
+DOCUMENT 41 of 49 — Master Bill of Lading (MBL)
+==============================================================================================================
+
+Step 1 — MBL Reference & Carrier Details
+Master B/L Number: (same as Commercial Invoice)
+Date of Issue: 11-11-2026
+Place of Issue: (same as Marine Insurance Policy)
+Ocean Carrier Name: (same as Booking Confirmation)
+Carrier SCAC Code: CMDU
+Carrier Booking Reference: (same as Weight Certificate)
+
+Step 2 — Shipper of Record
+Shipper of Record (Forwarder/NVOCC): (same as Proforma Invoice)
+Shipper Address: (same as Weight Certificate)
+
+Step 3 — Consignee & Notify Party
+Consignee Type: Named Consignee
+Consignee Name: (same as Packing List)
+Consignee Address: (same as Packing List)
+Notify Party Name: (same as Commercial Invoice)
+Notify Party Address: (same as Commercial Invoice)
+
+Step 4 — Vessel, Voyage & Routing
+Vessel Name: (same as Shipping Instructions)
+Vessel IMO Number: 9321483
+Voyage Number: (same as Packing List)
+Place of Receipt: Kamarajar Port CFS, Chennai
+Port of Loading: (same as Proforma Invoice)
+Port of Discharge: (same as Proforma Invoice)
+Place of Final Delivery: (same as Packing List)
+
+Step 5 — Container & Cargo Details
+Container / Cargo Details:
+  Container Number | Size/Type | Seal Number | No. of Packages | Description of Goods (Said to Contain) | Gross Weight (KG)
+  EGHU7283610 | 20GP | SI877656458 | 1 | TAPAS BH-201 – Advanced long-endurance surveillance drone | 1000
+  EGHU7283610 | 20GP | SI877656458 | 1 | BrahMos – Long Range Advanced Supersonic cruise missile system | 3000
+  EGHU7283610 | 20GP | SI877656458 | 1 | Akash Air Defence Radar – Advanced Air-surveillance radar system | 850
+  EGHU7283610 | 20GP | SI877656458 | 1 | Drishti-10 Starliner – Indian variant of the Elbit Hermes 900 MALE UAV | 120
+  EGHU7283610 | 20GP | SI877656458 | 1 | DURGA-2 – Advanced high-power laser directed-energy weapon | 850
+
+Step 6 — Freight & Charges
+Freight Payable: Prepaid
+Freight Payable At: Chennai, India (prepaid at origin)
+Number of Original MBLs Issued: 3 (Full Set)
+
+Step 7 — Declaration & Signature
+Signatory Name: (same as Sales Order)
+Signatory Designation: (same as Ocean Freight Quotation)
+I certify the particulars above are true and correctly stated.: Yes
+
+Step 8 — Review Document
+(no entry — review / generate step)
+
+Step 9 — Completion
+(no entry — review / generate step)
+
+
+==============================================================================================================
+DOCUMENT 42 of 49 — House Bill of Lading (HBL)
+==============================================================================================================
+
+Step 1 — HBL Reference & Forwarder Details
+House B/L Number: HBL-SIM-2026-00187
+Date of Issue: (same as Master Bill of Lading (MBL))
+Place of Issue: (same as Marine Insurance Policy)
+Freight Forwarder / NVOCC Name: (same as Commercial Invoice)
+Forwarder Address: (same as Forwarder's Cargo Receipt (FCR))
+FIATA / IATA Registration No.: (same as Forwarder's Cargo Receipt (FCR))
+Master B/L Reference Number: (same as Commercial Invoice)
+
+Step 2 — Shipper
+Shipper Name: (same as Weight Certificate)
+Shipper Address: (same as Weight Certificate)
+Shipper IEC Number: (same as VGM Certificate)
+Shipper GSTIN: (same as Proforma Invoice)
+
+Step 3 — Consignee & Notify Party
+Consignee Type: (same as Master Bill of Lading (MBL))
+Consignee Name: (same as Packing List)
+Consignee Address: (same as Packing List)
+Notify Party Name: (same as Commercial Invoice)
+Notify Party Address: (same as Commercial Invoice)
+
+Step 4 — Vessel, Voyage & Routing
+Vessel Name: (same as Shipping Instructions)
+Voyage Number: (same as Packing List)
+Place of Receipt: (same as Master Bill of Lading (MBL))
+Port of Loading: (same as Proforma Invoice)
+Port of Discharge: (same as Proforma Invoice)
+Place of Final Delivery: (same as Packing List)
+Shipment Type: FCL
+
+Step 5 — Cargo Details
+Cargo / Package Details:
+  Marks & Numbers | No. of Packages | Kind of Packages | Description of Goods | Gross Weight (KG) | Measurement (CBM)
+  PA-CTG / KPL / 001240 | 1 | Crates | TAPAS BH-201 – Advanced long-endurance surveillance drone | 1000 | 4.32
+  PA-CTG / KPL / 001240 | 1 | Crates | BrahMos – Long Range Advanced Supersonic cruise missile system | 3000 | 8.74
+  PA-CTG / KPL / 001240 | 1 | Crates | Akash Air Defence Radar – Advanced Air-surveillance radar system | 850 | 3.30
+  PA-CTG / KPL / 001240 | 1 | Protective Case | Drishti-10 Starliner – Indian variant of the Elbit Hermes 900 MALE UAV | 120 | 0.22
+  PA-CTG / KPL / 001240 | 1 | Heavy-Duty Industrial Crates | DURGA-2 – Advanced high-power laser directed-energy weapon | 850 | 2.11
+
+Step 6 — Freight & Charges
+Freight Payable: (same as Master Bill of Lading (MBL))
+Freight Payable At: (same as Master Bill of Lading (MBL))
+Number of Original HBLs Issued: (same as Master Bill of Lading (MBL))
+Freight Amount: 450000
+Currency: (same as Proforma Invoice)
+
+Step 7 — Declaration & Signature
+Signatory Name: (same as Sales Order)
+Signatory Designation: (same as Ocean Freight Quotation)
+I certify the particulars above are true and correctly stated.: Yes
+
+Step 8 — Review Document
+(no entry — review / generate step)
+
+Step 9 — Completion
+(no entry — review / generate step)
+
+
+==============================================================================================================
+DOCUMENT 43 of 49 — Bill of Lading
+==============================================================================================================
+
+Step 1 — Pre-Shipment Booking & Instructions
+Booking Request Reference: (same as Weight Certificate)
+Booking Request Date: 28-10-2026
+Mode of Transport: FCL - Full Container Load
+Booking request logged in the carrier's system: Yes
+SI Reference Number: (same as Shipping Instructions)
+SI Cut-off Date / Time: 09-11-2026
+Shipping Instructions submitted before SI cut-off: Yes
+Cargo Ready Date (CRD): 30-10-2026
+Stuffing Location: Container Freight Station (CFS)
+Stuffing plan confirmed with the CFS/factory: Yes
+No. of Containers Requested: 1
+Container Type Requested: 20' Standard
+Equipment availability confirmed by the carrier: Yes
+Booking Confirmation Number: (same as Weight Certificate)
+Booking Confirmation Date: 28-10-2026
+Booking confirmation matches the request (vessel, equipment, dates): Yes
+Service Contract / Rate Reference: (same as Booking Confirmation)
+Rate Basis: Service Contract
+Quoted freight verified against the rate agreement on file: Yes
+Special Cargo Flag: High Value
+Special cargo requirements screened before confirming the booking: Yes
+Credit Status: Approved Credit Account
+Credit/payment terms checked and cleared: Yes
+Internal Job File Number: (same as Export Checklist)
+Internal job file opened and linked to the booking: Yes
+All booking-stage checks complete — ready to proceed to B/L preparation: Yes
+Booking Stage Notes: Booking confirmed by CMA CGM — space guaranteed for sailing 11-11-2026.
+
+Step 2 — Reference & Document Identity
+Bill of Lading Number: (same as Commercial Invoice)
+B/L Type: Master B/L (MBL)
+Booking Number: (same as Weight Certificate)
+Export Reference Number: PAXA-EXP-2026-00451
+Forwarder's Reference Number: PAXA-EXP-2026-00451
+Master/House B/L linkage verified: Yes
+Negotiability: Negotiable - To Order
+Document Type Issued: Original Bill of Lading
+Document type confirmed against the Letter of Credit / sales contract: Yes
+Transport Scope: Port-to-Port
+Cross-checked against the Commercial Invoice: Yes
+Cross-checked against the Shipping Bill: Yes
+Cross-checked against the Packing List: Yes
+All reference numbers verified and locked: Yes
+
+Step 3 — Shipper (Exporter) Particulars
+Company Name: (same as Commercial Invoice)
+Address: (same as Commercial Invoice)
+Contact Person: (same as Proforma Invoice)
+Phone: (same as Commercial Invoice)
+Email: (same as Commercial Invoice)
+Country: (same as Commercial Invoice)
+IEC Number: (same as Proforma Invoice)
+GSTIN: (same as Letter of Undertaking (LUT))
+PAN: (same as Registration-cum-Membership Certificate (RCMC))
+Bank Account Number: 78965896894590
+Bank Name: (same as Proforma Invoice)
+Authorized Signatory Name: (same as Proforma Invoice)
+Designation: (same as Ocean Freight Quotation)
+IEC, GSTIN and company registration documents verified on file: Yes
+KYC Verification Date: 11-11-2026
+Shipper particulars verified and locked: Yes
+
+Step 4 — Consignee & Notify Parties
+Consignee - Company Name: (same as Proforma Invoice)
+Consignee - Country: (same as Proforma Invoice)
+Consignee - Address: (same as Packing List)
+Consignee - Contact: Hector Salamanca, +7 495 674 93 90
+Consignee - Phone: +7 495 674 93 90
+Consignment Basis: Direct to Named Consignee
+Notify Party - Name: (same as Commercial Invoice)
+Notify Party - Contact: Francois Di Almeida, +7 495 674 93 90
+Notify Party - Address: (same as Commercial Invoice)
+Add a Second Notify Party?: No
+Consignee screened against applicable sanctions/denied-party lists: Yes
+Consignee and notify party details verified and locked: Yes
+
+Step 5 — Carrier, Vessel & Routing
+Ocean Carrier Name: (same as Booking Confirmation)
+Carrier Agent: CMA CGM Agencies (India) Pvt. Ltd.
+Ocean Vessel Name: (same as Commercial Invoice)
+Vessel IMO Number: (same as Master Bill of Lading (MBL))
+Voyage Number: (same as Packing List)
+Port of Loading (POL): (same as Proforma Invoice)
+Port of Discharge (POD): (same as Proforma Invoice)
+Place of Receipt: (same as Master Bill of Lading (MBL))
+Final Place of Delivery: (same as Packing List)
+Transshipment Port (if applicable): Port Klang, Malaysia
+Estimated Time of Departure (ETD): (same as Booking Confirmation)
+Estimated Time of Arrival (ETA): (same as Booking Confirmation)
+Carrier, vessel and routing details verified and locked: Yes
+
+Step 6 — Container Stuffing & Sealing
+No. of Containers Allocated: 1
+EIR Number: (same as Equipment Interchange Receipt (EIR))
+Container Condition at Release: Sound / No Damage
+Stuffing Supervised By: Anitha Ramaswamy
+Stuffing Date: 09-11-2026
+Seal Number Applied: (same as Commercial Invoice)
+Verified Gross Mass (KG): 8300
+VGM Method: Method 2 - Summing Component Weights
+Container Details:
+  Container No. (ISO 6346) | Seal No. | Container Type
+  EGHU7283610 | SI877656458 | 20GP
+Reefer / Temperature-Controlled Cargo?: No
+Gate-in Reference / EIR Out No.: (same as Equipment Interchange Receipt (EIR))
+Gate-in Date: 09-11-2026
+Container stuffing, sealing and gate-in verified and locked: Yes
+
+Step 7 — Cargo Description & Marks
+Marks & Numbers Summary: (same as Shipping Instructions)
+Total No. of Packages: 5
+Package Type: (same as Proforma Invoice)
+Description of Goods: (same as Export License)
+HS Code (8-digit): (same as Insurance Certificate)
+Total Gross Weight (KG): (same as Packing List)
+Total Net Weight (KG): (same as Packing List)
+Total Measurement (CBM): 18.69
+Cargo / Marks & Numbers:
+  Marks & Numbers | No. of Packages | Package Type | Description of Goods | HS Code (8-digit) | Commodity | Gross Wt. (KG) | Net Wt. (KG) | Measurement (CBM)
+  PA-CTG / KPL / 001240 | 1 | Crates | TAPAS BH-201 – Advanced long-endurance surveillance drone | 88062900 |  | 1000 | 850 | 4.32
+  PA-CTG / KPL / 001240 | 1 | Crates | BrahMos – Long Range Advanced Supersonic cruise missile system | 93069000 |  | 3000 | 2700 | 8.74
+  PA-CTG / KPL / 001240 | 1 | Crates | Akash Air Defence Radar – Advanced Air-surveillance radar system | 85261000 |  | 850 | 700 | 3.30
+  PA-CTG / KPL / 001240 | 1 | Protective Case | Drishti-10 Starliner – Indian variant of the Elbit Hermes 900 MALE UAV | 88062400 |  | 120 | 100 | 0.22
+  PA-CTG / KPL / 001240 | 1 | Heavy-Duty Industrial Crates | DURGA-2 – Advanced high-power laser directed-energy weapon | 93019000 |  | 850 | 720 | 2.11
+Summary weight/measurement totals verified against the line-item table: Yes
+Cargo description, package count and weights cross-checked against the Packing List: Yes
+Cargo description and marks verified and locked: Yes
+
+Step 8 — Dangerous Goods & Special Cargo
+Does this shipment contain Dangerous Goods?: No
+Dangerous Goods Declaration No.: (leave blank — not applicable)
+MSDS attached and on file: No
+Reefer temperature settings confirmed consistent with stuffing phase: No
+OOG Dimensions (L x W x H, meters): Not applicable — within gauge
+Carrier's DG desk has approved this cargo for loading: Yes
+
+Step 9 — Customs & Export Clearance Cross-Check
+Shipping Bill Number: (same as Commercial Invoice)
+IEC and GSTIN on the B/L match the Shipping Bill exactly: Yes
+Let Export Order (LEO) Reference: LEO-2026-000247
+LEO Date: 09-11-2026
+EGM Number: (same as Export General Manifest (EGM))
+Certificate of Origin Number: (same as Commercial Invoice)
+Export Incentive Scheme: None
+Customs Examination Status: Not Selected (Green Channel)
+Exporter AEO Status: Not Applicable
+Country of Origin Declared: India
+Customs and export clearance cross-checks verified and locked: Yes
+
+Step 10 — Freight, Charges & Incoterms
+Incoterm: (same as Shipping Instructions)
+Freight Term: (same as Master Bill of Lading (MBL))
+Freight Charges: (same as Proforma Invoice)
+Currency: (same as Proforma Invoice)
+Terminal Handling Charges (THC): (same as Dock Receipt)
+Bunker Adjustment Factor (BAF): 55000
+Currency Adjustment Factor (CAF): 50000
+Other Charges: (same as Proforma Invoice)
+Free Days Allowed (Demurrage/Detention): 7
+Demurrage Rate per Day: 3500
+Insurance Policy Number: (same as Commercial Invoice)
+Payment Method: (same as Sales Order)
+Freight, charges and Incoterm details verified and locked: Yes
+
+Step 11 — Draft B/L Preparation
+Draft Compiled Date: 11-11-2026
+Draft reviewed internally for completeness and obvious errors: Yes
+Draft cross-checked against the Commercial Invoice: Yes
+Draft cross-checked against the Packing List: Yes
+Letter of Credit Applicable?: Yes
+Draft Clauses / Remarks: (same as Sales Order)
+Negotiability wording matches the type decided earlier: Yes
+Draft Sent to Shipper - Date: 11-11-2026
+Shipper has reviewed and approved the draft: Yes
+Shipper Approval Date: 11-11-2026
+Draft B/L reviewed, cross-checked and approved: Yes
+
+Step 12 — Discrepancy Correction & Amendment
+Any Discrepancy Found?: No
+Amendment Request Number: (leave blank — not applicable)
+Carrier has approved the amendment request: No
+Amendment Approved Date: (leave blank — no amendment)
+Reissued draft reviewed and confirmed correct: Yes
+Amendment Fee Charged: 0
+Identified discrepancy fully resolved and verified: No
+B/L Version Number: 1
+Approval Trail Notes: Approved by the Export Manager and the Dispatch Manager.
+All relevant parties notified of the corrected version: Yes
+No outstanding discrepancies - document confirmed correct: Yes
+
+Step 13 — Loading Confirmation & Mate's Receipt
+Cargo physically loaded on board the named vessel: Yes
+Loaded on Board Date: 11-11-2026
+Mate's Receipt Number: (same as Mate Receipt)
+Tally sheet count reconciled against declared package count: Yes
+Shipped on Board Date: 11-11-2026
+Loading Discrepancy Noted?: No - Clean B/L
+Stowage Position (Bay/Row/Tier): Bay 18 / Row 06 / Tier 04 (Hold 02)
+Vessel Departure Date: 11-11-2026
+Shipment confirmed correctly reflected on the vessel's EGM: Yes
+Port Clearance Reference: PCR-INENR1-2026-0412
+Loading, Mate's Receipt and departure details verified and locked: Yes
+
+Step 14 — Final B/L Issuance & Signature
+Final B/L number matches the number entered in the Reference phase: Yes
+Number of Original B/L: Full Set - 3 Originals / 3 Copies
+Place of Issue: (same as Marine Insurance Policy)
+Date of Issue: (same as Master Bill of Lading (MBL))
+Carrier Signature - Signatory Name: (same as ICEGATE Forms (Registration))
+Carrier Signature - Signatory Title: (same as Ocean Freight Quotation)
+Carrier's signature/stamp applied to all original copies: Yes
+'Shipped on Board' clause present and correctly worded: Yes
+Terms & Conditions / Remarks: (same as Sales Order)
+Full set of originals and copies accounted for and complete: Yes
+Issuance Register Entry No.: REG-2026-004521
+I certify the details above accurately represent the shipment tendered for carriage.: Yes
+
+Step 15 — Document Distribution & Courier Handling
+Distribution List: (same as Certificate of Analysis)
+Courier Service Used: DHL Express
+Courier Tracking Number: 7845123690
+Non-negotiable copies sent to consignee and notify party: Yes
+Letter of Credit Applicable?: Yes
+Scanned digital copy distributed to all relevant parties: Yes
+Receipt of documents confirmed by recipients: Yes
+Courier Delivery Status: Delivered
+Document Custody Log: Originals couriered to the issuing bank on 14-11-2026 via DHL Express; copies retained at the Pax Armata documentation desk.
+Document distribution complete and confirmed: Yes
+
+Step 16 — Letter of Credit / Bank Negotiation
+Letter of Credit Applicable?: Yes
+Bank negotiation phase reviewed and closed (or confirmed not applicable): Yes
+
+Step 17 — Transit, Transshipment & Tracking
+Vessel departure from port of loading confirmed: Yes
+Transshipment Required?: Yes
+Last Tracking Update Date: 11-11-2026
+Last Known Position / Status: In transit — Indian Ocean, en route to Port Klang
+Revised ETA: 11-12-2026
+Weather/Route Deviation Notes: None
+Reefer temperature monitored and within range throughout transit: No
+Transit customs documentation handled at transshipment port (if applicable): Yes
+Pre-Arrival Notification Sent - Date: 04-12-2026
+In-transit tracking and monitoring record complete: Yes
+
+Step 18 — Arrival Notice & Destination Formalities
+Arrival Notice Number: AN-2026-004521
+Vessel Arrival Date: 11-12-2026
+Consignee and notify party notified of arrival: Yes
+Import Declaration / Entry Number: (leave blank — filed by the consignee in Russia)
+Destination THC: 0
+Other Destination Charges: 0
+Demurrage-Free Period Expires: 18-12-2026
+Container Discharge Date: 11-12-2026
+Destination CFS/ICD: Not applicable — port delivery at Vladivostok
+All destination-side documentation confirmed complete: Yes
+Destination Port Clearance Reference: PCR-RUVVO-2027-0108
+Arrival notice and destination formalities verified and locked: Yes
+
+Step 19 — Delivery Order Exchange & Cargo Release / Closure
+Original B/L Surrendered - Date: 14-12-2026
+Cargo Release Method: Original B/L Presentation
+Delivery Order (D/O) Number: DO-2026-004521
+D/O Issued Date: 14-12-2026
+All destination charges settled prior to D/O issuance: Yes
+Seal number verified against the number declared at stuffing: Yes
+Empty Container Returned - Date: 18-12-2026
+Damage or Shortage Noted at Delivery?: No
+Final reconciliation of quantities, charges and documents complete: Yes
+Complete shipment record archived: Yes
+Shipment file reviewed complete and formally closed: Yes
+
+Step 20 — Review Document
+(no entry — review / generate step)
+
+Step 21 — Completion
+(no entry — review / generate step)
+
+
+==============================================================================================================
+DOCUMENT 44 of 49 — Freight Invoice (Sea)
+==============================================================================================================
+
+Step 1 — Invoice Reference
+Freight Invoice Number: CMAIN/CHN/2026/004481
+Invoice Date: 11-11-2026
+Bill of Lading Number: (same as Commercial Invoice)
+Booking Reference Number: (same as Shipping Order)
+
+Step 2 — Billing Party (Carrier / Forwarder)
+Billing Party Name: CMA CGM Agencies (India) Private Limited
+Billing Party GSTIN: 27AABCC4391L1ZQ
+
+Step 3 — Billed To
+Billed To Name: Pax Armata Strategic Defense & Logistics Group [Instructor note: freight is Prepaid under CIF, so bill the shipper; replaces the auto-filled buyer name]
+Billed To Address: 14 Meridian Industrial Park, Peenya Industrial Area, Bengaluru, Karnataka – 560058, India [Instructor note: replaces the auto-filled buyer address]
+Billed To GSTIN: (same as Proforma Invoice)
+
+Step 4 — Shipment Details
+Vessel Name: (same as Shipping Instructions)
+Voyage Number: (same as Packing List)
+Port of Loading: (same as Proforma Invoice)
+Port of Discharge: (same as Proforma Invoice)
+Container Number: (same as Commercial Invoice)
+
+Step 5 — Charges
+Charge Break-Up:
+  Charge Head | Basis | Amount
+  Ocean Freight — Kamarajar Port to Vladivostok | 1 x 20' GP (via Port Klang) | 310000
+  Bunker Adjustment Factor (BAF) | 1 x 20' GP | 55000
+  Currency Adjustment Factor (CAF) | Lump sum | 50000
+  Special Cargo Handling Surcharge | Lump sum | 20000
+  Documentation / B/L Fee | Per B/L | 10000
+  Container Seal Fee | Lump sum | 5000
+Currency: (same as Proforma Invoice)
+GST Rate on Freight (%): 0
+
+Step 6 — Payment Terms
+Payment Due Date: 25-11-2026
+Bank Name: HDFC Bank Ltd., Fort Branch, Mumbai
+Bank Account Number: 50200045612378
+IFSC Code: HDFC0000060
+
+Step 7 — Declaration & Signature
+I certify the charges billed above are true and correctly stated.: Yes
+Signatory Name: (same as ICEGATE Forms (Registration))
+Designation: (same as Ocean Freight Quotation)
+
+Step 8 — Review Document
+(no entry — review / generate step)
+
+Step 9 — Completion
+(no entry — review / generate step)
+
+
+==============================================================================================================
+DOCUMENT 45 of 49 — Sea Waybill
+==============================================================================================================
+
+Step 1 — Document Information
+Sea Waybill Number: SWB-2026-004481
+Booking Number: (same as Weight Certificate)
+Issue Date: (same as Mate Receipt)
+Place of Issue: (same as Marine Insurance Policy)
+Carrier Name: (same as Commercial Invoice)
+Carrier Address: CMA CGM Agencies (India) Private Limited, One International Center, Tower 3, 8th Floor, Senapati Bapat Marg, Elphinstone Road (West), Mumbai – 400013, Maharashtra, India
+Carrier Contact: +91 22 7037 8888
+Document Status: Issued
+Document Version: v1.0
+Export Reference: (same as Bill of Lading)
+
+Step 2 — Shipper & Consignee
+Shipper Name: (same as Weight Certificate)
+Shipper Address: (same as Weight Certificate)
+Shipper GST/Tax ID: (same as Proforma Invoice)
+Shipper Contact: +91 9867465726
+Consignee Name: (same as Packing List)
+Consignee Address: (same as Packing List)
+Consignee Country: (same as Proforma Invoice)
+Consignee Contact: (same as Proforma Invoice)
+Notify Party: (same as Proforma Invoice)
+Freight Forwarder: (same as Commercial Invoice)
+
+Step 3 — Shipment Details
+Vessel Name: (same as Shipping Instructions)
+Voyage Number: (same as Packing List)
+Port of Loading: (same as Proforma Invoice)
+Port of Discharge: (same as Proforma Invoice)
+Place of Receipt: (same as Master Bill of Lading (MBL))
+Final Place of Delivery: (same as Proforma Invoice)
+ETD (Estimated Time of Departure): 11-11-2026
+ETA (Estimated Time of Arrival): 11-12-2026
+Shipping Line: (same as Sales Order)
+Mode of Transport: (same as Proforma Invoice)
+
+Step 4 — Cargo Details
+Container Number: (same as Commercial Invoice)
+Container Type: 20GP
+Seal Number: (same as Commercial Invoice)
+Number of Packages: 5
+Package Type: Crates
+Shipping Marks: (same as Shipping Instructions)
+Cargo Description: (same as Insurance Certificate)
+HS Code: (same as Insurance Certificate)
+Gross Weight (KG): (same as Proforma Invoice)
+Volume (CBM): (same as Proforma Invoice)
+
+Step 5 — Freight & Finalization
+Freight Term: Prepaid
+Freight Charges: 450000
+Currency: (same as Proforma Invoice)
+Incoterms: (same as Proforma Invoice)
+Special Instructions: Controlled cargo — handle only by authorised personnel; keep dry; this side up; do not drop or stack. Carriage subject to all applicable export, import, customs and licensing requirements.
+Supporting Document — Commercial Invoice: Yes
+Supporting Document — Packing List: Yes
+Supporting Document — Certificate of Origin: Yes
+Declaration: Yes
+Authorized Signature — Name: (same as ICEGATE Forms (Registration))
+Authorized Signature — Designation: (same as Ocean Freight Quotation)
+Submit and Generate Sea Waybill: Yes
+
+Step 6 — Review Document
+(no entry — review / generate step)
+
+Step 7 — Completion
+(no entry — review / generate step)
+
+
+==============================================================================================================
+DOCUMENT 46 of 49 — Transshipment Permit
+==============================================================================================================
+
+Step 1 — Permit Reference & Applicant
+Transshipment Permit Number (internal reference): TP/2026/007842
+Date of Application: 05-11-2026
+Applicant (Shipping Agent / Carrier): (same as Shipping Order)
+Customs House Agent / Shipping Agent License No.: (same as Mate Receipt)
+
+Step 2 — Port of Unloading & IGM Reference
+Port/Airport of Unloading: Port Klang, Malaysia (transshipment hub)
+Import General Manifest (IGM) Number: N/A — export cargo; foreign transhipment at Port Klang (training placeholder IGM/2026/CHN/008742)
+IGM Date: 04-11-2026
+IGM Line Number Covering This Cargo: 00127
+
+Step 3 — Destination
+Destination Type: Port/Airport Abroad (Foreign-to-Foreign Transshipment)
+Destination Location: (same as Shipping Bill (TCOS))
+
+Step 4 — Mode of Transport & Cargo Details
+Mode of Transport: Vessel
+Container / Cargo Details:
+  Container Number | Seal Number | Description of Goods | Gross Weight (kg)
+  EGHU7283610 | SI877656458 | TAPAS BH-201 – Advanced long-endurance surveillance drone | 1000
+  EGHU7283610 | SI877656458 | BrahMos – Long Range Advanced Supersonic cruise missile system | 3000
+  EGHU7283610 | SI877656458 | Akash Air Defence Radar – Advanced Air-surveillance radar system | 850
+  EGHU7283610 | SI877656458 | Drishti-10 Starliner – Indian variant of the Elbit Hermes 900 MALE UAV | 120
+  EGHU7283610 | SI877656458 | DURGA-2 – Advanced high-power laser directed-energy weapon | 850
+
+Step 5 — Customs Certification
+Issuing Customs House: INENR1 — Kamarajar Port (Ennore) Customs
+Certifying Customs Officer: Shanmugavel SathyaNaryanan, Preventive Officer
+Date of Certification: 05-11-2026
+
+Step 6 — Review Document
+(no entry — review / generate step)
+
+Step 7 — Completion
+(no entry — review / generate step)
+
+
+==============================================================================================================
+DOCUMENT 47 of 49 — Cargo Manifest
+==============================================================================================================
+
+Step 1 — Manifest Reference & Vessel Particulars
+Manifest Type: Export General Manifest (EGM)
+Manifest Number: (same as Export General Manifest (EGM))
+Filing Date: 12-11-2026
+Vessel Name: (same as Shipping Instructions)
+Vessel IMO Number: (same as Master Bill of Lading (MBL))
+Voyage Number: (same as Packing List)
+Rotation Number: ROT/2026/71245
+
+Step 2 — Carrier / Steamer Agent Details
+Carrier / Shipping Line Name: (same as Booking Confirmation)
+Steamer Agent Name: (same as Shipping Order)
+Agent Licence Number: SIM/2026/00541
+
+Step 3 — Port & Customs Station Details
+Customs House Code: INENR1
+Port of Call: Kamarajar Port (INENR1), Chennai, Tamil Nadu, India
+Last Port Called / Next Port: Last port: Kamarajar Port, India | Next port: Port Klang, Malaysia | Final port: Vladivostok, Russia
+Expected Date of Arrival / Departure: 11-11-2026
+
+Step 4 — Bill of Lading Summary
+Bill of Lading Summary:
+  B/L Number | B/L Type | Shipper | Consignee | No. of Packages | Gross Weight (KG) | Container Number
+  CMDU2601789567 | Master B/L | Pax Armata Strategic Defense & Logistics Group | Castilla Strategic Military Corporation | 5 | 5820 | EGHU7283610
+
+Step 5 — Cargo Declaration & Totals
+This manifest includes hazardous / dangerous cargo: No
+
+Step 6 — Filing & Submission
+ICEGATE Filing Reference: ICEGATE-2026-778812
+I validate that all information entered above is accurate and complete.: Yes
+I authorize submission of this manifest to ICEGATE.: Yes
+Signatory Name: (same as ICEGATE Forms (Registration))
+Signatory Designation: Documentation Executive (CMA CGM India Pvt. Ltd.)
+
+Step 7 — Review Document
+(no entry — review / generate step)
+
+Step 8 — Completion
+(no entry — review / generate step)
+
+
+==============================================================================================================
+DOCUMENT 48 of 49 — Warehouse Receipt
+==============================================================================================================
+
+Step 1 — Storage Inquiry & Customer Record
+Communication Channel: Email
+Request Date: (same as Inspection Certificate)
+Requesting Person: (same as Proforma Invoice)
+Urgency: (same as Sales Order)
+Expected Arrival Date: 29-10-2026
+Customer Name: (same as Proforma Invoice)
+Company Name: (same as Proforma Invoice)
+Contact Person: Sachin Sahadev — Warehouse Supervisor
+Phone Number: (same as Proforma Invoice)
+Email: warehouse@paxarmata.in
+Address: (same as Commercial Invoice)
+GST Number: (same as Commercial Invoice)
+IEC Number: (same as Proforma Invoice)
+Country: (same as Commercial Invoice)
+Customer Category: (same as Sales Order)
+
+Step 2 — Storage Requirement
+Cargo Category: (same as Container Packing Certificate)
+Required Humidity: Below 60% RH
+Ventilation Required: Yes
+Security Level Required: High
+Insurance Needed: Yes
+
+Step 3 — Cargo Information Collection
+Cargo Description: Controlled Defence & Security Equipment
+HS Code: (same as Insurance Certificate)
+SKU Count: 5
+Item Count: 5
+Number of Packages: 5
+Gross Weight (kg): (same as Proforma Invoice)
+Net Weight (kg): 5070
+Volume (CBM): (same as Proforma Invoice)
+Dimensions: (same as Proforma Invoice)
+Packaging Type: Wooden Crates
+Batch Numbers: BATCH-2026-100
+Serial Numbers: SN-2026001 to SN-2026005 (as per Lorry Receipt LR-2026-004521)
+
+Step 4 — Capacity, Facility & Dock Planning
+Available Space (sqm): 25
+Space Sufficiency Decision: Sufficient — Continue
+Warehouse Facility Type: General Warehouse
+Warehouse Code: WH-SIM-009
+Receiving Dock (Reserved): Dock-SIM-01
+Labour Team / Shift Assigned: Team SIM-A / Day Shift
+
+Step 5 — Equipment & Labour Planning
+Equipment Reserved: 1 x 20' GP container (EGHU7283610)
+Warehouse Manager: Sachin Sahadev
+Receiving Supervisor: Rahul Nair
+Quality Inspector Assigned: (same as Certificate of Analysis)
+Security Officer Assigned: Suresh Kumar
+
+Step 6 — Storage Cost Estimation & Quotation
+Storage Charges (rate): 18500
+Handling Charges: 35000
+Loading Charges: 15000
+Unloading Charges: 15000
+Security Charges: 12500
+Billing Cycle: Monthly
+GST Rate (%): 18
+Quotation Validity (Days): 30
+Payment Terms: Net 15 Days
+
+Step 7 — Negotiation, Contract & Booking Approval
+Negotiated Discount (%): 0
+Additional Services Agreed: Priority documentation support and customs-hold handling
+Warehouse Contract Verified: Yes
+Liability Terms Verified: Yes
+Damage Clause Verified: No
+Termination Clause Verified: Yes
+Booking Approval: (same as Certificate of Analysis)
+
+Step 8 — Booking Number, Zone & Confirmation
+Warehouse Zone: Bonded
+Rack (Planned): RB-1147
+Bin (Planned): BIN-SIM-018
+Pre-Arrival Notification Sent: Yes
+Expected Arrival Time Confirmed: Yes
+Booking Confirmation Issued: Yes
+Booking Status: Ready for Arrival: Yes
+
+Step 9 — Identity, Tax & IEC Verification
+Company Legal Name: (same as Proforma Invoice)
+Registration Number: SIM-REG-PAXA-2026-001
+Business Type: Private Limited
+Date of Incorporation: 15-03-2020
+Authorized Signatory: Sachin Sahadev
+GSTIN (Verified): (same as Letter of Undertaking (LUT))
+PAN: (same as Registration-cum-Membership Certificate (RCMC))
+GST Filing Status: Filed — Up to Date
+Tax Registration Status: Valid
+IEC Applicable (Import/Export Cargo): Yes
+IEC Number (Verified): AALCP6785Q
+IEC Status: Active
+DGFT Status: Verified
+
+Step 10 — KYC, Risk & Sanctions Screening
+Certificate of Incorporation Collected: Yes
+PAN Card Collected: Yes
+GST Certificate Collected: Yes
+Address Proof Collected: Yes
+Bank Details Collected: Yes
+Authorized Signatory ID Collected: Yes
+Power of Attorney Collected (if applicable): Yes
+Customer Risk Level: High
+Risk Assessment Notes: High-value controlled cargo. Ensure proper documentation, regulatory compliance, secure storage, careful handling, and authorised personnel access. Conduct routine inspection and maintain appropriate insurance coverage.
+Sanctions & Watchlist Screening: Cleared
+AEO Status Applicable: No
+
+Step 11 — Insurance & Commercial Document Validation
+Cargo Insurance Policy No.: POL-2026-778812
+Insurance Coverage Amount: 96250000
+Insurance Validity Date: 09-02-2027
+Insurer Name: ICICI Lombard General Insurance Company Limited
+Commercial Invoice No.: (same as Bill of Exchange)
+Invoice Seller: (same as Proforma Invoice)
+Invoice Buyer: (same as Proforma Invoice)
+Invoice Currency: INR
+Packing List — Net Weight: 5070
+Packing List — Gross Weight: 5820
+Marks & Numbers: (same as Forwarder's Cargo Receipt (FCR))
+
+Step 12 — Transport & Customs Document Verification
+Transport Document Type: Lorry Receipt / Consignment Note (Road)
+Transport Document No.: (same as Lorry Receipt)
+Transport Document Verified: Yes
+Document Discrepancies Found: No
+
+Step 13 — Compliance Approval & Customer Master Record
+Compliance Review Decision: (same as Certificate of Analysis)
+Compliance Officer: Faisal Rahman
+Billing Information Recorded: Yes
+Status: Customer Approved for Warehouse Operations: Yes
+
+Step 14 — Pre-Arrival & Gate Entry
+ETA Confirmed With Transporter: Yes
+Vehicle Registration No.: (same as Equipment Interchange Receipt (EIR))
+Driver Name: (same as Equipment Interchange Receipt (EIR))
+Driver License No.: (same as Lorry Receipt)
+Driver Mobile: +91 98450 12345
+Transport Company: (same as Equipment Interchange Receipt (EIR))
+Arrival Date: 29-10-2026
+Arrival Time: 09:30
+Gate Number: Gate 2
+Transport Mode: Road
+Driver Identity Decision: (same as Certificate of Analysis)
+
+Step 15 — Vehicle & Security Screening
+Vehicle Condition OK: Yes
+Fitness Certificate Valid: Yes
+Pollution Certificate Valid: Yes
+Permit Valid: Yes
+Vehicle Verified: Yes
+Exterior Inspection Done: Yes
+Interior Inspection Done: Yes
+Undercarriage Inspection Done: Yes
+Unauthorized Person Check Done: Yes
+Security Cleared: Yes
+
+Step 16 — Seal & Container Inspection
+Seal No.: (same as Weight Certificate)
+Container No.: (same as Weight Certificate)
+
+Step 17 — Dock, Unloading & Cargo Count
+Receiving Dock Assigned: Dock 6
+Dock Supervisor: Ananthu R Krishnan
+Vehicle Positioned at Dock: Yes
+Unloading Authorized By: Sachin Sahadev — Warehouse Supervisor
+Unloading Authorized: Yes
+Unloading Method: Forklift
+Unloading Sequence Recorded: Yes
+Pallets Counted: 0
+Cartons Counted: 0
+Count Matches Packing List: Yes
+Barcode / RFID Scan Completed: Yes
+
+Step 18 — Weight, Dimension & Goods Identification
+Received Gross Weight (kg): 5820
+Received Net Weight (kg): 5070
+Weight Within Tolerance: Yes
+Received Dimensions: (same as Proforma Invoice)
+Received CBM: 18.69
+SKU Verified: Yes
+Batch Number: BATCH-2026-100
+Expiry Date: 26-12-2026
+Country of Origin: (same as Proforma Invoice)
+
+Step 19 — Packaging, Damage & Discrepancy
+Packaging Inspection OK: Yes
+Damage Found: No
+Shortage / Overage: None
+Exception Report Required: No
+
+Step 20 — Receiving Confirmation & GRN
+All Inspections Complete: Yes
+All Counts Verified: Yes
+All Documents Matched: Yes
+Receiving Approved By: (same as Weight Certificate)
+Goods Status: Received — Pending Quality Inspection
+
+Step 21 — Inspection Order & Product Verification
+Inspector Assigned: (same as Weight Certificate)
+Inspection Priority: (same as Sales Order)
+Inspection Date: (same as Inspection Certificate)
+Inspection Time: 11:00
+Transferred to QA Zone: Yes
+SKU Verified: Yes
+Product Description Verified: Yes
+Manufacturer Verified: Yes
+
+Step 22 — Quantity, Batch & Packaging Inspection
+Cartons Counted: 0
+Pallets Counted: 0
+Units Counted: 5
+Quantity Matches GRN: Yes
+Quantity Matches Packing List: Yes
+Quantity Matches Purchase Order: Yes
+Lot Number: (same as Commercial Invoice)
+Serial Numbers: (same as Warehouse Receipt)
+Manufacturing Date: 01-08-2026
+Expiry Date: (same as Warehouse Receipt)
+Packaging Quality OK: Yes
+
+Step 23 — Physical Inspection, Weight & Compliance
+Physical Defects Found: No
+Gross Weight (kg): 5820
+Net Weight (kg): (same as Warehouse Receipt)
+CBM: 18.69
+Weight Within Tolerance: Yes
+Customer Specifications Compliant: Yes
+
+Step 24 — Sampling, Environmental Check & Non-Conformance
+Sample Inspection Required: Yes
+Humidity Recorded (%): 52
+Non-Conformance Report (NCR) Required: No
+
+Step 25 — Acceptance Decision & Inventory Registration
+Acceptance Decision: (same as EDI Copy)
+Available Quantity: 5
+Hold Quantity: 0
+QA Supervisor Approval: Yes
+Warehouse Manager Approval: Yes
+Quality Inspection Report Issued: Yes
+
+Step 26 — Put-Away Strategy & Location Assignment
+Put-Away Operator: Mohan Das
+Put-Away Priority: Urgent
+Storage Strategy: FIFO
+Final Warehouse Zone: Bonded
+Aisle: Aisle 4
+Rack: (same as Warehouse Receipt)
+Shelf / Bin: BIN-22
+Pallet Position: P-04
+
+Step 27 — Movement, Storage & Environmental Verification
+Forklift ID: FLT-07
+Forklift Operator: Mohan Das
+Estimated Completion Time: 17:00
+Storage Location Scan Confirmed: Yes
+Goods Moved to Storage: Yes
+Storage Placement Confirmed: Yes
+Load Secured: Yes
+Humidity Verified (%): 52
+
+Step 28 — Warehouse Receipt Generation
+WHR Date: 29-10-2026
+Warehouse Name: Pax Armata Strategic Logistics & Equipment Facility — Bengaluru
+Negotiable Status: Negotiable
+
+Step 29 — Financial & Legal Terms
+Storage Charges (final rate): (same as Warehouse Receipt)
+Handling Charges: (same as Warehouse Receipt)
+Taxes (GST): 0
+Payment Terms: (same as Warehouse Receipt)
+Ownership Declaration Included: Yes
+Liability Clause Included: Yes
+Warehouse Responsibilities Clause Included: Yes
+
+Step 30 — Approval, Authentication & Issuance
+Inventory Controller Approval: Yes
+Warehouse Supervisor Approval: Yes
+Warehouse Manager Approval: Yes
+Digital Signature Applied: Yes
+Copy Issued to Customer: Yes
+Copy Issued to Finance: Yes
+Records Archived: Yes
+Inventory Status: Stored — Available for Inventory Management
+
+Step 31 — Storage Period Management & Withdrawal Request
+Periodic Storage Audit Conducted: Yes
+Storage Renewal Notice Issued: Yes
+Withdrawal Request Received: Yes
+
+Step 32 — WHR Validity, Pledge Discharge & Charge Settlement
+Original WHR Presented for Verification: Yes
+Presenter Identity Verified: Yes
+Outstanding Charges Amount: 0
+Outstanding Charges Settled: Yes
+
+Step 33 — Picking, Outbound QC & Release
+Picking Order Generated: Yes
+Goods Retrieved from Storage: Yes
+Outbound Quality Check Passed: Yes
+Delivery Order Generated: Yes
+Outbound Gate Pass No.: WGP-2026-004521 (fictional warehouse gate pass, 30-10-2026)
+
+Step 34 — Endorsement, Closure & Archive
+Final Gate Exit Confirmed: Yes
+Inventory Deregistered: Yes
+WHR Final Status: Closed — Fully Withdrawn
+Closure Audit Trail Complete: Yes
+
+Step 35 — Declaration & Signature
+Warehouse Keeper Name: Sachin Sahadev
+Designation: (same as Weight Certificate)
+Place: (same as Proforma Invoice)
+Date: (same as Inspection Certificate)
+I certify that the information provided above is true and correct to the best of my knowledge.: Yes
+
+Step 36 — Review Document
+(no entry — review / generate step)
+
+Step 37 — Completion
+(no entry — review / generate step)
+
+
+==============================================================================================================
+DOCUMENT 49 of 49 — Bank Realization Certificate (eBRC)
+==============================================================================================================
+
+Step 1 — eBRC Reference
+eBRC Number: EBRC/CMRB/2027/0003187
+Generation Date: 27-11-2026
+IEC Number: (same as Proforma Invoice)
+
+Step 2 — AD Bank Details
+Authorized Dealer (AD) Bank Name: Camera International Bank (DCIB), Bengaluru International Trade Finance Branch
+AD Bank Code: 0304022
+Inward Remittance Message (IRM) Reference: IRM/CMRB/2027/RU/00582
+
+Step 3 — Shipping Bill / Invoice Mapping
+Shipping Bill Number: (same as Commercial Invoice)
+Commercial Invoice Number: (same as Commercial Invoice)
+GSTIN: (same as Letter of Undertaking (LUT))
+GST Invoice Number: (same as Sales Order)
+GST Invoice Date: 28-10-2026
+
+Step 4 — Realization Details
+Foreign Currency: INR
+Amount Realized (Foreign Currency): 87500000
+Exchange Rate Applied: 1
+Date of Realization: 22-11-2026
+
+Step 5 — Self-Certification & Declaration
+I certify the particulars above are true and correctly mapped.: Yes
+Signatory Name: (same as Letter of Credit)
+
+Step 6 — Review Document
+(no entry — review / generate step)
+
+Step 7 — Completion
+(no entry — review / generate step)

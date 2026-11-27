@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OATS — Office Administration Training Simulator</title>
+<meta name="theme-color" content="#1B2A4A">
+<meta name="description" content="Office Administration Practical Training Simulator">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" href="data:image/png;base64,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">
+<link rel="icon" href="assets/icon-192.png">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- ===================== AUTH / LOGIN SCREEN ===================== -->
+<div class="auth-screen" id="auth-screen"></div>
+
+<!-- ===================== INSTRUCTOR VIEWING BANNER ===================== -->
+<div class="instructor-banner hidden" id="instructor-exit-banner">
+  <span>&#127891; Instructor viewing: <b id="instructor-viewing-name"></b></span>
+  <button class="btn btn-sm" id="instructor-exit-btn" style="background:#fff;color:var(--ink);">Exit to Roster</button>
+</div>
+
+<div class="app-shell hidden">
+
+  <!-- ===================== SIDEBAR ===================== -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <div class="mark">OA</div>
+      <div class="name">OATS</div>
+      <div class="sub">Office Administration Training Simulator</div>
+    </div>
+    <nav class="nav-scroll" id="nav-scroll">
+      <div class="nav-group-label">Overview</div>
+      <button class="nav-item" data-route="dashboard"><span class="ic">&#9635;</span> Dashboard</button>
+
+      <div class="nav-group-label">Human Resources</div>
+      <button class="nav-item" data-route="employees"><span class="ic">&#128100;</span> Employees</button>
+      <button class="nav-item" data-route="personal-file"><span class="ic">&#128193;</span> Personal Files</button>
+      <button class="nav-item" data-route="orgchart"><span class="ic">&#127970;</span> Org Chart</button>
+      <button class="nav-item" data-route="attendance"><span class="ic">&#128197;</span> Attendance</button>
+      <button class="nav-item" data-route="leave"><span class="ic">&#9993;</span> Leave Register</button>
+      <button class="nav-item" data-route="leave-balance"><span class="ic">&#9878;</span> Leave Balance</button>
+
+      <div class="nav-group-label">Payroll &amp; Benefits</div>
+      <button class="nav-item" data-route="payroll"><span class="ic">&#128176;</span> Payroll &amp; Payslips</button>
+      <button class="nav-item" data-route="assets"><span class="ic">&#128187;</span> Company Assets</button>
+
+      <div class="nav-group-label">Talent</div>
+      <button class="nav-item" data-route="recruitment"><span class="ic">&#128188;</span> Recruitment</button>
+      <button class="nav-item" data-route="performance"><span class="ic">&#127942;</span> Performance</button>
+
+      <div class="nav-group-label">Documents</div>
+      <button class="nav-item" data-route="documents"><span class="ic">&#128220;</span> Document Center</button>
+      <button class="nav-item" data-route="idcard"><span class="ic">&#127380;</span> ID Card Generator</button>
+
+      <div class="nav-group-label">General Office Skills</div>
+      <button class="nav-item" data-route="correspondence"><span class="ic">&#128221;</span> Correspondence &amp; Drafting</button>
+      <button class="nav-item" data-route="mailroom"><span class="ic">&#128231;</span> Mail &amp; Dispatch Register</button>
+      <button class="nav-item" data-route="frontoffice"><span class="ic">&#127970;</span> Front Office &amp; Reception</button>
+      <button class="nav-item" data-route="meetings"><span class="ic">&#128197;</span> Meetings &amp; Minutes</button>
+      <button class="nav-item" data-route="excellab"><span class="ic">&#128202;</span> Office Work Requests</button>
+      <button class="nav-item" data-route="procurement"><span class="ic">&#128722;</span> Procurement &amp; Petty Cash</button>
+      <button class="nav-item" data-route="inventory"><span class="ic">&#128230;</span> Stationery &amp; Inventory</button>
+      <button class="nav-item" data-route="travel"><span class="ic">&#9992;</span> Travel &amp; Expense (TA/DA)</button>
+      <button class="nav-item" data-route="facility"><span class="ic">&#128197;</span> Facility &amp; Room Booking</button>
+      <button class="nav-item" data-route="vendors"><span class="ic">&#128203;</span> Vendor &amp; Compliance Tracker</button>
+      <button class="nav-item" data-route="grievances"><span class="ic">&#128172;</span> Grievance Register</button>
+      <button class="nav-item" data-route="maintenance"><span class="ic">&#128295;</span> Facility Maintenance Log</button>
+      <button class="nav-item" data-route="diary"><span class="ic">&#128197;</span> Executive Calendar &amp; Diary</button>
+      <button class="nav-item" data-route="inbox"><span class="ic">&#128231;</span> Inbox Management</button>
+      <button class="nav-item" data-route="dataentry"><span class="ic">&#8987;</span> Data Entry Practice</button>
+      <button class="nav-item" data-route="filing"><span class="ic">&#128193;</span> Filing System Simulator</button>
+      <button class="nav-item" data-route="dayplanner"><span class="ic">&#128197;</span> Day Planner</button>
+
+      <div class="nav-group-label">Exit Management</div>
+      <button class="nav-item" data-route="resignations"><span class="ic">&#128196;</span> Resignations</button>
+      <button class="nav-item" data-route="notice-period"><span class="ic">&#8987;</span> Notice Period</button>
+      <button class="nav-item" data-route="clearance"><span class="ic">&#9989;</span> Clearance</button>
+      <button class="nav-item" data-route="final-settlement"><span class="ic">&#128176;</span> Final Settlement</button>
+      <button class="nav-item" data-route="exit-interviews"><span class="ic">&#128172;</span> Exit Interviews</button>
+      <button class="nav-item" data-route="former-employees"><span class="ic">&#128100;</span> Former Employees</button>
+
+      <div class="nav-group-label">Communication</div>
+      <button class="nav-item" data-route="notices"><span class="ic">&#128226;</span> Notice Board</button>
+      <button class="nav-item" data-route="calendar"><span class="ic">&#128198;</span> HR Calendar</button>
+      <button class="nav-item" data-route="notifications">&#128276; Notifications <span class="badge hidden" id="notif-badge">0</span></button>
+
+      <div class="nav-group-label">Insights</div>
+      <button class="nav-item" data-route="reports"><span class="ic">&#128202;</span> Reports</button>
+      <button class="nav-item" data-route="search"><span class="ic">&#128269;</span> Search Employee</button>
+
+      <div class="nav-group-label">Training</div>
+      <button class="nav-item" data-route="sessions"><span class="ic">&#128218;</span> Practice Sessions</button>
+      <button class="nav-item" data-route="practicals"><span class="ic">&#127919;</span> Practical Tasks</button>
+      <button class="nav-item" data-route="instructor"><span class="ic">&#127891;</span> Instructor Mode</button>
+      <button class="nav-item" data-route="settings"><span class="ic">&#9881;</span> Settings</button>
+    </nav>
+    <div class="sidebar-foot">Skelora Institute · Thiruvalla<br>v1.0 · Local Data Mode</div>
+  </aside>
+
+  <!-- ===================== MAIN ===================== -->
+  <div class="main">
+    <header class="topbar">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <button class="menu-toggle" id="menu-toggle">&#9776;</button>
+        <div class="crumb">OATS / <b id="crumb-current">Dashboard</b></div>
+      </div>
+      <div class="topbar-right">
+        <button class="icon-btn" id="btn-notif" title="Notifications">&#128276;<span class="dot hidden" id="notif-dot"></span></button>
+        <button class="icon-btn" id="btn-sample" title="Generate sample data">&#9889;</button>
+        <button class="icon-btn hidden" id="logout-btn" title="Log out">&#9211;</button>
+        <div class="topbar-user">
+          <div class="av" id="topbar-initials">ST</div>
+          <div class="who">
+            <div id="topbar-name">Student</div>
+            <div class="r">Office Admin Trainee</div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="content" id="content">
+      <!-- module content injected here -->
+    </main>
+    <footer class="app-footer">Developed by <b>Ananthu Shaji</b> &middot; Dot Ecosystem</footer>
+  </div>
+</div>
+
+<!-- ===================== MODAL ===================== -->
+<div class="modal-overlay hidden" id="modal-overlay">
+  <div class="modal" id="modal-box">
+    <div class="modal-head">
+      <h3 id="modal-title">Title</h3>
+      <button class="modal-close" id="modal-close">&times;</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-foot" id="modal-foot"></div>
+  </div>
+</div>
+
+<div id="toast-stack"></div>
+
+<script src="js/core.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/employees.js"></script>
+<script src="js/samplepdf.js"></script>
+<script src="js/attendance.js"></script>
+<script src="js/xlsxexport.js"></script>
+<script src="js/leave.js"></script>
+<script src="js/documents.js"></script>
+<script src="js/correspondence.js"></script>
+<script src="js/mailroom.js"></script>
+<script src="js/frontoffice.js"></script>
+<script src="js/meetings.js"></script>
+<script src="js/workdesk-data.js"></script>
+<script src="js/workdesk-tasks.js"></script>
+<script src="js/workdesk.js"></script>
+<script src="js/bulkmail.js"></script>
+<script src="js/procurement.js"></script>
+<script src="js/inventory.js"></script>
+<script src="js/travel.js"></script>
+<script src="js/facility.js"></script>
+<script src="js/vendors.js"></script>
+<script src="js/grievances.js"></script>
+<script src="js/maintenance.js"></script>
+<script src="js/diary.js"></script>
+<script src="js/inbox.js"></script>
+<script src="js/dataentry.js"></script>
+<script src="js/filing.js"></script>
+<script src="js/dayplanner.js"></script>
+<script src="assets/vendor/xlsx.full.min.js"></script>
+<script src="js/exit.js"></script>
+<script src="js/payroll.js"></script>
+<script src="js/recruitment.js"></script>
+<script src="js/performance.js"></script>
+<script src="js/assets.js"></script>
+<script src="js/orgchart.js"></script>
+<script src="js/reports.js"></script>
+<script src="js/sessions.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
